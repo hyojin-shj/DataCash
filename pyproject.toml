@@ -1,0 +1,26 @@
+[project]
+name = "datacache"
+version = "0.1.0"
+description = "DataCache — 집에 있는 기기로 촉각·시각·청각·몸 감각을 한 시간축에 모으는 로봇 학습 데이터 양산소"
+requires-python = ">=3.11"
+dependencies = [
+  "numpy", "scipy", "opencv-python", "mediapipe", "pyarrow", "openai", "python-dotenv",
+  "fastapi", "uvicorn[standard]", "python-multipart", "jinja2", "httpx", "soundfile",
+  "imageio-ffmpeg", "meta-sam-parser>=0.1.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[project.scripts]
+datacache = "datacache.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["datacache*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

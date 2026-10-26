@@ -1,0 +1,22 @@
+# 비밀·개인 파일
+.env
+.env.*
+.macos
+# 데이터는 저장소에 넣지 않는다 (공개 영상·모델 파일·녹화·결과)
+data/
+out/
+*.mp4
+*.wav
+!web/**/*.mp4
+# 파이썬
+__pycache__/
+.venv/
+.pytest_cache/
+*.egg-info/
+# 안드로이드
+app/.gradle/
+app/build/
+app/app/build/
+app/local.properties
+app/.idea/
+.DS_Store
