@@ -2,19 +2,21 @@ package com.datacache.app;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CaptureRequest;
-import android.hardware.camera2.TotalCaptureResult;
 import android.media.MediaRecorder;
+import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.util.Range;
 import android.view.Surface;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -26,6 +28,7 @@ import java.util.List;
 /**
  * Camera2 → MediaRecorder(H.264). 장면마다 촬영 시각(SENSOR_TIMESTAMP)을 video_frames.csv 에 적는다.
  * 시각 기준이 REALTIME 인 카메라는 BOOTTIME(폰의 다른 기록과 같은 시계), 아니면 meta 에 표시한다.
+ * 앞/뒤 카메라, 배율(두 손가락·배율 버튼 — 녹화 중 바뀌면 시각을 남긴다), 화면 방향에 맞춘 영상 회전.
  */
 final class CameraRecorder {
     private final Context ctx;
@@ -33,12 +36,17 @@ final class CameraRecorder {
     private Handler handler;
     private CameraDevice camera;
     private CameraCaptureSession session;
+    private CaptureRequest.Builder request;
     private MediaRecorder recorder;
     private Surface previewSurface;
     private final List<Long> frameNs = new ArrayList<>();
+    private final JSONArray zoomLog = new JSONArray();
     private String timestampSource = "unknown";
-    private int width = 1280, height = 720, fps = 30;
-    private boolean recording;
+    private final int width = 1280, height = 720, fps = 30;
+    private boolean recording, front;
+    private int sensorOrientation = 90, orientationHint = 90;
+    private float zoom = 1f, maxZoom = 1f, minZoom = 1f;
+    private Rect active;
 
     CameraRecorder(Context c) {
         ctx = c;
@@ -50,24 +58,41 @@ final class CameraRecorder {
         open(preview, ready, false);
     }
 
-    /** front 면 앞 카메라 (얼굴 확인용 미리보기). */
+    boolean isFront() { return front; }
+    float zoom() { return zoom; }
+    float minZoom() { return minZoom; }
+    float maxZoom() { return maxZoom; }
+
+    /** front 면 앞 카메라. */
     @SuppressLint("MissingPermission")
     void open(SurfaceTexture preview, Ready ready, boolean front) {
+        this.front = front;
         thread = new HandlerThread("camera");
         thread.start();
         handler = new Handler(thread.getLooper());
         try {
             CameraManager cm = (CameraManager) ctx.getSystemService(Context.CAMERA_SERVICE);
             String id = null;
+            int want = front ? CameraCharacteristics.LENS_FACING_FRONT : CameraCharacteristics.LENS_FACING_BACK;
             for (String c : cm.getCameraIdList()) {
                 Integer f = cm.getCameraCharacteristics(c).get(CameraCharacteristics.LENS_FACING);
-                int want = front ? CameraCharacteristics.LENS_FACING_FRONT : CameraCharacteristics.LENS_FACING_BACK;
                 if (f != null && f == want) { id = c; break; }
             }
             if (id == null) id = cm.getCameraIdList()[0];
             CameraCharacteristics ch = cm.getCameraCharacteristics(id);
             Integer src = ch.get(CameraCharacteristics.SENSOR_INFO_TIMESTAMP_SOURCE);
             timestampSource = src != null && src == CameraCharacteristics.SENSOR_INFO_TIMESTAMP_SOURCE_REALTIME ? "BOOTTIME" : "unknown";
+            Integer so = ch.get(CameraCharacteristics.SENSOR_ORIENTATION);
+            sensorOrientation = so == null ? 90 : so;
+            active = ch.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
+            zoom = 1f;
+            minZoom = 1f;
+            Float mz = ch.get(CameraCharacteristics.SCALER_AVAILABLE_MAX_DIGITAL_ZOOM);
+            maxZoom = mz == null ? 1f : Math.min(mz, 10f);
+            if (Build.VERSION.SDK_INT >= 30) {
+                Range<Float> zr = ch.get(CameraCharacteristics.CONTROL_ZOOM_RATIO_RANGE);
+                if (zr != null) { minZoom = zr.getLower(); maxZoom = Math.min(zr.getUpper(), 10f); }
+            }
             preview.setDefaultBufferSize(width, height);
             previewSurface = new Surface(preview);
             cm.openCamera(id, new CameraDevice.StateCallback() {
@@ -80,15 +105,51 @@ final class CameraRecorder {
         }
     }
 
+    private void applyZoom(CaptureRequest.Builder b) {
+        if (Build.VERSION.SDK_INT >= 30) {
+            b.set(CaptureRequest.CONTROL_ZOOM_RATIO, zoom);
+        } else if (active != null) {
+            float z = Math.max(1f, zoom);
+            int w = Math.round(active.width() / z), h = Math.round(active.height() / z);
+            int x = active.centerX() - w / 2, y = active.centerY() - h / 2;
+            b.set(CaptureRequest.SCALER_CROP_REGION, new Rect(x, y, x + w, y + h));
+        }
+    }
+
+    /** 배율 바꾸기 (범위 안으로). 녹화 중이면 시각과 배율을 남긴다. */
+    void setZoom(float z) {
+        float nz = Math.max(minZoom, Math.min(maxZoom, z));
+        if (Math.abs(nz - zoom) < 0.01f) return;
+        zoom = nz;
+        if (recording) {
+            try { zoomLog.put(new JSONObject().put("t_ns", Clock.now()).put("zoom", Math.round(zoom * 100) / 100.0)); } catch (Exception ignored) {}
+        }
+        handler.post(() -> {
+            try {
+                if (request == null || session == null) return;
+                applyZoom(request);
+                session.setRepeatingRequest(request.build(), recording ? frameCallback : null, handler);
+            } catch (Exception ignored) {
+            }
+        });
+    }
+
+    private final CameraCaptureSession.CaptureCallback frameCallback = new CameraCaptureSession.CaptureCallback() {
+        @Override public void onCaptureStarted(CameraCaptureSession ss, CaptureRequest r, long ts, long frame) {
+            if (recording) synchronized (frameNs) { frameNs.add(ts); }
+        }
+    };
+
     private void startPreview(Ready ready) {
         try {
             camera.createCaptureSession(Arrays.asList(previewSurface), new CameraCaptureSession.StateCallback() {
                 @Override public void onConfigured(CameraCaptureSession s) {
                     session = s;
                     try {
-                        CaptureRequest.Builder b = camera.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
-                        b.addTarget(previewSurface);
-                        s.setRepeatingRequest(b.build(), null, handler);
+                        request = camera.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
+                        request.addTarget(previewSurface);
+                        applyZoom(request);
+                        s.setRepeatingRequest(request.build(), null, handler);
                         ready.ok();
                     } catch (Exception e) { ready.fail(e.getMessage()); }
                 }
@@ -99,7 +160,10 @@ final class CameraRecorder {
         }
     }
 
-    void start(File dir, Ready ready) {
+    /** displayRotation: Surface.ROTATION_* (녹화 시작 때 화면 방향) → 영상 회전 힌트. */
+    void start(File dir, int displayRotation, Ready ready) {
+        int deg = new int[]{0, 90, 180, 270}[displayRotation & 3];
+        orientationHint = front ? (sensorOrientation + deg) % 360 : (sensorOrientation - deg + 360) % 360;
         try {
             recorder = new MediaRecorder(ctx);
             recorder.setVideoSource(MediaRecorder.VideoSource.SURFACE);
@@ -108,7 +172,7 @@ final class CameraRecorder {
             recorder.setVideoEncodingBitRate(8_000_000);
             recorder.setVideoFrameRate(fps);
             recorder.setVideoSize(width, height);
-            recorder.setOrientationHint(90);
+            recorder.setOrientationHint(orientationHint);
             recorder.setOutputFile(new File(dir, "video.mp4").getAbsolutePath());
             recorder.prepare();
             Surface rec = recorder.getSurface();
@@ -118,19 +182,17 @@ final class CameraRecorder {
                 @Override public void onConfigured(CameraCaptureSession s) {
                     session = s;
                     try {
-                        CaptureRequest.Builder b = camera.createCaptureRequest(CameraDevice.TEMPLATE_RECORD);
-                        b.addTarget(previewSurface);
-                        b.addTarget(rec);
-                        b.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, new Range<>(fps, fps));
-                        s.setRepeatingRequest(b.build(), new CameraCaptureSession.CaptureCallback() {
-                            @Override public void onCaptureStarted(CameraCaptureSession ss, CaptureRequest r, long ts, long frame) {
-                                if (recording) synchronized (frameNs) { frameNs.add(ts); }
-                            }
-                        }, handler);
-                        recorder.start();
+                        request = camera.createCaptureRequest(CameraDevice.TEMPLATE_RECORD);
+                        request.addTarget(previewSurface);
+                        request.addTarget(rec);
+                        request.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, new Range<>(fps, fps));
+                        applyZoom(request);
                         recording = true;
+                        try { zoomLog.put(new JSONObject().put("t_ns", Clock.now()).put("zoom", Math.round(zoom * 100) / 100.0)); } catch (Exception ignored) {}
+                        s.setRepeatingRequest(request.build(), frameCallback, handler);
+                        recorder.start();
                         ready.ok();
-                    } catch (Exception e) { ready.fail(e.getMessage()); }
+                    } catch (Exception e) { recording = false; ready.fail(e.getMessage()); }
                 }
                 @Override public void onConfigureFailed(CameraCaptureSession s) { ready.fail("녹화 세션 실패"); }
             }, handler);
@@ -153,7 +215,8 @@ final class CameraRecorder {
             }
         }
         return new JSONObject().put("width", width).put("height", height).put("fps", fps)
-                .put("frames_logged", frameNs.size()).put("timestamp_source", timestampSource).put("orientation_hint", 90);
+                .put("frames_logged", frameNs.size()).put("timestamp_source", timestampSource)
+                .put("orientation_hint", orientationHint).put("camera", front ? "front" : "back").put("zoom_log", zoomLog);
     }
 
     void close() {
@@ -161,5 +224,8 @@ final class CameraRecorder {
         try { if (camera != null) camera.close(); } catch (Exception ignored) {}
         if (recorder != null) { try { recorder.release(); } catch (Exception ignored) {} }
         if (thread != null) thread.quitSafely();
+        session = null;
+        camera = null;
+        request = null;
     }
 }

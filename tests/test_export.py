@@ -50,3 +50,26 @@ def test_levels_drop_channels(synth_session, synth_tracks, tmp_path):
     f = json.loads((tmp_path / "basic" / "lerobot" / "meta" / "info.json").read_text())["features"]
     assert "observation.physio" not in f and "observation.imu.wrist" not in f and "observation.touch.vibration" not in f
     assert "observation.touch" in f                                   # 영상 접촉은 기본 등급에도
+
+
+def test_face_check_segment_left_out(synth_session, synth_tracks, tmp_path):
+    """녹화 1단계(얼굴 확인) 구간은 판매 데이터(LeRobot)에서 빠진다."""
+    import json
+    import shutil
+
+    import pyarrow.parquet as pq
+
+    from datacache.pipeline import process
+
+    d, truth = synth_session
+    d2 = tmp_path / "s"
+    shutil.copytree(d, d2)
+    m = json.loads((d2 / "meta.json").read_text())
+    m["face_check"] = {"passed": True, "start_ns": truth["P0"], "end_ns": truth["P0"] + 3_000_000_000, "clock": "BOOTTIME"}
+    (d2 / "meta.json").write_text(json.dumps(m))
+    hand, objs, _ = synth_tracks
+    process(d2, tmp_path / "o", hand_points=hand, objects=objs, extract=False)
+    t = pq.read_table(tmp_path / "o" / "lerobot" / "data" / "chunk-000" / "file-000.parquet")
+    ts = t.column("timestamp").to_pylist()
+    full = len(np.loadtxt(d2 / "video_frames.csv", delimiter=",", skiprows=1))
+    assert ts[0] == 0.0 and abs(len(ts) - (full - 30 * 3.3)) <= 3      # 3.3초(얼굴 확인 + 여유) 뒤부터만

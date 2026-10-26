@@ -40,6 +40,13 @@ def _fingertips(labels) -> List[Optional[np.ndarray]]:
     return out
 
 
+def face_check_end_s(meta: dict, first_frame_ns: int) -> float:
+    """녹화 1단계(얼굴 확인)가 끝난 시각(첫 장면 기준 초, 0.3초 여유). 없으면 0."""
+    fc = meta.get("face_check") or {}
+    end = fc.get("end_ns")
+    return max(0.0, (int(end) - first_frame_ns) / 1e9 + 0.3) if end else 0.0
+
+
 def process(session_dir, out_dir, level: str = "bio", fps: float = 30.0, masked_video=None, labels=None,
             objects: Optional[Sequence[dict]] = None, hand_points=None, steps: Optional[list] = None,
             verified_steps: Optional[list] = None, episodes_s: Optional[list] = None, privacy: Optional[dict] = None,
@@ -125,6 +132,9 @@ def process(session_dir, out_dir, level: str = "bio", fps: float = 30.0, masked_
 
     # 4~5. 에피소드마다 격자 + 채널
     spans = episodes_s or [(0.0, (frame_ns[-1] - frame_ns[0]) / 1e9)]
+    cut = face_check_end_s(s.meta, int(frame_ns[0]))   # 1단계 얼굴 확인 구간은 판매 데이터에서 뺀다
+    if cut > 0:
+        spans = [(max(a, cut), b) for a, b in spans if b - max(a, cut) >= 1.0]
     eps, vids = [], []
     marks = s.meta.get("self_marks_ns") or []
     for a_s, b_s in spans:

@@ -243,21 +243,38 @@ final class Ui {
         return f;
     }
 
-    /** 카메라 미리보기 비율 맞추기: 1280×720 가로 버퍼가 세로로 돌아 들어오므로 9:16 내용을 화면에 가운데 잘라 채운다. */
-    static void fitPreview(android.view.TextureView v, boolean mirror) {
-        boolean first = v.getTag() == null;
-        v.setTag(mirror);
-        if (first) v.addOnLayoutChangeListener((x, l, t, r, b, ol, ot, or, ob) -> applyFit(v));
-        applyFit(v);
+    /**
+     * 카메라 미리보기를 늘이지 않고 칸 안에 비율 그대로 (찍히는 범위가 다 보이게). TextureView 는 버퍼를 칸에 억지로 늘이고
+     * 화면이 가로일 때 버퍼를 돌려 주지 않으므로, 화면 방향에 맞춰 돌리고 줄인다. 버퍼는 1280×720.
+     */
+    static void fitPreview(Activity a, android.view.TextureView v) {
+        if (v.getTag() == null) {
+            v.setTag(Boolean.TRUE);
+            v.addOnLayoutChangeListener((x, l, t, r, b, ol, ot, or, ob) -> applyFit(a, v));
+        }
+        applyFit(a, v);
     }
 
-    private static void applyFit(android.view.TextureView v) {
-        float vw = v.getWidth(), vh = v.getHeight(), content = 720f / 1280f;
+    @SuppressWarnings("deprecation")
+    static void applyFit(Activity a, android.view.TextureView v) {
+        float vw = v.getWidth(), vh = v.getHeight(), bw = 1280f, bh = 720f;
         if (vw <= 0 || vh <= 0) return;
-        float sx = 1f, sy = 1f;
-        if (vw / vh < content) sx = vh * content / vw; else sy = vw / content / vh;
+        int rot = a.getWindowManager().getDefaultDisplay().getRotation();
+        float cx = vw / 2, cy = vh / 2;
         android.graphics.Matrix m = new android.graphics.Matrix();
-        m.setScale(Boolean.TRUE.equals(v.getTag()) ? -sx : sx, sy, vw / 2, vh / 2);
+        if (rot == android.view.Surface.ROTATION_90 || rot == android.view.Surface.ROTATION_270) {
+            android.graphics.RectF view = new android.graphics.RectF(0, 0, vw, vh);
+            android.graphics.RectF buf = new android.graphics.RectF(0, 0, bh, bw);
+            buf.offset(cx - buf.centerX(), cy - buf.centerY());
+            m.setRectToRect(view, buf, android.graphics.Matrix.ScaleToFit.FILL);
+            float k = Math.min(vh / bh, vw / bw);
+            m.postScale(k, k, cx, cy);
+            m.postRotate(90 * (rot - 2), cx, cy);
+        } else {   // 세로: 버퍼가 이미 세워져 칸을 채우므로 비율만
+            float k = Math.min(vw / bh, vh / bw);
+            m.setScale(k * bh / vw, k * bw / vh, cx, cy);
+            if (rot == android.view.Surface.ROTATION_180) m.postRotate(180, cx, cy);
+        }
         v.setTransform(m);
     }
 

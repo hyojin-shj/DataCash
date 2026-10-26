@@ -132,27 +132,33 @@ class People:
         d = self.load(device)
         return {"owner_registered": bool(d.get("owner")), "people": [self.public(p) for p in d["people"]]}
 
-    def matcher(self, device: Optional[str]):
-        """녹화 처리용: 특징값 → ('owner' | 'consented' | None, 이름표). 등록이 하나도 없으면 None."""
-        if not device or not DEVICE.match(device):
-            return None
-        d = self.load(device)
-        refs: List[Tuple[str, str, list]] = []
-        if d.get("owner"):
-            refs.append(("owner", "owner", d["owner"]["embedding"]))
-        for p in d["people"]:
-            if p.get("consent_video") and p.get("consent_sale"):
-                refs.append(("consented", p["relation"] or "family", p["embedding"]))
-        if not refs:
-            return None
+    def matcher(self, device: Optional[str], session_owner=None):
+        """녹화 처리용: 특징값 → ('owner' | 'consented' | None, 이름표, 닮음). 등록이 하나도 없으면 None.
+        session_owner: 이 녹화 1단계(얼굴 확인)에서 뽑은 얼굴 — 본인 등록이 없어도 참여자를 알아볼 수 있게."""
+        d = self.load(device) if device and DEVICE.match(device) else None
+        return matcher_from(d, session_owner)
 
-        def match(emb) -> Tuple[Optional[str], str, float]:
-            ranked = sorted(((sim(e, emb), kind, tag) for kind, tag, e in refs), key=lambda x: -x[0])
-            best = ranked[0]
-            clear = len(ranked) == 1 or best[0] - ranked[1][0] >= MARGIN
-            return (best[1], best[2], best[0]) if best[0] >= SAME_PERSON and clear else (None, "", best[0])
 
-        return match
+def matcher_from(d: Optional[dict], session_owner=None):
+    refs: List[Tuple[str, str, list]] = []
+    if d and d.get("owner"):
+        refs.append(("owner", "owner", d["owner"]["embedding"]))
+    if session_owner is not None:
+        refs.append(("owner", "face_check", list(np.asarray(session_owner, np.float32))))
+    for p in (d or {}).get("people", []):
+        if p.get("consent_video") and p.get("consent_sale"):
+            refs.append(("consented", p["relation"] or "family", p["embedding"]))
+    if not refs:
+        return None
+
+    def match(emb) -> Tuple[Optional[str], str, float]:
+        ranked = sorted(((sim(e, emb), kind, tag) for kind, tag, e in refs), key=lambda x: -x[0])
+        best = ranked[0]
+        rivals = [r for r in ranked[1:] if r[1] != best[1]]      # 본인 기준이 둘(등록·얼굴 확인)이어도 서로 경쟁하지 않게
+        clear = not rivals or best[0] - rivals[0][0] >= MARGIN
+        return (best[1], best[2], best[0]) if best[0] >= SAME_PERSON and clear else (None, "", best[0])
+
+    return match
 
 
 def default_people() -> People:

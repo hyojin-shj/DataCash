@@ -126,7 +126,7 @@ public class FaceActivity extends Activity implements TextureView.SurfaceTexture
             @Override public void ok() {}
             @Override public void fail(String why) { runOnUiThread(() -> msg.setText("카메라: " + why)); }
         }, front);
-        Ui.fitPreview(preview, front);           // 비율 유지, 앞 카메라는 거울처럼
+        Ui.fitPreview(this, preview);
     }
 
     private void reopen() {

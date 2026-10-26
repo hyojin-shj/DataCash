@@ -10,7 +10,7 @@ import android.view.View;
 /** 직접 그리는 선 아이콘 (24 단위 칸 기준, 크기에 맞춰 늘림). 이미지 파일 없이 색만 바꿔 쓴다. */
 final class Icon extends View {
     static final int BACK = 0, CHEVRON = 1, STAR = 2, WATCH = 3, FILM = 4, SHIELD = 5, CLOUD = 6, HAND = 7,
-            TARGET = 8, CHECK = 9, PERSON = 10, SPARK = 11, LIST = 12, FACE = 13, PLUS = 14;
+            TARGET = 8, CHECK = 9, PERSON = 10, SPARK = 11, LIST = 12, FACE = 13, PLUS = 14, SWITCH = 15;
 
     private final int kind;
     private final Paint line = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -131,6 +131,14 @@ final class Icon extends View {
                 c.drawCircle(14.5f, 10.5f, 1.1f, fill);
                 p.reset();
                 p.moveTo(9, 15); p.cubicTo(10.5f, 16.8f, 13.5f, 16.8f, 15, 15);
+                c.drawPath(p, line);
+                break;
+            case SWITCH:   // 앞뒤 카메라 (돌아가는 두 화살표)
+                r.set(4, 4, 20, 20);
+                c.drawArc(r, 200, 140, false, line);
+                c.drawArc(r, 20, 140, false, line);
+                p.moveTo(19.5f, 4.5f); p.lineTo(19.8f, 9); p.lineTo(15.4f, 8.6f);
+                p.moveTo(4.5f, 19.5f); p.lineTo(4.2f, 15); p.lineTo(8.6f, 15.4f);
                 c.drawPath(p, line);
                 break;
             case PLUS:
