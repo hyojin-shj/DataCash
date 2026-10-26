@@ -121,7 +121,8 @@ class Store:
             out.append({**{k: m[k] for k in ("id", "title", "title_en", "guide", "purpose", "objects")},
                         "recordings": len(mine), "hours": hours, "episodes": sum(r["episodes"] for r in mine),
                         "verified_steps": sum(r["verified_steps"] for r in mine), "steps": sum(r["steps"] for r in mine),
-                        "samples": [r["sid"] for r in mine][:4], "synthetic_only": bool(mine) and all(r["synthetic"] for r in mine)})
+                        "samples": [r["sid"] for r in sorted(mine, key=lambda r: (-pricing.LEVELS.index(r["level"]), -r["steps"], r["synthetic"]))][:4],
+                        "synthetic_only": bool(mine) and all(r["synthetic"] for r in mine)})
         extra = sorted({r["mission"] for r in rows} - {m["id"] for m in ms})
         for mid in extra:
             mine = [r for r in rows if r["mission"] == mid]

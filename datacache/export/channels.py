@@ -168,12 +168,16 @@ def audio_rows(audio, grid, onsets, confirmed, fps) -> np.ndarray:
     A = np.zeros((len(grid), 3), np.float32)
     A[:, 0] = -120.0
     if audio is not None:
+        from scipy.signal import butter, sosfiltfilt
+
+        # 들리는 소리 세기만 (12kHz 아래) — 사람 귀에 안 들리는 음향 비콘(18~20kHz)은 빼고 잰다
+        x = sosfiltfilt(butter(4, min(12000, audio.rate / 2 * 0.9), btype="low", fs=audio.rate, output="sos"), audio.x)
         half = int(audio.rate / fps / 2)
         pos = ((grid - audio.start_ns) / 1e9 * audio.rate).astype(np.int64)
         for r, p in enumerate(pos):
-            a, b = max(0, p - half), min(len(audio.x), p + half)
+            a, b = max(0, p - half), min(len(x), p + half)
             if b > a:
-                A[r, 0] = 20 * np.log10(np.sqrt(np.mean(audio.x[a:b] ** 2)) + 1e-6)
+                A[r, 0] = 20 * np.log10(np.sqrt(np.mean(x[a:b] ** 2)) + 1e-6)
     step = 1e9 / fps
     for e in onsets or []:
         r = int(np.searchsorted(grid, e["t_ns"] - step / 2))

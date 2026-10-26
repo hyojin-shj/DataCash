@@ -100,7 +100,7 @@
   </div>
   <div class="kpis">
     <div class="kpi"><b id="k-rec">-</b><span>처리된 녹화</span></div>
-    <div class="kpi"><b id="k-hours">-</b><span>시간 (받아들인 분량)</span></div>
+    <div class="kpi"><b id="k-hours">-</b><span>받아들인 분량</span></div>
     <div class="kpi"><b>4감</b><span>촉각 · 시각 · 청각 · 몸 감각</span></div>
     <div class="kpi"><b>&lt; 1ms</b><span>워치↔폰 자동 동기화 (합성 검증)</span></div>
   </div>
@@ -188,17 +188,18 @@
 <script>
 const $ = s => document.querySelector(s);
 const won = n => (Math.round(n) || 0).toLocaleString("ko-KR") + "원";
+const hrs = h => h <= 0 ? "-" : h < 1 ? (h * 60).toFixed(1) + "분" : h.toFixed(2) + "시간";
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 let CAT = null, LEVEL = "premium", TL = null, SID = null;
 
 async function load() {
   CAT = await (await fetch("/api/market/catalog")).json();
   $("#k-rec").textContent = CAT.totals.recordings;
-  $("#k-hours").textContent = CAT.totals.hours.toFixed(2);
+  $("#k-hours").textContent = hrs(CAT.totals.hours);
   $("#catBody").innerHTML = CAT.missions.map(m => `<tr>
     <td><b>${esc(m.title)}</b><div class="note">${esc(m.title_en)}</div></td><td class="note">${esc(m.purpose)}</td>
     <td>${m.recordings}${m.synthetic_only ? ' <span class="pill">합성 시험</span>' : ""}</td>
-    <td>${m.hours.basic.toFixed(2)}h</td><td>${m.hours.premium.toFixed(2)}h</td><td>${m.hours.bio.toFixed(2)}h</td>
+    <td>${hrs(m.hours.basic)}</td><td>${hrs(m.hours.premium)}</td><td>${hrs(m.hours.bio)}</td>
     <td>${m.steps ? `<span class="pill ok">${m.verified_steps}/${m.steps}</span>` : "-"}</td></tr>`).join("");
   $("#levels").innerHTML = CAT.levels.map(l => `<div class="card level ${l.id === LEVEL ? "sel" : ""}" data-l="${l.id}" style="cursor:pointer">
     <h3>${esc(l.name)}</h3><div class="price">${won(l.per_hour)}<small> / 시간</small></div>
