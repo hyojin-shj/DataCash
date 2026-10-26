@@ -76,10 +76,18 @@ public class HistoryActivity extends Activity {
             up.setMinHeight(Ui.dp(this, 44));
             acts.addView(up, Ui.margins(this, -1, -2, 0, 0, 0, 0, 8));
         }
+        LinearLayout links = new LinearLayout(this);
         TextView more = Ui.text(this, "결과 보기 ›", 13, Ui.PRIMARY, true);
-        more.setPadding(0, Ui.dp(this, 2), 0, 0);
+        more.setPadding(0, Ui.dp(this, 2), Ui.dp(this, 18), 0);
         more.setOnClickListener(v -> open(d, false));
-        acts.addView(more, Ui.wrap());
+        links.addView(more);
+        if (!s.equals("saved") && !s.equals("uploading")) {     // 서버에 올라간 녹화만
+            TextView ap = Ui.text(this, "이의 신청 ›", 13, Ui.SUB, true);
+            ap.setPadding(0, Ui.dp(this, 2), 0, 0);
+            ap.setOnClickListener(v -> AppealsActivity.ask(this, d.getName(), () -> startActivity(new Intent(this, AppealsActivity.class))));
+            links.addView(ap);
+        }
+        acts.addView(links, Ui.wrap());
         box.addView(acts);
         box.setGravity(Gravity.START);
         return box;

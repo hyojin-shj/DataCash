@@ -62,7 +62,8 @@ def run_calibration(sd: Path, out: Path, store: Path) -> dict:
 
 
 def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str] = None, log=print,
-                calibration_store: Optional[Path] = None) -> dict:
+                calibration_store: Optional[Path] = None, people=None) -> dict:
+    """people: 사람 알아보기 (people.People). 이 폰에 등록된 본인 얼굴이 참여자를, 동의한 가족이 가리지 않을 사람을 정한다."""
     sd, out = Path(session_dir), Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     meta = json.loads((sd / "meta.json").read_text())
@@ -89,7 +90,9 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
             from .privacy import mask_video
 
             pts = [[h[FINGERTIPS, :2] for h in f.hands if h is not None] for f in labels]   # 장면마다 손별 손끝
-            r = mask_video(video, out / "masked.mp4", manipulated=mission.get("objects", [])[:3], hand_pts=pts)
+            dev = ((meta.get("devices") or {}).get("phone") or {}).get("id")
+            match = people.matcher(dev) if people is not None else None
+            r = mask_video(video, out / "masked.mp4", manipulated=mission.get("objects", [])[:3], hand_pts=pts, match=match)
             masked, objects, privacy = r.masked_video, r.objects, r.report
             log(f"[{sd.name}] 가리기: {json.dumps(r.report, ensure_ascii=False)[:300]}")
         except BudgetExceeded as e:
@@ -99,12 +102,13 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
     # 2-1. 참여자 얼굴 → 실존하지 않는 가상 인물 (LivePortrait + MediaPipe 자르기, 재식별 검사)
     if masked is not None and not synthetic and os.environ.get("DATACACHE_FACESWAP", "1") == "1":
         try:
-            from .privacy.faceswap import pick_donor, swap_video
+            from .privacy.faceswap import rank_donors, swap_video
 
-            donor = pick_donor(video)
-            if donor is not None:
-                sr = swap_video(video, masked, out / "masked_swap.mp4", donor,
-                                participant_boxes=getattr(r, "participant_boxes", None), log=log)
+            donors = rank_donors(video)
+            if donors:
+                sr = swap_video(video, masked, out / "masked_swap.mp4", donors[0],
+                                participant_boxes=getattr(r, "participant_boxes", None), log=log,
+                                consented_boxes=getattr(r, "consented_boxes", None), extra_donors=donors[1:])
                 masked = out / "masked_swap.mp4"
                 privacy = {**(privacy or {}), "face_swap": sr.to_dict()}
         except Exception as e:

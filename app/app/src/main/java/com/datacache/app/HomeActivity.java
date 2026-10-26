@@ -102,17 +102,19 @@ public class HomeActivity extends Activity {
                 null, v -> open(PayoutActivity.class)));
         menu.addView(Ui.row(this, Icon.WATCH, Ui.PRIMARY, Ui.PRIMARY_SOFT, "스마트 기기 연결",
                 "워치를 이으면 촉각·생체까지 담겨 고품질 등급", null, v -> open(DevicesActivity.class)));
-        menu.addView(Ui.row(this, Icon.HAND, Ui.VIOLET, Ui.VIOLET_SOFT, "쥐는 힘 맞추기",
+        menu.addView(Ui.row(this, Icon.HAND, Ui.PRIMARY, Ui.PRIMARY_SOFT, "쥐는 힘 맞추기",
                 "저울을 세 번 누르면 워치가 내 쥐는 힘을 재요 (한 번만)", null, v -> open(CalibrationActivity.class)));
+        menu.addView(Ui.row(this, Icon.PERSON, Ui.OK, Ui.OK_SOFT, "개인정보 동의 인원",
+                "함께 찍히는 가족, 동의 받고 추가", null, v -> open(PeopleActivity.class)));
         menu.addView(Ui.row(this, Icon.FILM, Ui.ACCENT_INK, Ui.ACCENT_SOFT, "내 녹화 기록",
-                "검수 결과와 보상", null, v -> open(HistoryActivity.class)));
-        menu.addView(Ui.row(this, Icon.PERSON, Ui.OK, Ui.OK_SOFT, "개인정보 동의",
-                Store.bioConsent(this) ? "영상·소리·움직임 + 워치 생체 동의함" : "영상·소리·움직임 동의함", null, v -> open(ConsentActivity.class)));
+                "검수 결과와 보상, 이의 신청", null, v -> open(HistoryActivity.class)));
+        menu.addView(Ui.row(this, Icon.LIST, Ui.VIOLET, Ui.VIOLET_SOFT, "이의 신청 현황",
+                "자동 확인 · 검토자 확인 · 결과", null, v -> open(AppealsActivity.class)));
         Ui.add(this, body, menu);
 
         LinearLayout privacy = Ui.listCard(this);
         privacy.addView(Ui.row(this, Icon.SHIELD, Ui.SUB, Ui.FIELD, "내 데이터는 이렇게 지켜져요",
-                "동의하지 않은 사람·아이·화면·거울은 가리고, 내 얼굴은 실존하지 않는 가상 인물로 바꾼 뒤에만 판매돼요", null, null));
+                "동의하지 않은 사람·아이·화면·거울은 가리고, 나와 동의한 사람 얼굴은 실존하지 않는 가상 인물로 바꾼 뒤에만 판매돼요", null, null));
         Ui.add(this, body, privacy);
     }
 

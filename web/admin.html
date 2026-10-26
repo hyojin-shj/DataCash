@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>DataCache · 주문 관리</title>
+<title>DataCache · 운영</title>
 <link rel="icon" href="/static/favicon.png">
 <style>
   :root { --primary: #FF5F5F; --primary-dark: #E84646; --ink: #333; --sub: #6E6E73; --line: #ECECEE; --bg: #FAFAFB; --ok: #16A36B; }
@@ -16,6 +16,11 @@
   .st { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 99px; background: #F1F1F3; }
   .st.ready { background: #E6F7EF; color: var(--ok); } .st.failed { background: #FFECEC; color: var(--primary-dark); }
   .meta { color: var(--sub); font-size: 13px; margin-top: 6px; }
+  h2 { font-size: 18px; margin: 30px 0 6px; }
+  .steps { margin: 10px 0 0; padding-left: 18px; font-size: 13px; color: var(--sub); }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+  .row input { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font: inherit; }
+  button.no { background: #F1F1F3; color: var(--ink); }
   button { border: 0; border-radius: 10px; padding: 9px 16px; font-weight: 700; background: var(--primary); color: #fff; cursor: pointer; margin-top: 10px; }
 </style>
 </head>
@@ -23,6 +28,9 @@
   <h1><img src="/static/icon.png" alt="">주문 관리</h1>
   <p class="meta">계약·결제를 확인한 뒤 승인하면 묶음(LeRobot)이 만들어지고 구매자 화면에 내려받기 주소가 나타납니다.</p>
   <div id="list">불러오는 중…</div>
+  <h2>이의 신청</h2>
+  <p class="meta">자동 확인으로 끝나지 않은 신청만 결정이 필요합니다. '가려야 할 게 보여요'는 신청 즉시 판매에서 빠지고, 인정하지 않으면 다시 판매됩니다.</p>
+  <div id="appeals">불러오는 중…</div>
 </div>
 <script>
 const token = new URLSearchParams(location.search).get("token") || "";
@@ -40,7 +48,26 @@ async function load() {
   if (os.some(o => o.status === "building")) setTimeout(load, 3000);
 }
 async function approve(id) { await fetch(`/api/admin/orders/${encodeURIComponent(id)}/approve?token=${encodeURIComponent(token)}`, {method: "POST"}); setTimeout(load, 600); }
+const STATE = {auto: "자동 확인", review: "검토 필요", reprocessing: "다시 처리 중", accepted: "인정", rejected: "인정 안 함"};
+async function loadAppeals() {
+  const r = await fetch("/api/admin/appeals?token=" + encodeURIComponent(token));
+  if (!r.ok) return;
+  const as = (await r.json()).appeals;
+  document.getElementById("appeals").innerHTML = as.length ? as.map(a => `<div class="o"><div class="top"><b>${esc(a.reason_ko)} · 녹화 ${esc(a.sid)}</b>
+    <span class="st ${a.state === "accepted" ? "ready" : a.state === "rejected" ? "failed" : ""}">${esc(STATE[a.state] || a.state)}</span></div>
+    <div class="meta">${esc(a.created)} · 기기 ${esc(a.device)}${a.detail ? `<br>내용: ${esc(a.detail)}` : ""}${a.extra_reward ? ` · 추가 보상 ${won(a.extra_reward)}` : ""}</div>
+    <ol class="steps">${a.steps.map(s => `<li>${esc(s.note)} <span style="opacity:.6">${esc(s.at)}</span></li>`).join("")}</ol>
+    ${a.state === "review" ? `<div class="row"><input id="note-${esc(a.id)}" placeholder="결정 이유"><input id="won-${esc(a.id)}" type="number" min="0" step="10" placeholder="추가 보상(원)" style="width:130px">
+      <button onclick="decide('${esc(a.id)}', true)">인정</button><button class="no" onclick="decide('${esc(a.id)}', false)">인정 안 함</button></div>` : ""}</div>`).join("") : "이의 신청이 없습니다";
+}
+async function decide(id, accept) {
+  const note = document.getElementById("note-" + id).value, extra = +document.getElementById("won-" + id).value || 0;
+  await fetch(`/api/admin/appeals/${encodeURIComponent(id)}?token=${encodeURIComponent(token)}`,
+    {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({accept, extra_reward: extra, note})});
+  loadAppeals();
+}
 load();
+loadAppeals();
 </script>
 </body>
 </html>

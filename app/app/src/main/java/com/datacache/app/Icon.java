@@ -10,7 +10,7 @@ import android.view.View;
 /** 직접 그리는 선 아이콘 (24 단위 칸 기준, 크기에 맞춰 늘림). 이미지 파일 없이 색만 바꿔 쓴다. */
 final class Icon extends View {
     static final int BACK = 0, CHEVRON = 1, STAR = 2, WATCH = 3, FILM = 4, SHIELD = 5, CLOUD = 6, HAND = 7,
-            TARGET = 8, CHECK = 9, PERSON = 10, SPARK = 11;
+            TARGET = 8, CHECK = 9, PERSON = 10, SPARK = 11, LIST = 12, FACE = 13, PLUS = 14;
 
     private final int kind;
     private final Paint line = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -114,6 +114,29 @@ final class Icon extends View {
                 p.lineTo(10, 17); p.lineTo(8.5f, 11.5f); p.lineTo(3, 10); p.lineTo(8.5f, 8.5f); p.close();
                 c.drawPath(p, fill);
                 c.drawCircle(18, 18, 2.2f, fill);
+                break;
+            case LIST:
+                for (int k = 0; k < 3; k++) {
+                    c.drawCircle(5, 6 + 6 * k, 1.4f, fill);
+                    c.drawLine(9, 6 + 6 * k, 20, 6 + 6 * k, line);
+                }
+                break;
+            case FACE:   // 얼굴 확인 (네 모서리 + 얼굴)
+                p.moveTo(3, 8); p.lineTo(3, 3); p.lineTo(8, 3);
+                p.moveTo(16, 3); p.lineTo(21, 3); p.lineTo(21, 8);
+                p.moveTo(21, 16); p.lineTo(21, 21); p.lineTo(16, 21);
+                p.moveTo(8, 21); p.lineTo(3, 21); p.lineTo(3, 16);
+                c.drawPath(p, line);
+                c.drawCircle(9.5f, 10.5f, 1.1f, fill);
+                c.drawCircle(14.5f, 10.5f, 1.1f, fill);
+                p.reset();
+                p.moveTo(9, 15); p.cubicTo(10.5f, 16.8f, 13.5f, 16.8f, 15, 15);
+                c.drawPath(p, line);
+                break;
+            case PLUS:
+                line.setStrokeWidth(2.4f);
+                c.drawLine(12, 5, 12, 19, line);
+                c.drawLine(5, 12, 19, 12, line);
                 break;
             default:
                 break;

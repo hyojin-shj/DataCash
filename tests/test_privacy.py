@@ -30,3 +30,29 @@ def test_both_hands_belong_to_participant():
 
 def test_first_person_without_tracked_body_keeps_all_hands():
     assert len(participant_hands(None, [_tips(50, 200), _tips(250, 200)])) == 2
+
+
+def test_small_face_found_for_swap():
+    """먼 장면의 작은 얼굴(MediaPipe 가 놓치는 크기)도 YuNet + 키워서 다시 찾기로 478점을 얻는다."""
+    import cv2
+    import pytest
+
+    from datacache import config
+
+    if not (config.MODELS / "yunet.onnx").exists() or not (config.MODELS / "face_landmarker.task").exists():
+        pytest.skip("얼굴 모델이 없음 (data/models)")
+    from datacache.privacy.faceswap import FaceLandmarks, Reid, find_small_faces
+
+    donor = cv2.imread(str(config.ROOT / "datacache" / "donors" / "donor0.png"))
+    fl, reid = FaceLandmarks(), Reid()
+    big = fl(donor)[0]
+    k = 40 / np.ptp(big[:, 1])                          # 얼굴 높이 40px 로 줄인다
+    small = cv2.resize(donor, None, fx=k, fy=k, interpolation=cv2.INTER_AREA)
+    frame = np.full((540, 960, 3), 235, np.uint8)
+    y0, x0 = 120, 600
+    frame[y0:y0 + small.shape[0], x0:x0 + small.shape[1]] = small
+    assert not fl(frame)                                # 원래 방식으로는 못 찾는다
+    found = find_small_faces(frame, fl, reid)
+    assert len(found) == 1
+    expect = big * k + np.array([x0, y0])
+    assert np.abs(found[0].mean(0) - expect.mean(0)).max() < 4    # 원래 좌표로 맞게 되돌린다

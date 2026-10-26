@@ -44,6 +44,8 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
     private TextView markBtn, timer, hint;
     private RecordRing recBtn;
     private String steps = "";
+    private boolean waitingFace;
+    private TextView stepLine;
     private final Handler ui = new Handler(Looper.getMainLooper());
     private String missionId, situation, title;
 
@@ -67,6 +69,7 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
         FrameLayout root = new FrameLayout(this);
         preview = new TextureView(this);
         preview.setSurfaceTextureListener(this);
+        Ui.fitPreview(preview, false);
         root.addView(preview, new FrameLayout.LayoutParams(-1, -1));
 
         // 위: 반투명 둥근 안내 카드 (미션·보상 · 동작 순서 · 상황)
@@ -78,6 +81,10 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
         hint = Ui.text(this, steps.isEmpty() ? "손과 물건이 잘 보이게 두고 빨간 버튼을 누르세요" : "동작 순서 · " + steps, 13, Ui.ACCENT, true);
         hint.setPadding(0, Ui.dp(this, 8), 0, 0);
         top.addView(hint);
+        stepLine = Ui.text(this, Store.faceCheckedRecently(this) ? "1단계 얼굴 확인 ✓ → 2단계 동작 촬영" : "1단계 얼굴 확인 → 2단계 동작 촬영",
+                12, 0xDDFFFFFF, true);
+        stepLine.setPadding(0, Ui.dp(this, 8), 0, 0);
+        top.addView(stepLine);
         TextView sit = Ui.text(this, "상황 · " + situation, 13, 0xDDFFFFFF, false);
         sit.setPadding(0, Ui.dp(this, 6), 0, 0);
         top.addView(sit);
@@ -113,6 +120,11 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
         root.addView(bar, new FrameLayout.LayoutParams(-1, Ui.dp(this, 128), Gravity.BOTTOM));
         setContentView(root);
 
+        if (!Store.faceCheckedRecently(this)) {     // 1단계: 동의한 본인이 찍는지 (처음이면 얼굴 등록)
+            waitingFace = true;
+            startActivityForResult(new Intent(this, FaceActivity.class)
+                    .putExtra("mode", Store.ownerFace(this) ? FaceActivity.CHECK : FaceActivity.OWNER), 21);
+        }
         if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED
                 || checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO}, 1);
@@ -129,7 +141,23 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
     @Override public boolean onSurfaceTextureDestroyed(SurfaceTexture st) { return true; }
     @Override public void onSurfaceTextureUpdated(SurfaceTexture st) {}
 
+    @Override
+    protected void onActivityResult(int req, int res, Intent data) {
+        super.onActivityResult(req, res, data);
+        if (req != 21) return;
+        if (res == RESULT_CANCELED) { finish(); return; }
+        if (res == RESULT_OK) {
+            Store.setFaceChecked(this, data == null ? 0 : data.getDoubleExtra("similarity", 0));
+            stepLine.setText("1단계 얼굴 확인 ✓ → 2단계 동작 촬영");
+        } else {
+            stepLine.setText("얼굴 확인 없이 찍어요 (참여자는 크기·손으로 골라요)");
+        }
+        waitingFace = false;
+        if (preview.isAvailable()) openCamera(preview.getSurfaceTexture());
+    }
+
     private void openCamera(SurfaceTexture st) {
+        if (waitingFace) return;           // 앞 카메라(얼굴 확인)가 끝난 뒤에 연다
         if (camera != null || checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) return;
         camera = new CameraRecorder(this);
         camera.open(st, new CameraRecorder.Ready() {
@@ -208,6 +236,7 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
                         .put("devices", new JSONObject().put("phone", new JSONObject().put("model", Build.MANUFACTURER + " " + Build.MODEL)
                                 .put("android", Build.VERSION.RELEASE).put("id", Store.deviceId(this))))
                         .put("participant", new JSONObject().put("consent", Store.consentJson(this)).put("age_band", Store.ageBand(this)))
+                        .put("face_check", Store.faceCheckJson(this))
                         .put("self_marks_ns", mk).put("video", video).put("audio", a).put("phone_imu_rows", imuRows)
                         .put("recorded_at", Clock.wallIso());
                 Files.write(new File(dir, "meta.json"), meta.toString(2));

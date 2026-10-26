@@ -29,6 +29,9 @@
         <activity android:name=".DevicesActivity" android:screenOrientation="portrait" android:windowSoftInputMode="adjustResize" />
         <activity android:name=".HistoryActivity" android:screenOrientation="portrait" />
         <activity android:name=".PayoutActivity" android:screenOrientation="portrait" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".FaceActivity" android:theme="@style/RecordTheme" android:screenOrientation="portrait" />
+        <activity android:name=".PeopleActivity" android:screenOrientation="portrait" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".AppealsActivity" android:screenOrientation="portrait" />
         <activity android:name=".CalibrationActivity" android:screenOrientation="portrait" android:windowSoftInputMode="adjustResize" />
     </application>
 </manifest>

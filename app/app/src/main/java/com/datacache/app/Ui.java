@@ -243,6 +243,24 @@ final class Ui {
         return f;
     }
 
+    /** 카메라 미리보기 비율 맞추기: 1280×720 가로 버퍼가 세로로 돌아 들어오므로 9:16 내용을 화면에 가운데 잘라 채운다. */
+    static void fitPreview(android.view.TextureView v, boolean mirror) {
+        boolean first = v.getTag() == null;
+        v.setTag(mirror);
+        if (first) v.addOnLayoutChangeListener((x, l, t, r, b, ol, ot, or, ob) -> applyFit(v));
+        applyFit(v);
+    }
+
+    private static void applyFit(android.view.TextureView v) {
+        float vw = v.getWidth(), vh = v.getHeight(), content = 720f / 1280f;
+        if (vw <= 0 || vh <= 0) return;
+        float sx = 1f, sy = 1f;
+        if (vw / vh < content) sx = vh * content / vw; else sy = vw / content / vh;
+        android.graphics.Matrix m = new android.graphics.Matrix();
+        m.setScale(Boolean.TRUE.equals(v.getTag()) ? -sx : sx, sy, vw / 2, vh / 2);
+        v.setTransform(m);
+    }
+
     static LinearLayout.LayoutParams weight() {
         return new LinearLayout.LayoutParams(0, -2, 1f);
     }

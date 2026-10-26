@@ -46,8 +46,13 @@ final class CameraRecorder {
 
     interface Ready { void ok(); void fail(String why); }
 
-    @SuppressLint("MissingPermission")
     void open(SurfaceTexture preview, Ready ready) {
+        open(preview, ready, false);
+    }
+
+    /** front 면 앞 카메라 (얼굴 확인용 미리보기). */
+    @SuppressLint("MissingPermission")
+    void open(SurfaceTexture preview, Ready ready, boolean front) {
         thread = new HandlerThread("camera");
         thread.start();
         handler = new Handler(thread.getLooper());
@@ -56,7 +61,8 @@ final class CameraRecorder {
             String id = null;
             for (String c : cm.getCameraIdList()) {
                 Integer f = cm.getCameraCharacteristics(c).get(CameraCharacteristics.LENS_FACING);
-                if (f != null && f == CameraCharacteristics.LENS_FACING_BACK) { id = c; break; }
+                int want = front ? CameraCharacteristics.LENS_FACING_FRONT : CameraCharacteristics.LENS_FACING_BACK;
+                if (f != null && f == want) { id = c; break; }
             }
             if (id == null) id = cm.getCameraIdList()[0];
             CameraCharacteristics ch = cm.getCameraCharacteristics(id);

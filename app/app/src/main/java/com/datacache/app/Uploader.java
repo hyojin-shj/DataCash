@@ -39,6 +39,30 @@ final class Uploader {
         return s.trim().startsWith("[") ? new JSONObject().put("list", new JSONArray(s)) : new JSONObject(s);
     }
 
+    /** 기기 id 머리글을 붙여 부른다 (얼굴 확인·동의 인원·이의 신청). body 가 null 이면 본문 없이. */
+    static JSONObject call(Context c, String method, String path, byte[] body, String type) throws Exception {
+        HttpURLConnection h = open(c, method, path);
+        h.setRequestProperty("X-DC-Device", Store.deviceId(c));
+        if (body != null) {
+            h.setDoOutput(true);
+            h.setRequestProperty("Content-Type", type);
+            h.setFixedLengthStreamingMode(body.length);
+            try (OutputStream o = h.getOutputStream()) { o.write(body); }
+        }
+        return json(h);
+    }
+
+    static JSONObject callJson(Context c, String method, String path, JSONObject body) throws Exception {
+        return call(c, method, path, body == null ? null : body.toString().getBytes("UTF-8"), "application/json");
+    }
+
+    /** 서버 오류 글에서 사람이 읽을 부분만 ({"detail": "..."}). */
+    static String reason(Exception e) {
+        String m = String.valueOf(e.getMessage());
+        int i = m.indexOf("{");
+        try { return i >= 0 ? new JSONObject(m.substring(i)).optString("detail", m) : m; } catch (Exception x) { return m; }
+    }
+
     static JSONArray missions(Context c) throws Exception {
         return json(open(c, "GET", "/api/missions")).getJSONArray("missions");
     }

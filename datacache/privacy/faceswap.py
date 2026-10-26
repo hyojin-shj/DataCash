@@ -35,7 +35,9 @@ class SwapReport:
     swapped: int = 0
     no_face: int = 0
     reid_blocked: int = 0
-    small_face_covered: int = 0     # 478점을 못 찾은 작은 얼굴 → YuNet 으로 찾아 가림 (원래 얼굴이 남지 않게)
+    small_face_swapped: int = 0     # 작은 얼굴: YuNet 으로 찾고 그 둘레를 키워 478점을 찾아 치환한 장면
+    small_face_covered: int = 0     # 그래도 478점을 못 찾은 작은 얼굴 → 모자이크로 가림 (원래 얼굴이 남지 않게)
+    family: int = 0                 # 동의한 가족 수 (사람마다 다른 가상 인물)
     reid_max: float = 0.0
     reid_mean: float = 0.0
     seconds: float = 0.0
@@ -129,6 +131,13 @@ class LivePortraitSwap:
         self.d0 = None
         return crop
 
+    def state(self) -> tuple:
+        """지금 가상 인물·움직임 기준 (여러 사람을 바꿀 때 사람마다 따로 둔다)."""
+        return self.s_info, self.s_feat, self.s_kp, self.s_R, self.d0
+
+    def use(self, st: tuple) -> None:
+        self.s_info, self.s_feat, self.s_kp, self.s_R, self.d0 = st
+
     def drive(self, drive_crop_bgr) -> np.ndarray:
         """원래 얼굴 crop → 가상 인물이 같은 움직임을 한 512 얼굴 (BGR)."""
         t = self.torch
@@ -178,6 +187,47 @@ class LivePortraitSwap:
         return (warped * mw + frame * (1 - mw)).astype(np.uint8)
 
 
+SMALL_TARGET = 360   # 작은 얼굴 둘레를 이 크기(px)로 키워 다시 찾는다
+
+
+def find_small_faces(frame, fl: "FaceLandmarks", reid: "Reid", participant_box=None) -> List[np.ndarray]:
+    """MediaPipe 가 못 찾는 작은 얼굴: YuNet 으로 상자를 찾고, 상자 3배 둘레를 SMALL_TARGET 크기로 키운 뒤
+    478점을 찾아 원래 좌표로 되돌린다 (먼 장면의 40px 얼굴도 치환할 수 있게)."""
+    h, w = frame.shape[:2]
+    reid.det.setInputSize((w, h))
+    _, boxes = reid.det.detect(frame)
+    out = []
+    for f in boxes if boxes is not None else []:
+        x, y, fw, fh = (float(v) for v in f[:4])
+        cx, cy = x + fw / 2, y + fh / 2
+        if participant_box is not None and not (participant_box[0] <= cx <= participant_box[2] and participant_box[1] <= cy <= participant_box[3]):
+            continue
+        side = 3.0 * max(fw, fh)
+        x0, y0 = int(max(0, cx - side / 2)), int(max(0, cy - side / 2))
+        x1, y1 = int(min(w, cx + side / 2)), int(min(h, cy + side / 2))
+        if x1 - x0 < 8 or y1 - y0 < 8:
+            continue
+        k = SMALL_TARGET / max(x1 - x0, y1 - y0)
+        roi = cv2.resize(frame[y0:y1, x0:x1], None, fx=k, fy=k, interpolation=cv2.INTER_CUBIC)
+        found = fl(roi)
+        if found:
+            lm = max(found, key=lambda a: np.ptp(a[:, 0]) * np.ptp(a[:, 1]))
+            out.append((lm / k + np.array([x0, y0], np.float32)).astype(np.float32))
+    return out
+
+
+def pixelate(img, x0: int, y0: int, x1: int, y1: int, cells: int = 7) -> None:
+    """상자 안을 가로 cells 칸 정도의 굵은 모자이크로 (얼굴 크기와 상관없이 알아볼 수 없게)."""
+    h, w = img.shape[:2]
+    x0, y0, x1, y1 = max(0, x0), max(0, y0), min(w, x1), min(h, y1)
+    if x1 - x0 < 4 or y1 - y0 < 4:
+        return
+    cw = max(1, cells)
+    ch = max(1, round(cells * (y1 - y0) / (x1 - x0)))
+    small = cv2.resize(img[y0:y1, x0:x1], (cw, ch), interpolation=cv2.INTER_AREA)
+    img[y0:y1, x0:x1] = cv2.resize(small, (x1 - x0, y1 - y0), interpolation=cv2.INTER_NEAREST)
+
+
 def cover_small_faces(base, original, reid: "Reid", participant_box=None) -> int:
     """치환할 수 없는 작은 얼굴을 YuNet 으로 찾아 모자이크로 덮는다 (참여자 상자가 있으면 그 안의 얼굴만). 덮은 개수."""
     h, w = original.shape[:2]
@@ -193,33 +243,43 @@ def cover_small_faces(base, original, reid: "Reid", participant_box=None) -> int
         x0, y0, x1, y1 = max(0, x - pad), max(0, y - pad), min(w, x + fw + pad), min(h, y + fh + pad)
         if x1 - x0 < 4 or y1 - y0 < 4:
             continue
-        roi = base[y0:y1, x0:x1]
-        small = cv2.resize(roi, (max(1, (x1 - x0) // 10), max(1, (y1 - y0) // 10)), interpolation=cv2.INTER_AREA)
-        base[y0:y1, x0:x1] = cv2.resize(small, (x1 - x0, y1 - y0), interpolation=cv2.INTER_NEAREST)
+        pixelate(base, x0, y0, x1, y1)
         n += 1
     return n
 
 
 def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[dict] = None, reid_every: int = 3,
-               log=print) -> SwapReport:
-    """original: 원래 영상(얼굴·움직임 읽기용), base: 가린 영상(같은 장면 수) 위에 바꾼 얼굴을 붙인다."""
+               log=print, consented_boxes: Optional[dict] = None, extra_donors: Optional[list] = None) -> SwapReport:
+    """original: 원래 영상(얼굴·움직임 읽기용), base: 가린 영상(같은 장면 수) 위에 바꾼 얼굴을 붙인다.
+    participant_boxes: 장면 → 참여자 상자. consented_boxes: 장면 → [(추적 id, 상자)] 동의한 가족 (사람마다 다른 가상 인물)."""
     import time
 
     t0 = time.time()
     rep = SwapReport(donor=Path(donor_img).name)
     fl, lp, reid = FaceLandmarks(), LivePortraitSwap(), Reid()
-    donor = cv2.imread(str(donor_img))
-    dl = fl(donor)
-    if not dl:
-        raise RuntimeError("가상 인물 사진에서 얼굴을 못 찾음")
-    lp.source(donor, dl[0])
+    donors = [Path(donor_img)] + [Path(d) for d in (extra_donors or []) if Path(d) != Path(donor_img)]
+    states: dict = {}
+
+    def person_state(key, k):
+        """사람(key)마다 가상 인물 하나: 참여자는 첫째, 가족은 다음 사람부터 차례로."""
+        if key not in states:
+            img = cv2.imread(str(donors[min(k, len(donors) - 1)]))
+            dl = fl(img)
+            if not dl:
+                raise RuntimeError("가상 인물 사진에서 얼굴을 못 찾음")
+            lp.source(img, dl[0])
+            states[key] = lp.state()
+        return states[key]
+
+    person_state("participant", 0)
     co, cb = cv2.VideoCapture(str(original)), cv2.VideoCapture(str(base))
     fps = cb.get(cv2.CAP_PROP_FPS) or 30
     w, h = int(cb.get(3)), int(cb.get(4))
     out_path = Path(out_path)
     raw = out_path.with_suffix(".raw.mp4")
     vw = cv2.VideoWriter(str(raw), cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))
-    sims, last_ok, i = [], True, 0
+    sims, ok_by_key, i = [], {}, 0
+    family_order: list = []
     while True:
         ok1, fo = co.read()
         ok2, fb = cb.read()
@@ -229,36 +289,58 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
             fo = cv2.resize(fo, (w, h))
         rep.frames += 1
         faces = fl(fo)
-        pb = (participant_boxes or {}).get(i)
-        if pb is not None and faces:
-            faces = [f for f in faces if pb[0] <= f[:, 0].mean() <= pb[2] and pb[1] <= f[:, 1].mean() <= pb[3]] or faces
-        if not faces:
+        targets = [("participant", (participant_boxes or {}).get(i))]
+        for oid, box in (consented_boxes or {}).get(i, []):
+            if oid not in family_order:
+                family_order.append(oid)
+            targets.append((f"family:{oid}", box))
+        res, any_face, used = fb, False, set()
+        for key, box in targets:
+            inside = [k for k, f in enumerate(faces) if k not in used and box is not None
+                      and box[0] <= f[:, 0].mean() <= box[2] and box[1] <= f[:, 1].mean() <= box[3]]
+            if not inside and box is None and key == "participant":
+                inside = [k for k in range(len(faces)) if k not in used]      # 참여자 상자가 없으면 가장 큰 얼굴
+            small = False
+            if inside:
+                kk = max(inside, key=lambda k: np.ptp(faces[k][:, 0]) * np.ptp(faces[k][:, 1]))
+                used.add(kk)
+                lmk = faces[kk]
+            else:
+                found = find_small_faces(fo, fl, reid, box)
+                if not found:
+                    continue
+                lmk, small = found[0], True
+            any_face = True
+            lp.use(person_state(key, 0 if key == "participant" else 1 + family_order.index(key.split(":", 1)[1])))
+            M = crop_matrix(lmk)
+            gen = lp.drive(warp_in(fo, M))
+            states[key] = lp.state()                       # 움직임 기준(d0)을 사람마다 이어 간다
+            gl = fl(gen)
+            out = lp.paste(res, gen, M, gl[0] if gl else None)
+            if i % reid_every == 0 or key not in ok_by_key:   # 재식별 검사: 바꾼 얼굴 ↔ 원래 얼굴
+                c = lmk.mean(0)
+                e0, e1 = reid.embed(fo, c), reid.embed(out, c)
+                if e0 is not None and e1 is not None:
+                    sv = reid.sim(e0, e1)
+                    sims.append(sv)
+                    ok_by_key[key] = sv < REID_MAX
+            if not ok_by_key.get(key, True):               # 알아봐지면 (옆얼굴 등) 원래 얼굴 둘레를 굵은 모자이크로
+                x0, y0 = lmk.min(0)
+                x1, y1 = lmk.max(0)
+                pad = 0.25 * max(x1 - x0, y1 - y0)
+                out = res.copy()
+                pixelate(out, int(x0 - pad), int(y0 - pad), int(x1 + pad), int(y1 + pad))
+                rep.reid_blocked += 1
+            else:
+                rep.swapped += 1
+                rep.small_face_swapped += small
+            res = out
+        if not any_face:
             rep.no_face += 1
-            covered = cover_small_faces(fb, fo, reid, pb)
+            covered = 0
+            for _, box in targets:
+                covered += cover_small_faces(res, fo, reid, box)
             rep.small_face_covered += covered > 0
-            vw.write(fb)
-            i += 1
-            continue
-        lmk = max(faces, key=lambda f: np.ptp(f[:, 0]) * np.ptp(f[:, 1]))
-        M = crop_matrix(lmk)
-        gen = lp.drive(warp_in(fo, M))
-        gl = fl(gen)
-        res = lp.paste(fb, gen, M, gl[0] if gl else None)
-        if i % reid_every == 0:                       # 재식별 검사: 바꾼 얼굴 ↔ 원래 얼굴
-            c = lmk.mean(0)
-            e0, e1 = reid.embed(fo, c), reid.embed(res, c)
-            if e0 is not None and e1 is not None:
-                sv = reid.sim(e0, e1)
-                sims.append(sv)
-                last_ok = sv < REID_MAX
-        if not last_ok:                               # 알아봐지면 얼굴 둘레를 회색으로
-            x0, y0 = lmk.min(0)
-            x1, y1 = lmk.max(0)
-            pad = 0.25 * max(x1 - x0, y1 - y0)
-            cv2.rectangle(res, (int(x0 - pad), int(y0 - pad)), (int(x1 + pad), int(y1 + pad)), (128, 128, 128), -1)
-            rep.reid_blocked += 1
-        else:
-            rep.swapped += 1
         vw.write(res)
         i += 1
         if i % 60 == 0:
@@ -270,15 +352,22 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
     raw.unlink()
     if sims:
         rep.reid_max, rep.reid_mean = float(np.max(sims)), float(np.mean(sims))
+    rep.family = len(family_order)
     rep.seconds = time.time() - t0
     return rep
 
 
 def pick_donor(original_video, donors_dir=None) -> Optional[Path]:
-    """참여자 얼굴과 가장 덜 닮은 가상 인물 (SFace 유사도 최소). 참여자 얼굴은 영상 앞 몇 장면에서."""
+    """참여자 얼굴과 가장 덜 닮은 가상 인물 (SFace 유사도 최소)."""
+    r = rank_donors(original_video, donors_dir)
+    return r[0] if r else None
+
+
+def rank_donors(original_video, donors_dir=None) -> List[Path]:
+    """가상 인물을 영상 속 얼굴들과 덜 닮은 순서로 (첫째는 참여자, 다음은 동의한 가족에게). 얼굴은 영상 곳곳 8장면에서."""
     donors = sorted(Path(donors_dir or Path(__file__).parents[1] / "donors").glob("*.png"))
     if not donors:
-        return None
+        return []
     reid = Reid()
     cap = cv2.VideoCapture(str(original_video))
     n = int(cap.get(7))
@@ -290,8 +379,8 @@ def pick_donor(original_video, donors_dir=None) -> Optional[Path]:
         if e is not None:
             embs.append(e)
     if not embs:
-        return donors[0]
+        return donors
     def worst(d):
         e = reid.embed(cv2.imread(str(d)))
         return 1.0 if e is None else max(reid.sim(e, x) for x in embs)
-    return min(donors, key=worst)
+    return sorted(donors, key=worst)

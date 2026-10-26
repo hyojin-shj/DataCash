@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence
+from typing import Dict, List, Optional, Sequence, Tuple
 
 import cv2
 import numpy as np
@@ -37,6 +37,7 @@ class PrivacyResult:
     object_names: List[str]
     report: dict = field(default_factory=dict)
     participant_boxes: Dict[int, tuple] = field(default_factory=dict)   # 장면마다 참여자 상자 (재검사·접촉용)
+    consented_boxes: Dict[int, List[tuple]] = field(default_factory=dict)   # 동의한 가족 (추적 id, 상자) — 가리지 않고 얼굴만 치환
 
 
 def _hands(frame_pts) -> List[np.ndarray]:
@@ -84,6 +85,47 @@ def participant_hands(p_obj: Optional[SamObject], frame_pts) -> List[np.ndarray]
     return out
 
 
+def identify_tracks(video, people: Dict[int, List[SamObject]], match, samples: int = 6) -> Dict[str, Tuple[str, float]]:
+    """사람 추적마다 크게 나온 장면 몇 개에서 얼굴 특징값을 뽑아 등록된 사람과 맞춘다.
+    match(특징값) → (종류, 이름표, 닮음). 추적 id → (종류 'owner'|'consented', 가장 높은 닮음). 못 알아본 추적은 빠진다."""
+    from ..people import embed_image
+
+    by_id: Dict[str, List[Tuple[float, int, tuple]]] = {}
+    for fi, objs in people.items():
+        for o in objs:
+            by_id.setdefault(o.object_id, []).append((o.area, fi, tuple(o.box)))
+    want: Dict[int, List[Tuple[str, tuple]]] = {}
+    for oid, rows in by_id.items():
+        rows.sort(key=lambda r: r[1])
+        pick = sorted(rows, key=lambda r: -r[0])[:max(1, samples * 3)]       # 큰 장면 위주로, 시간을 흩어서
+        pick = sorted(pick, key=lambda r: r[1])[::max(1, len(pick) // samples)][:samples]
+        for _, fi, box in pick:
+            want.setdefault(fi, []).append((oid, box))
+    votes: Dict[str, Dict[str, float]] = {}
+    cap = cv2.VideoCapture(str(video))
+    for fi in sorted(want):
+        cap.set(cv2.CAP_PROP_POS_FRAMES, fi)
+        ok, f = cap.read()
+        if not ok:
+            continue
+        for oid, box in want[fi]:
+            x0, y0, x1, y1 = box
+            head = (x0, y0, x1, y0 + min(y1 - y0, 1.2 * (x1 - x0)))     # 얼굴은 사람 상자 윗부분
+            emb, _ = embed_image(f, head)
+            if emb is None:
+                continue
+            kind, _, sv = match(emb)
+            if kind:
+                v = votes.setdefault(oid, {})
+                v[kind] = max(v.get(kind, 0.0), sv)
+    cap.release()
+    out = {}
+    for oid, v in votes.items():
+        kind = "owner" if "owner" in v else "consented"
+        out[oid] = (kind, v[kind])
+    return out
+
+
 def _choose_participant(people: Dict[int, List[SamObject]], hand_pts: Optional[Sequence] = None) -> Optional[str]:
     score: Dict[str, float] = {}
     for fi, objs in people.items():
@@ -99,7 +141,8 @@ def _choose_participant(people: Dict[int, List[SamObject]], hand_pts: Optional[S
 
 def mask_video(video, out_path, manipulated: Sequence[str] = (), participant: Optional[str] = None,
                hand_pts: Optional[Sequence] = None, sam: Optional[Sam] = None, dilate_px: int = 6,
-               concepts_people=PEOPLE, concepts_child=CHILD, concepts_sensitive=SENSITIVE) -> PrivacyResult:
+               concepts_people=PEOPLE, concepts_child=CHILD, concepts_sensitive=SENSITIVE, match=None) -> PrivacyResult:
+    """match: 등록된 본인·동의 가족 알아보기 (people.People.matcher). 본인과 맞는 추적이 참여자, 동의 가족은 가리지 않는다."""
     sam = sam or Sam()
     video = Path(video)
     file_id = sam.c.upload(video)
@@ -120,8 +163,13 @@ def mask_video(video, out_path, manipulated: Sequence[str] = (), participant: Op
     for c in concepts_people:
         for fi, objs in tracks[c].items():
             people.setdefault(fi, []).extend(objs)
-    pid = participant or _choose_participant(people, hand_pts)
+    known: Dict[str, Tuple[str, float]] = identify_tracks(video, people, match) if match is not None and people else {}
+    owners = sorted((v[1], oid) for oid, v in known.items() if v[0] == "owner")
+    pid = participant or (owners[-1][1] if owners else None) or _choose_participant(people, hand_pts)
+    consented = {oid for oid, v in known.items() if v[0] == "consented" and oid != pid}
     report["participant"] = pid
+    report["participant_by"] = "given" if participant else "face" if owners else "size_hands"
+    report["consented_people"] = len(consented)
 
     cap = cv2.VideoCapture(str(video))
     fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
@@ -135,6 +183,7 @@ def mask_video(video, out_path, manipulated: Sequence[str] = (), participant: Op
     slots: Dict[tuple, int] = {}
     masked_frac, fi = [], 0
     pboxes: Dict[int, tuple] = {}
+    cboxes: Dict[int, List[tuple]] = {}
     kept_parts = 0
     while True:
         ok, f = cap.read()
@@ -152,6 +201,9 @@ def mask_video(video, out_path, manipulated: Sequence[str] = (), participant: Op
         for c in concepts_people:
             for o in tracks[c].get(fi, []):
                 if o.object_id == pid or o.mask is None:
+                    continue
+                if o.object_id in consented:      # 동의한 가족: 가리지 않고 얼굴 치환 대상으로
+                    cboxes.setdefault(fi, []).append((o.object_id, tuple(float(v) for v in o.box)))
                     continue
                 if mine and any(_inside(o.mask, hp) >= 0.4 for hp in mine):
                     kept_parts += 1        # 참여자의 다른 팔 (SAM 이 따로 잡은 조각) → 가리지 않음
@@ -186,4 +238,4 @@ def mask_video(video, out_path, manipulated: Sequence[str] = (), participant: Op
                   frames_with_masking_pct=round(100 * float(np.mean(np.array(masked_frac) > 0)) if masked_frac else 0.0, 1),
                   participant_parts_kept=kept_parts)
     names = [f"{c}#{oid}" for (c, oid), _ in sorted(slots.items(), key=lambda kv: kv[1])]
-    return PrivacyResult(out_path, pid, objects, names, report, pboxes)
+    return PrivacyResult(out_path, pid, objects, names, report, pboxes, cboxes)
