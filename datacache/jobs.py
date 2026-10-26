@@ -88,8 +88,7 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
         try:
             from .privacy import mask_video
 
-            pts = [None if all(h is None for h in f.hands) else
-                   np.concatenate([h[FINGERTIPS, :2] for h in f.hands if h is not None]) for f in labels]
+            pts = [[h[FINGERTIPS, :2] for h in f.hands if h is not None] for f in labels]   # 장면마다 손별 손끝
             r = mask_video(video, out / "masked.mp4", manipulated=mission.get("objects", [])[:3], hand_pts=pts)
             masked, objects, privacy = r.masked_video, r.objects, r.report
             log(f"[{sd.name}] 가리기: {json.dumps(r.report, ensure_ascii=False)[:300]}")

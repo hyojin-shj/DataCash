@@ -72,9 +72,12 @@ def visible_frac(img, box):
     return float(1 - gray.mean())
 
 
+MIN_PERSON_PX = 40   # 이보다 작은 '사람'은 얼굴이 몇 픽셀 → 알아볼 수 없음. 따로 센다 (small_redetected)
+
+
 def is_other(o, pb, img):
-    if pb is not None and (iou(o.box, pb) >= 0.3 or contained(o.box, pb) >= 0.6):
-        return False                       # 참여자 (또는 참여자 몸의 일부)
+    if pb is not None and (iou(o.box, pb) >= 0.3 or contained(o.box, pb) >= 0.6 or contained(pb, o.box) >= 0.5):
+        return False                       # 참여자: 같은 상자, 참여자 몸의 일부, 또는 참여자(손만 잡힌)를 품은 몸 전체
     return visible_frac(img, o.box) >= 0.5   # 대부분 가려진 실루엣이면 노출 아님
 
 
@@ -102,8 +105,12 @@ def main(only=None):
         fps = cv2.VideoCapture(str(src)).get(5) or 25
         clip = clip_mp4(src, OUT / f"{name}.mp4", start_s=at * n / fps, dur_s=8, max_side=640, fps=15, audio=False)
         t = time.time()
+        from datacache.labels import extract_labels
+        from datacache.pipeline import FINGERTIPS
+
+        pts = [[h[FINGERTIPS, :2] for h in f.hands if h is not None] for f in extract_labels(clip)]   # 앱 처리와 같게 손끝을 넘긴다
         try:
-            r = mask_video(clip, OUT / f"{name}_masked.mp4", manipulated=manip, sam=sam)
+            r = mask_video(clip, OUT / f"{name}_masked.mp4", manipulated=manip, sam=sam, hand_pts=pts)
         except BudgetExceeded as e:
             results[name] = {"error": str(e)}
             continue
@@ -112,7 +119,7 @@ def main(only=None):
         ho, hm = hands_count([f for _, f in so]), hands_count([f for _, f in sm])
         rep["hands_original"], rep["hands_masked"] = ho, hm
         rep["hands_kept_pct"] = round(100 * min(sum(hm), sum(ho)) / max(1, sum(ho)), 1)
-        redet, imgs = 0, []
+        redet, small, imgs = 0, 0, []
         for (i, fo), (_, fm) in zip(so, sm):
             p = OUT / f"{name}_m{i}.jpg"
             cv2.imwrite(str(p), fm)
@@ -121,10 +128,17 @@ def main(only=None):
             except BudgetExceeded:
                 found = []
             pb = r.participant_boxes.get(i)
-            others = sum(1 for o in found if is_other(o, pb, fm))
+            oth = [o for o in found if is_other(o, pb, fm)]
+            others = sum(1 for o in oth if o.box[3] - o.box[1] >= MIN_PERSON_PX)
+            small += len(oth) > 0 and others == 0
+            rep.setdefault("redetect_detail", []).append({"frame": i, "participant_box": [round(v) for v in pb] if pb else None,
+                                                          "found": [{"box": [round(v) for v in o.box], "conf": round(o.confidence or 0, 2),
+                                                                     "height_px": round(o.box[3] - o.box[1]),
+                                                                     "other": is_other(o, pb, fm)} for o in found]})
             redet += others > 0
             imgs.append(np.hstack([cv2.resize(fo, (320, 240)), cv2.resize(fm, (320, 240))]))
         rep["others_redetected_frames"] = f"{redet}/{len(so)}"
+        rep["small_redetected_frames"] = f"{small}/{len(so)}"
         cv2.imwrite(str(OUT / f"{name}_sheet.jpg"), np.vstack(imgs[::2]))
         results[name] = rep
         print(name, json.dumps(rep, ensure_ascii=False), flush=True)
