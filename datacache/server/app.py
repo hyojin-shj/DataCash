@@ -214,7 +214,9 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
         auth(x_dc_token)
         ms = json.loads((Path(__file__).parents[1] / "missions.json").read_text())["missions"]
         cat = {m["id"]: m for m in st.catalog()["missions"]}
+        today = pricing.today_mission([m["id"] for m in ms])
         for m in ms:
+            m["today"] = m["id"] == today
             have = cat.get(m["id"], {}).get("recordings", 0)
             m["reward_per_minute"] = {lv: round(pricing.REWARD_PER_HOUR[lv] / 60) for lv in pricing.LEVELS}
             m["scarce"] = have < 3          # 아직 적게 모인 미션 → 보너스

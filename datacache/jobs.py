@@ -163,7 +163,16 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
     cert = process(sd, out, level=lvl, masked_video=masked, labels=labels, objects=objects, steps=steps,
                    mistakes=mistakes, scene=scene, privacy=privacy, extract=False, grip_calibration=stored, **kw)
     minutes = cert["dataset"]["frames"] / cert["dataset"]["fps"] / 60
-    report.update(level=lvl, minutes=round(minutes, 2), reward=pricing.reward(minutes, lvl),
+    today = False
+    try:   # 녹화한 날(한국 날짜)의 오늘 미션이면 +50%
+        import datetime
+
+        ids = [m["id"] for m in json.loads(Path(__file__).with_name("missions.json").read_text())["missions"]]
+        rec = datetime.datetime.fromisoformat(meta.get("recorded_at", "")).astimezone(datetime.timezone(datetime.timedelta(hours=9)))
+        today = pricing.today_mission(ids, rec.date()) == mission.get("id")
+    except (ValueError, KeyError):
+        pass
+    report.update(level=lvl, minutes=round(minutes, 2), reward=pricing.reward(minutes, lvl, today=today), today_bonus=today,
                   sync=cert["sync"]["chosen"], certificate=str(out / "certificate.md"))
     (out / "job.json").write_text(json.dumps(report, indent=2, ensure_ascii=False))
     return report

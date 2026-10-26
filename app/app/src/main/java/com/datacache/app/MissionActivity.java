@@ -4,61 +4,106 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.Gravity;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-/** 미션 상세: 목적, 촬영 안내, 상황 10가지(조건을 하나씩 바꿔 다양성을 채운다). 상황을 누르면 녹화. */
+import java.util.Locale;
+import java.util.Set;
+
+/** 미션 상세: 머리 카드(보상·의뢰 목적·동작 순서·찍은 상황 수) + 찍을 상황 목록. 상황을 누르면 촬영 화면. */
 public class MissionActivity extends Activity {
+    private String id;
+
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
-        String id = getIntent().getStringExtra("mission");
+        id = getIntent().getStringExtra("mission");
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
         try {
-            JSONObject m = Store.mission(this, id);
-            LinearLayout body = Ui.page(this, m.getString("title"), true);
-            LinearLayout c = Ui.card(this);
-            c.addView(Ui.text(this, m.getString("guide"), 15, Ui.INK, true));
-            TextView p = Ui.text(this, "로봇이 배우는 것 · " + m.getString("purpose"), 13, Ui.SUB, false);
-            p.setPadding(0, Ui.dp(this, 6), 0, 0);
-            c.addView(p);
-            JSONArray prims = m.optJSONArray("primitives");
-            if (prims != null) {
-                JSONObject ko = Store.primitivesKo(this);
-                StringBuilder seq = new StringBuilder();
-                for (int i = 0; i < prims.length(); i++) {
-                    if (i > 0) seq.append(" → ");
-                    seq.append(ko.optString(prims.getString(i), prims.getString(i)));
-                }
-                TextView q = Ui.text(this, "동작 순서 · " + seq, 13, Ui.PRIMARY_DARK, true);
-                q.setPadding(0, Ui.dp(this, 6), 0, 0);
-                c.addView(q);
-            }
-            TextView tip = Ui.text(this, "워치를 차고 찍으면 촉각(쥐는 힘)·몸 감각까지 담겨 보상이 더 커요. 녹화 중 실수하면 '실수했어요'를 눌러 주세요 — 로봇은 실수에서도 배워요.",
-                    13, Ui.ACCENT_INK, false);
-            tip.setBackground(Ui.round(Ui.ACCENT_SOFT, Ui.dp(this, 12)));
-            tip.setPadding(Ui.dp(this, 12), Ui.dp(this, 10), Ui.dp(this, 12), Ui.dp(this, 10));
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
-            lp.topMargin = Ui.dp(this, 12);
-            c.addView(tip, lp);
-            Ui.add(this, body, c);
-            body.addView(Ui.text(this, "찍을 상황 고르기", 16, Ui.INK, true));
-            JSONArray sits = m.getJSONArray("situations");
-            for (int i = 0; i < sits.length(); i++) {
-                String s = sits.getString(i);
-                LinearLayout row = Ui.card(this);
-                row.setOrientation(LinearLayout.HORIZONTAL);
-                row.setGravity(Gravity.CENTER_VERTICAL);
-                row.addView(Ui.text(this, (i + 1) + ".  " + s, 15, Ui.INK, false), Ui.weight());
-                row.addView(Ui.chip(this, "찍기", Ui.PRIMARY_DARK, Ui.PRIMARY_SOFT));
-                row.setOnClickListener(v -> startActivity(new Intent(this, RecordActivity.class)
-                        .putExtra("mission", id).putExtra("situation", s)));
-                Ui.add(this, body, row);
-            }
+            render(Store.mission(this, id));
         } catch (Exception e) {
             Ui.page(this, "미션", true).addView(Ui.text(this, "미션을 읽지 못했어요", 14, Ui.SUB, false));
         }
+    }
+
+    private void render(JSONObject m) throws Exception {
+        LinearLayout body = Ui.page(this, m.getString("title"), true);
+        JSONArray sits = m.getJSONArray("situations");
+        Set<String> done = Store.doneSituations(this, id);
+        boolean today = id.equals(Store.todayMission(this));
+
+        LinearLayout c = Ui.card(this);
+        LinearLayout head = new LinearLayout(this);
+        head.setGravity(Gravity.CENTER_VERTICAL);
+        FrameLayout tile = Ui.iconTile(this, Icon.TARGET, Ui.PRIMARY, Ui.PRIMARY_SOFT, 52);
+        head.addView(tile, Ui.margins(this, Ui.dp(this, 52), Ui.dp(this, 52), 0, 0, 0, 14, 0));
+        LinearLayout words = new LinearLayout(this);
+        words.setOrientation(LinearLayout.VERTICAL);
+        words.addView(Ui.text(this, m.getString("title"), 20, Ui.INK, true));
+        TextView purpose = Ui.text(this, "의뢰 목적 · " + m.getString("purpose"), 13, Ui.SUB, false);
+        purpose.setPadding(0, Ui.dp(this, 5), 0, 0);
+        words.addView(purpose);
+        head.addView(words, Ui.weight());
+        c.addView(head);
+
+        int per = Store.perMission(this);
+        LinearLayout rw = new LinearLayout(this);
+        rw.setGravity(Gravity.CENTER_VERTICAL);
+        rw.setPadding(0, Ui.dp(this, 18), 0, Ui.dp(this, 8));
+        rw.addView(Ui.text(this, String.format(Locale.KOREA, "+%,d원", per), 26, Ui.PRIMARY, true));
+        if (today) {
+            TextView b = Ui.chip(this, String.format(Locale.KOREA, "오늘의 보너스 +%,d원", per / 2), Ui.ACCENT_INK, Ui.ACCENT_SOFT);
+            rw.addView(b, Ui.margins(this, -2, -2, 0, 10, 0, 0, 0));
+        }
+        c.addView(rw);
+        c.addView(Ui.text(this, m.getString("guide") + " · 1분 기준", 14, Ui.SUB, false));
+
+        JSONArray prims = m.optJSONArray("primitives");
+        if (prims != null) {
+            JSONObject ko = Store.primitivesKo(this);
+            StringBuilder seq = new StringBuilder();
+            for (int i = 0; i < prims.length(); i++) {
+                if (i > 0) seq.append(" → ");
+                seq.append(ko.optString(prims.getString(i), prims.getString(i)));
+            }
+            TextView q = Ui.text(this, "동작 순서 · " + seq, 13, Ui.PRIMARY_DARK, true);
+            q.setPadding(0, Ui.dp(this, 10), 0, 0);
+            c.addView(q);
+        }
+        TextView n = Ui.text(this, "상황 " + done.size() + "/" + sits.length() + " 완료", 13, Ui.INK, true);
+        n.setPadding(0, Ui.dp(this, 16), 0, Ui.dp(this, 8));
+        c.addView(n);
+        c.addView(Ui.progress(this, sits.length() == 0 ? 0f : (float) done.size() / sits.length()),
+                new LinearLayout.LayoutParams(-1, Ui.dp(this, 6)));
+        TextView tip = Ui.text(this, "워치를 차고 찍으면 촉각(쥐는 힘)·몸 감각까지 담겨 보상이 더 커요. 녹화 중 실수하면 '실수했어요'를 눌러 주세요 — 로봇은 실수에서도 배워요.",
+                13, Ui.ACCENT_INK, false);
+        tip.setBackground(Ui.round(Ui.ACCENT_SOFT, Ui.dp(this, 14)));
+        tip.setPadding(Ui.dp(this, 14), Ui.dp(this, 12), Ui.dp(this, 14), Ui.dp(this, 12));
+        c.addView(tip, Ui.margins(this, -1, -2, 0, 0, 16, 0, 0));
+        Ui.add(this, body, c);
+
+        body.addView(Ui.sectionTitle(this, "찍을 상황 고르기 · 조건을 하나씩 바꿔 주세요"));
+        LinearLayout list = Ui.listCard(this);
+        for (int i = 0; i < sits.length(); i++) {
+            String s = sits.getString(i);
+            boolean d = done.contains(s);
+            LinearLayout r = Ui.row(this, -1, 0, 0, s, d ? "찍었어요" : null,
+                    Ui.chip(this, d ? "다시" : "찍기", d ? Ui.SUB : Ui.PRIMARY_DARK, d ? Ui.FIELD : Ui.PRIMARY_SOFT),
+                    v -> startActivity(new Intent(this, RecordActivity.class).putExtra("mission", id).putExtra("situation", s)));
+            TextView num = Ui.text(this, d ? "✓" : String.valueOf(i + 1), 14, d ? Ui.OK : Ui.SUB, true);
+            num.setGravity(Gravity.CENTER);
+            num.setBackground(Ui.round(d ? Ui.OK_SOFT : Ui.FIELD, Ui.dp(this, 16)));
+            r.addView(num, 0, Ui.margins(this, Ui.dp(this, 32), Ui.dp(this, 32), 0, 0, 0, 14, 0));
+            list.addView(r);
+        }
+        Ui.add(this, body, list);
     }
 }

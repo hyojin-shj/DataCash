@@ -68,7 +68,7 @@ public class SurveyActivity extends Activity {
                 for (TextView x : chips) {
                     boolean sel = x == ch;
                     x.setTextColor(sel ? android.graphics.Color.WHITE : Ui.SUB);
-                    x.setBackground(sel ? Ui.gradient(Ui.dp(this, 12)) : Ui.round(Ui.BG, Ui.dp(this, 12)));
+                    x.setBackground(Ui.round(sel ? Ui.PRIMARY : Ui.FIELD, Ui.dp(this, 12)));
                 }
             });
             chips.add(ch);

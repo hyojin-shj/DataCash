@@ -74,6 +74,45 @@ final class Store {
         return new JSONObject(asset(c, "missions.json")).getJSONObject("primitives_ko");
     }
 
+    /** 오늘의 보너스 미션: 한국 날짜로 하루에 하나, 목록을 차례로 (서버 pricing.today_mission 과 같은 식). */
+    static String todayMission(Context c) throws Exception {
+        JSONArray ms = missions(c);
+        long ordinal = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Seoul")).toEpochDay() + 719163L;
+        return ms.getJSONObject((int) (ordinal % ms.length())).getString("id");
+    }
+
+    /** 미션 하나 (1분 안팎) 보상 예상: 동의 등급의 분당 보상 (워치 생체 동의 → 생체 등급). */
+    static int perMission(Context c) { return bioConsent(c) ? 830 : 550; }
+
+    static java.util.Set<String> doneSituations(Context c, String missionId) {
+        return new java.util.HashSet<>(p(c).getStringSet("done_" + missionId, new java.util.HashSet<>()));
+    }
+
+    static void markSituation(Context c, String missionId, String situation) {
+        java.util.Set<String> s = doneSituations(c, missionId);
+        s.add(situation);
+        p(c).edit().putStringSet("done_" + missionId, s).apply();
+    }
+
+    /** 보상 받을 계좌: 은행과 번호는 이 폰에만 (서버에는 보내지 않는다). */
+    static String bank(Context c) { return p(c).getString("payout_bank", ""); }
+    static String account(Context c) { return p(c).getString("payout_account", ""); }
+    static void setPayout(Context c, String bank, String account) {
+        p(c).edit().putString("payout_bank", bank).putString("payout_account", account).apply();
+    }
+    static String maskedAccount(Context c) {
+        String a = account(c);
+        return a.length() <= 4 ? a : "••••" + a.substring(a.length() - 4);
+    }
+
+    /** 내 녹화 폴더들 (최근 것 먼저). */
+    static File[] sessions(Context c) {
+        File[] ss = sessionsDir(c).listFiles(File::isDirectory);
+        if (ss == null) return new File[0];
+        java.util.Arrays.sort(ss, (x, y) -> y.getName().compareTo(x.getName()));
+        return ss;
+    }
+
     static JSONObject mission(Context c, String id) throws Exception {
         JSONArray ms = missions(c);
         for (int i = 0; i < ms.length(); i++) if (ms.getJSONObject(i).getString("id").equals(id)) return ms.getJSONObject(i);

@@ -41,7 +41,9 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
     private boolean recording, busy;
     private long startNs;
     private final List<Long> marks = new ArrayList<>();
-    private TextView recBtn, markBtn, timer, hint;
+    private TextView markBtn, timer, hint;
+    private RecordRing recBtn;
+    private String steps = "";
     private final Handler ui = new Handler(Looper.getMainLooper());
     private String missionId, situation, title;
 
@@ -51,50 +53,64 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         missionId = getIntent().getStringExtra("mission");
         situation = getIntent().getStringExtra("situation");
-        try { title = Store.mission(this, missionId).getString("title"); } catch (Exception e) { title = missionId; }
+        try {
+            JSONObject m = Store.mission(this, missionId);
+            title = m.getString("title");
+            JSONArray prims = m.optJSONArray("primitives");
+            JSONObject ko = Store.primitivesKo(this);
+            StringBuilder b = new StringBuilder();
+            for (int i = 0; prims != null && i < prims.length(); i++) b.append(i > 0 ? " → " : "").append(ko.optString(prims.getString(i)));
+            steps = b.toString();
+        } catch (Exception e) {
+            title = missionId;
+        }
         FrameLayout root = new FrameLayout(this);
         preview = new TextureView(this);
         preview.setSurfaceTextureListener(this);
         root.addView(preview, new FrameLayout.LayoutParams(-1, -1));
 
+        // 위: 반투명 둥근 안내 카드 (미션·보상 · 동작 순서 · 상황)
         LinearLayout top = new LinearLayout(this);
         top.setOrientation(LinearLayout.VERTICAL);
-        top.setPadding(Ui.dp(this, 18), Ui.dp(this, 36), Ui.dp(this, 18), Ui.dp(this, 12));
-        top.setBackgroundColor(0x66000000);
-        top.addView(Ui.text(this, title + " · " + situation, 17, Color.WHITE, true));
-        timer = Ui.text(this, "준비", 14, Color.WHITE, false);
-        top.addView(timer);
-        root.addView(top, new FrameLayout.LayoutParams(-1, -2, Gravity.TOP));
+        top.setBackground(Ui.round(0x99000000, Ui.dp(this, 18)));
+        top.setPadding(Ui.dp(this, 16), Ui.dp(this, 14), Ui.dp(this, 16), Ui.dp(this, 14));
+        top.addView(Ui.text(this, String.format(Locale.KOREA, "%s 미션  +%,d원", title, Store.perMission(this)), 17, Color.WHITE, true));
+        hint = Ui.text(this, steps.isEmpty() ? "손과 물건이 잘 보이게 두고 빨간 버튼을 누르세요" : "동작 순서 · " + steps, 13, Ui.ACCENT, true);
+        hint.setPadding(0, Ui.dp(this, 8), 0, 0);
+        top.addView(hint);
+        TextView sit = Ui.text(this, "상황 · " + situation, 13, 0xDDFFFFFF, false);
+        sit.setPadding(0, Ui.dp(this, 6), 0, 0);
+        top.addView(sit);
+        FrameLayout.LayoutParams tp = new FrameLayout.LayoutParams(-1, -2, Gravity.TOP);
+        tp.setMargins(Ui.dp(this, 12), Ui.dp(this, 40), Ui.dp(this, 12), 0);
+        root.addView(top, tp);
 
-        hint = Ui.text(this, "손과 물건이 잘 보이게 두고 녹화를 누르세요", 14, Color.WHITE, false);
-        hint.setGravity(Gravity.CENTER);
-        hint.setBackground(Ui.round(0x88000000, Ui.dp(this, 14)));
-        hint.setPadding(Ui.dp(this, 14), Ui.dp(this, 8), Ui.dp(this, 14), Ui.dp(this, 8));
-        FrameLayout.LayoutParams hp = new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER_HORIZONTAL | Gravity.BOTTOM);
-        hp.bottomMargin = Ui.dp(this, 200);
-        root.addView(hint, hp);
-
-        markBtn = Ui.text(this, "실수했어요", 16, Color.WHITE, true);
+        // 아래: 검은 띠 — 왼쪽 '실수했어요', 가운데 녹화 버튼, 오른쪽 시간
+        FrameLayout bar = new FrameLayout(this);
+        bar.setBackgroundColor(0xE6000000);
+        markBtn = Ui.text(this, "실수했어요", 13, Color.WHITE, true);
         markBtn.setGravity(Gravity.CENTER);
-        markBtn.setBackground(Ui.round(0xAA000000, Ui.dp(this, 24)));
-        markBtn.setPadding(Ui.dp(this, 22), Ui.dp(this, 12), Ui.dp(this, 22), Ui.dp(this, 12));
-        markBtn.setVisibility(android.view.View.GONE);
+        markBtn.setBackground(Ui.pressable(0x33FFFFFF, Ui.dp(this, 22)));
+        markBtn.setPadding(Ui.dp(this, 14), Ui.dp(this, 10), Ui.dp(this, 14), Ui.dp(this, 10));
+        markBtn.setAlpha(0.4f);
         markBtn.setOnClickListener(v -> {
             if (!recording) return;
             marks.add(Clock.now());
-            markBtn.setText(String.format(Locale.KOREA, "실수했어요 · %d", marks.size()));
+            markBtn.setText(String.format(Locale.KOREA, "실수했어요 %d", marks.size()));
         });
-        FrameLayout.LayoutParams mp = new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER_HORIZONTAL | Gravity.BOTTOM);
-        mp.bottomMargin = Ui.dp(this, 140);
-        root.addView(markBtn, mp);
-
-        recBtn = Ui.text(this, "녹화", 18, Color.WHITE, true);
-        recBtn.setGravity(Gravity.CENTER);
-        recBtn.setBackground(Ui.gradient(Ui.dp(this, 40)));
+        FrameLayout.LayoutParams mp = new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER_VERTICAL | Gravity.START);
+        mp.leftMargin = Ui.dp(this, 20);
+        bar.addView(markBtn, mp);
+        recBtn = new RecordRing(this);
+        recBtn.setCameraStyle();
+        recBtn.setContentDescription("녹화");
         recBtn.setOnClickListener(v -> toggle());
-        FrameLayout.LayoutParams rp = new FrameLayout.LayoutParams(Ui.dp(this, 160), Ui.dp(this, 64), Gravity.CENTER_HORIZONTAL | Gravity.BOTTOM);
-        rp.bottomMargin = Ui.dp(this, 50);
-        root.addView(recBtn, rp);
+        bar.addView(recBtn, new FrameLayout.LayoutParams(Ui.dp(this, 76), Ui.dp(this, 76), Gravity.CENTER));
+        timer = Ui.text(this, "0:00", 16, Color.WHITE, true);
+        FrameLayout.LayoutParams tm = new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER_VERTICAL | Gravity.END);
+        tm.rightMargin = Ui.dp(this, 28);
+        bar.addView(timer, tm);
+        root.addView(bar, new FrameLayout.LayoutParams(-1, Ui.dp(this, 128), Gravity.BOTTOM));
         setContentView(root);
 
         if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED
@@ -153,8 +169,8 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
                     busy = false;
                     startNs = Clock.now();
                     marks.clear();
-                    recBtn.setText("멈추기");
-                    markBtn.setVisibility(android.view.View.VISIBLE);
+                    recBtn.setRecording(true);
+                    markBtn.setAlpha(1f);
                     hint.setText("실수하거나 다시 하면 '실수했어요'를 눌러 주세요");
                     tick();
                 });
@@ -168,14 +184,15 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
     private void tick() {
         if (!recording) return;
         long s = (Clock.now() - startNs) / 1_000_000_000L;
-        timer.setText(String.format(Locale.KOREA, "● 녹화 중 %d:%02d", s / 60, s % 60));
+        timer.setText(String.format(Locale.KOREA, "● %d:%02d", s / 60, s % 60));
         ui.postDelayed(this::tick, 500);
     }
 
     private void stop() {
         busy = true;
         recording = false;
-        markBtn.setVisibility(android.view.View.GONE);
+        recBtn.setRecording(false);
+        markBtn.setAlpha(0.4f);
         new Thread(() -> {
             try {
                 JSONObject video = camera.stop(dir);
@@ -194,6 +211,7 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
                         .put("self_marks_ns", mk).put("video", video).put("audio", a).put("phone_imu_rows", imuRows)
                         .put("recorded_at", Clock.wallIso());
                 Files.write(new File(dir, "meta.json"), meta.toString(2));
+                Store.markSituation(this, missionId, situation);
                 ui.post(() -> {
                     startActivity(new Intent(this, SurveyActivity.class).putExtra("dir", dir.getAbsolutePath()));
                     finish();

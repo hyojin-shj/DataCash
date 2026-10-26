@@ -54,3 +54,11 @@ def reward(accepted_minutes: float, level: str = "basic", scarce: bool = False, 
     base = REWARD_PER_HOUR[level] * accepted_minutes / 60.0
     mult = 1.0 + (BONUS_SCARCE if scarce else 0.0) + (BONUS_TODAY if today else 0.0)
     return max(0, int(round(base * mult / 10.0)) * 10)
+
+
+def today_mission(mission_ids: list, day: "datetime.date | None" = None) -> str:
+    """오늘의 보너스 미션 (한국 날짜로 하루에 하나, 미션 목록을 차례로 돈다). 앱도 같은 식으로 고른다."""
+    import datetime
+
+    d = day or datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9))).date()
+    return mission_ids[d.toordinal() % len(mission_ids)] if mission_ids else ""
