@@ -27,5 +27,6 @@
         <activity android:name=".SurveyActivity" android:screenOrientation="portrait" />
         <activity android:name=".ResultActivity" android:screenOrientation="portrait" />
         <activity android:name=".SettingsActivity" android:screenOrientation="portrait" />
+        <activity android:name=".CalibrationActivity" android:screenOrientation="portrait" android:windowSoftInputMode="adjustResize" />
     </application>
 </manifest>

@@ -120,6 +120,11 @@ public class HomeActivity extends Activity {
                 Ui.add(this, body, c);
             }
         }
+        TextView cal = Ui.text(this, "⌚ 워치로 쥐는 힘 맞추기 (한 번만)", 14, Ui.ACCENT_INK, true);
+        cal.setGravity(Gravity.CENTER);
+        cal.setPadding(0, Ui.dp(this, 14), 0, 0);
+        cal.setOnClickListener(v -> startActivity(new Intent(this, CalibrationActivity.class)));
+        body.addView(cal);
         TextView set = Ui.text(this, "설정 · 서버 연결", 14, Ui.SUB, false);
         set.setGravity(Gravity.CENTER);
         set.setPadding(0, Ui.dp(this, 10), 0, 0);

@@ -189,7 +189,7 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
                         .put("session_id", dir.getName()).put("format", "datacache/1").put("clock", "BOOTTIME")
                         .put("mission", new JSONObject().put("id", missionId).put("title", title).put("situation", situation))
                         .put("devices", new JSONObject().put("phone", new JSONObject().put("model", Build.MANUFACTURER + " " + Build.MODEL)
-                                .put("android", Build.VERSION.RELEASE)))
+                                .put("android", Build.VERSION.RELEASE).put("id", Store.deviceId(this))))
                         .put("participant", new JSONObject().put("consent", Store.consentJson(this)).put("age_band", Store.ageBand(this)))
                         .put("self_marks_ns", mk).put("video", video).put("audio", a).put("phone_imu_rows", imuRows)
                         .put("recorded_at", Clock.wallIso());

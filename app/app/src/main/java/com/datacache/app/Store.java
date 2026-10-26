@@ -21,6 +21,15 @@ final class Store {
 
     static String server(Context c) { return p(c).getString("server", "http://192.168.0.10:8800"); }
     static String token(Context c) { return p(c).getString("token", ""); }
+    /** 이 폰의 고정 id (쥐는 힘 보정을 사람·폰마다 저장하는 열쇠). */
+    static String deviceId(Context c) {
+        String id = p(c).getString("device_id", "");
+        if (id.isEmpty()) {
+            id = java.util.UUID.randomUUID().toString().substring(0, 12);
+            p(c).edit().putString("device_id", id).apply();
+        }
+        return id;
+    }
     static void setServer(Context c, String url, String token) {
         p(c).edit().putString("server", url.trim().replaceAll("/+$", "")).putString("token", token.trim()).apply();
     }
