@@ -44,3 +44,39 @@ def test_putdown_confirmed_by_sound_and_wrist(synth_session):
     c = confirmed_contacts(ao, wp)
     assert len(c) == 1 and abs((c[0]["t_ns"] - truth["P0"]) / 1e9 - truth["putdown_s"]) < 0.02
     assert c[0]["gap_ms"] < 5
+
+
+def test_calibration_session_then_reuse(tmp_path):
+    """보정 세션(폰 버튼으로 적은 누르기 + 워치) → 사람별 보정 저장 → 누르기 없는 다음 녹화에서 그 보정으로 쥐는 힘."""
+    import json
+
+    import pyarrow.parquet as pq
+
+    from datacache.jobs import run_session
+    from datacache.session.synth import generate
+
+    store = tmp_path / "grip_calibration"
+    cal_dir = tmp_path / "s_cal"
+    truth = generate(cal_dir, duration=14.0, via_server=True, seed=7)
+    m = json.loads((cal_dir / "meta.json").read_text())
+    P0, NS = truth["P0"], 1_000_000_000
+    m["mission"] = {"id": "grip_calibration"}
+    m["devices"]["phone"]["id"] = "phoneA"
+    m["calibration"] = {"clock": "phone", "presses": [{"start_ns": int(P0 + a * NS), "end_ns": int(P0 + b * NS), "force_n": n}
+                                                      for a, b, n in truth["presses"]]}
+    (cal_dir / "meta.json").write_text(json.dumps(m))
+    rep = run_session(cal_dir, tmp_path / "o_cal", use_api=False, calibration_store=store)
+    assert rep.get("calibration", {}).get("resid_n", 9) < 1.0, rep
+
+    nxt = tmp_path / "s_next"
+    generate(nxt, duration=14.0, via_server=True, seed=8, grip_n=10.0)
+    m = json.loads((nxt / "meta.json").read_text())
+    m["devices"]["phone"]["id"] = "phoneA"
+    m.pop("calibration")
+    (nxt / "meta.json").write_text(json.dumps(m))
+    run_session(nxt, tmp_path / "o_next", use_api=False, calibration_store=store)
+    t = pq.read_table(tmp_path / "o_next" / "lerobot" / "data" / "chunk-000" / "file-000.parquet")
+    touch = np.array(t.column("observation.touch").to_pylist())
+    ts = np.array(t.column("timestamp").to_pylist())
+    held = (ts > 6.5) & (ts < 9.5)
+    assert abs(np.median(touch[held, 1]) - 10.0) < 1.5 and touch[held, 2].all()

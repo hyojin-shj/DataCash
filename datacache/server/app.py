@@ -86,7 +86,8 @@ class Store:
                     time.sleep(2)
             self.set_status(sid, state="processing")
             try:
-                rep = run_session(self.root / "sessions" / sid, self.root / "out" / sid, use_api=self.use_api)
+                rep = run_session(self.root / "sessions" / sid, self.root / "out" / sid, use_api=self.use_api,
+                                  calibration_store=self.root / "grip_calibration")
                 self.set_status(sid, state="done" if "error" not in rep else "rejected", **rep)
             except Exception as e:
                 self.set_status(sid, state="failed", error=f"{type(e).__name__}: {str(e)[:300]}")
@@ -243,8 +244,11 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
     def start(sid: str, x_dc_token: Optional[str] = Header(None)):
         auth(x_dc_token)
         d = root / "sessions" / sid
-        if not SID.match(sid) or not (d / "meta.json").exists() or not (d / "video.mp4").exists():
-            raise HTTPException(400, "meta.json·video.mp4 가 필요함")
+        if not SID.match(sid) or not (d / "meta.json").exists():
+            raise HTTPException(400, "meta.json 이 필요함")
+        calib = (json.loads((d / "meta.json").read_text()).get("mission") or {}).get("id") == "grip_calibration"
+        if not calib and not (d / "video.mp4").exists():
+            raise HTTPException(400, "video.mp4 가 필요함")
         st.q.put(sid)
         return st.set_status(sid, state="queued")
 

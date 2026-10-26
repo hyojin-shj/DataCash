@@ -43,7 +43,8 @@ def _fingertips(labels) -> List[Optional[np.ndarray]]:
 def process(session_dir, out_dir, level: str = "bio", fps: float = 30.0, masked_video=None, labels=None,
             objects: Optional[Sequence[dict]] = None, hand_points=None, steps: Optional[list] = None,
             verified_steps: Optional[list] = None, episodes_s: Optional[list] = None, privacy: Optional[dict] = None,
-            extract: bool = True, mistakes: Optional[list] = None, scene: Optional[dict] = None) -> dict:
+            extract: bool = True, mistakes: Optional[list] = None, scene: Optional[dict] = None,
+            grip_calibration: Optional[dict] = None) -> dict:
     s = load_session(session_dir)
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -59,7 +60,17 @@ def process(session_dir, out_dir, level: str = "bio", fps: float = 30.0, masked_
     wrist_ok = m is not None and al.ok.get("wrist", False)
 
     # 2. 촉각
-    cal = calibrate(responses, (s.meta.get("calibration") or {}).get("presses", [])) if responses else None
+    presses = (s.meta.get("calibration") or {}).get("presses", [])
+    if presses and (s.meta.get("calibration") or {}).get("clock") == "phone" and m is not None:
+        from .touch.vibration import presses_to_watch
+
+        inv = lambda p_ns: (m.w_ref + (np.asarray(p_ns, np.float64) - m.b) / m.a).astype(np.int64)  # noqa: E731
+        presses = presses_to_watch(presses, inv)
+    cal = calibrate(responses, presses) if responses and presses else None
+    if cal is None and grip_calibration:          # 이 사람·이 워치로 미리 해 둔 보정 (기기 등록 때 한 번)
+        from .touch.vibration import calibration_from_dict
+
+        cal = calibration_from_dict(grip_calibration)
     grip, vib = [], []
     if wrist_ok:
         for r in responses:

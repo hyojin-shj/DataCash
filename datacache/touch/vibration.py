@@ -116,3 +116,17 @@ def calibrate(responses: List[PulseResponse], presses: list) -> Optional[GripCal
     coef, *_ = np.linalg.lstsq(X, y, rcond=None)
     resid = float(np.sqrt(np.mean((X @ coef - y) ** 2)))
     return GripCalibration(coef, np.mean(rest, axis=0) if rest else np.zeros(2), resid, len(y))
+
+
+def calibration_from_dict(d: dict) -> "GripCalibration":
+    return GripCalibration(np.array(d["coef"], float), np.array(d.get("rest", [0, 0]), float), float(d.get("resid_n", 0)),
+                           int(d.get("n_pulses", 0)))
+
+
+def presses_to_watch(presses: list, phone_to_watch) -> list:
+    """폰 시계로 적은 누르기 구간(보정 화면의 버튼) → 워치 시계."""
+    out = []
+    for p in presses:
+        a, b = phone_to_watch(np.array([p["start_ns"], p["end_ns"]]))
+        out.append({"start_ns": int(a), "end_ns": int(b), "force_n": float(p["force_n"])})
+    return out

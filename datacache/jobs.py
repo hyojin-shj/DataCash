@@ -27,10 +27,48 @@ def _mission(meta: dict, missions_path: Optional[Path] = None) -> dict:
                         "title_en": "household task", "objects": []})
 
 
-def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str] = None, log=print) -> dict:
+def calibration_key(meta: dict) -> Optional[str]:
+    """보정을 저장하는 열쇠: 폰 기기 id(사람마다 자기 폰) + 워치 기종."""
+    dev = meta.get("devices") or {}
+    pid = (dev.get("phone") or {}).get("id")
+    return None if not pid else f"{pid}__{(dev.get('watch') or {}).get('model', 'watch')}".replace("/", "_").replace(" ", "_")
+
+
+def run_calibration(sd: Path, out: Path, store: Path) -> dict:
+    """쥐는 힘 보정 세션: 폰 화면 버튼으로 적은 저울 누르기(폰 시계) + 워치 진동 반응 → 이 사람·이 워치의 보정 저장."""
+    from .session import load_session
+    from .sync import align_session
+    from .touch.vibration import calibrate, presses_to_watch, pulse_responses
+
+    s = load_session(sd)
+    if not s.has_watch or s.watch_vib is None:
+        return {"error": "워치 기록이 없음 (워치 앱을 켜 두고 다시)"}
+    rs = pulse_responses(s.watch_imu.t_ns, s.watch_imu.values, s.watch_vib.t_ns)
+    al = align_session(s, rs)
+    m = al.watch_to_phone
+    if m is None:
+        return {"error": "폰↔워치 시계를 맞추지 못함"}
+    inv = lambda p_ns: (m.w_ref + (np.asarray(p_ns, np.float64) - m.b) / m.a).astype(np.int64)  # noqa: E731
+    cal = calibrate(rs, presses_to_watch((s.meta.get("calibration") or {}).get("presses", []), inv))
+    if cal is None:
+        return {"error": "누르기 구간에 진동 반응이 부족함 (각 단계를 2초 이상 눌러 주세요)"}
+    key = calibration_key(s.meta) or sd.name
+    store.mkdir(parents=True, exist_ok=True)
+    (store / f"{key}.json").write_text(json.dumps({**cal.to_dict(), "session": sd.name, "sync": al.to_dict()["chosen"]}, indent=2))
+    rep = {"session_id": sd.name, "mission": "grip_calibration", "calibration": cal.to_dict(), "key": key, "reward": 0,
+           "level": "calibration", "minutes": 0, "sync": al.to_dict()["chosen"]}
+    (out / "job.json").write_text(json.dumps(rep, indent=2, ensure_ascii=False))
+    return rep
+
+
+def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str] = None, log=print,
+                calibration_store: Optional[Path] = None) -> dict:
     sd, out = Path(session_dir), Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     meta = json.loads((sd / "meta.json").read_text())
+    store = Path(calibration_store or out.parent.parent / "grip_calibration")
+    if (meta.get("mission") or {}).get("id") == "grip_calibration":
+        return run_calibration(sd, out, store)
     mission = _mission(meta)
     report = {"session_id": meta.get("session_id", sd.name), "mission": mission["id"], "skipped": []}
     video = sd / "video.mp4"
@@ -120,8 +158,10 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
         kw["hand_points"] = [np.array([[h[0] + 16 * np.cos(a), h[1] + 16 * np.sin(a)] for a in np.linspace(0, 2 * np.pi, 5, endpoint=False)])
                              for h in [x["hand"] for x in tr]]
         objects = [{0: tuple(x["cup"])} for x in tr]
+    key = calibration_key(meta)
+    stored = json.loads((store / f"{key}.json").read_text()) if key and (store / f"{key}.json").exists() else None
     cert = process(sd, out, level=lvl, masked_video=masked, labels=labels, objects=objects, steps=steps,
-                   mistakes=mistakes, scene=scene, privacy=privacy, extract=False, **kw)
+                   mistakes=mistakes, scene=scene, privacy=privacy, extract=False, grip_calibration=stored, **kw)
     minutes = cert["dataset"]["frames"] / cert["dataset"]["fps"] / 60
     report.update(level=lvl, minutes=round(minutes, 2), reward=pricing.reward(minutes, lvl),
                   sync=cert["sync"]["chosen"], certificate=str(out / "certificate.md"))
