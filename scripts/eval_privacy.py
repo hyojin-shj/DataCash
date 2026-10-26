@@ -2,6 +2,7 @@
 
 지표
   others_redetected   가린 영상의 표본 장면에서 SAM 이 참여자 아닌 사람을 다시 찾은 장면 비율 (독립 재검사)
+                      참여자 상자와 겹치거나(IoU≥0.3) 대부분 그 안에 든(≥60%) 검출은 참여자 몸, 절반 이상 회색인 검출은 가린 실루엣으로 본다
   hands_kept_pct      원본에서 MediaPipe 가 찾은 손이 가린 영상에서도 찾아지는 비율 (참여자 손이 남는가)
   masked_area_pct     가린 넓이 평균
   비교: '얼굴만 블러'는 다른 사람의 몸 전체가 남는다 → 다른 사람 영역 중 얼굴 상자 밖 넓이 비율(노출)로 함께 적는다
@@ -54,6 +55,29 @@ def iou(a, b):
     return inter / ua if ua > 0 else 0.0
 
 
+def contained(a, b):
+    """a 상자 넓이 중 b 안에 든 비율 (참여자 팔·손처럼 참여자 상자 안의 조각은 참여자)."""
+    x1, y1, x2, y2 = max(a[0], b[0]), max(a[1], b[1]), min(a[2], b[2]), min(a[3], b[3])
+    area = (a[2] - a[0]) * (a[3] - a[1])
+    return max(0, x2 - x1) * max(0, y2 - y1) / area if area > 0 else 0.0
+
+
+def visible_frac(img, box):
+    """검출 상자 안에서 회색으로 가려지지 않은 픽셀 비율 — 가린 실루엣을 다시 '사람'으로 잡은 건 노출이 아니다."""
+    x1, y1, x2, y2 = [int(round(v)) for v in box]
+    roi = img[max(0, y1):max(0, y2), max(0, x1):max(0, x2)]
+    if roi.size == 0:
+        return 0.0
+    gray = np.all(np.abs(roi.astype(int) - 128) <= 6, axis=2)
+    return float(1 - gray.mean())
+
+
+def is_other(o, pb, img):
+    if pb is not None and (iou(o.box, pb) >= 0.3 or contained(o.box, pb) >= 0.6):
+        return False                       # 참여자 (또는 참여자 몸의 일부)
+    return visible_frac(img, o.box) >= 0.5   # 대부분 가려진 실루엣이면 노출 아님
+
+
 def sample(video, k=6):
     cap = cv2.VideoCapture(str(video))
     n = int(cap.get(7))
@@ -97,7 +121,7 @@ def main(only=None):
             except BudgetExceeded:
                 found = []
             pb = r.participant_boxes.get(i)
-            others = sum(1 for o in found if pb is None or iou(o.box, pb) < 0.3)   # 참여자와 겹치는 검출은 참여자
+            others = sum(1 for o in found if is_other(o, pb, fm))
             redet += others > 0
             imgs.append(np.hstack([cv2.resize(fo, (320, 240)), cv2.resize(fm, (320, 240))]))
         rep["others_redetected_frames"] = f"{redet}/{len(so)}"
