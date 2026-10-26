@@ -28,6 +28,8 @@ CLIPS = [
     ("home_kitchen_wide", "dishwashing/_Yum-Cast_Our_Daily_Life_Let_s_clean_and_do_the_dishes_.webm", 0.15, ["plate", "chair"]),
     ("gloves_dishwashing", "dishwashing/_Yum-Cast_Our_Daily_Life_Let_s_clean_and_do_the_dishes_.webm", 0.62, ["plate", "rubber glove"]),
     ("food_shop", "dishwashing/Dishes_you_can_t_miss_in_Xi_an.webm", 0.50, ["bowl", "plate"]),
+    ("game_lounge_screens", "extra/2023-03-31_Retro_Games_Lounge.webm", 0.30, ["game controller"]),
+    ("mirror_bathroom", "extra/Man_in_hotel_bathroom_with_mirrors_all_around_turning_and_making_video_thereof.webm", 0.30, ["towel"]),
 ]
 OUT = config.DATA / "eval" / "privacy"
 
@@ -66,7 +68,8 @@ def sample(video, k=6):
 def main(only=None):
     OUT.mkdir(parents=True, exist_ok=True)
     sam = Sam()
-    results = {}
+    rp = OUT / "report.json"
+    results = json.loads(rp.read_text()) if rp.exists() else {}
     for name, rel, at, manip in CLIPS:
         if only and name not in only:
             continue

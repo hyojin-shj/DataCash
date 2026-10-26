@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-feature android:name="android.hardware.camera" android:required="true" />
+
+    <application
+        android:label="데이터캐시"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher"
+        android:theme="@style/AppTheme"
+        android:usesCleartextTraffic="true"
+        android:allowBackup="false">
+        <activity android:name=".HomeActivity" android:exported="true" android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity android:name=".ConsentActivity" android:screenOrientation="portrait" />
+        <activity android:name=".MissionActivity" android:screenOrientation="portrait" />
+        <activity android:name=".RecordActivity" android:theme="@style/RecordTheme" android:screenOrientation="portrait" />
+        <activity android:name=".SurveyActivity" android:screenOrientation="portrait" />
+        <activity android:name=".ResultActivity" android:screenOrientation="portrait" />
+        <activity android:name=".SettingsActivity" android:screenOrientation="portrait" />
+    </application>
+</manifest>

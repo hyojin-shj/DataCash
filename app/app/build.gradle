@@ -1,0 +1,25 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.datacache.app'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.datacache.app'
+        minSdk 28
+        targetSdk 34
+        versionCode 1
+        versionName '0.1-hackathon'
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+// 외부 라이브러리 없이 안드로이드 기본 API 만 쓴다 (Camera2 · MediaRecorder · AudioRecord · AudioTrack · SensorManager)
+dependencies {
+}
