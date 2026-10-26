@@ -251,7 +251,7 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
 
 def pick_donor(original_video, donors_dir=None) -> Optional[Path]:
     """참여자 얼굴과 가장 덜 닮은 가상 인물 (SFace 유사도 최소). 참여자 얼굴은 영상 앞 몇 장면에서."""
-    donors = sorted(Path(donors_dir or config.DATA / "donors").glob("*.png"))
+    donors = sorted(Path(donors_dir or Path(__file__).parents[1] / "donors").glob("*.png"))
     if not donors:
         return None
     reid = Reid()

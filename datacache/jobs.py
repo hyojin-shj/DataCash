@@ -60,7 +60,7 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
         except Exception as e:
             report["skipped"].append(f"privacy: {type(e).__name__}: {str(e)[:200]}")
     # 2-1. 참여자 얼굴 → 실존하지 않는 가상 인물 (LivePortrait + MediaPipe 자르기, 재식별 검사)
-    if masked is not None and use_api is not None and not synthetic and os.environ.get("DATACACHE_FACESWAP", "1") == "1":
+    if masked is not None and not synthetic and os.environ.get("DATACACHE_FACESWAP", "1") == "1":
         try:
             from .privacy.faceswap import pick_donor, swap_video
 
