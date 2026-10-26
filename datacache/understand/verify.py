@@ -2,8 +2,8 @@
 
 단계마다 증거 (있는 감각만):
   motion   그 구간에 손목(또는 손 관절) 움직임이 평소보다 크다 → 무언가 하고 있었다
-  contact  잡기·옮기기·내려놓기류 단계면 그 구간에 영상 접촉(닿음·잡고 있음) 또는 쥐는 힘이 있다
-  sound    내려놓기·문지르기·헹구기류면 그 구간 둘레에 접촉음이 있다
+  contact  쥐기·들기·당기기·옮기기·놓기류 단계면 그 구간에 영상 접촉(닿음·잡고 있음) 또는 쥐는 힘이 있다
+  sound    놓기·찢기·닦기·끼우기·누르기류면 그 구간 둘레에 접촉음이 있다
   boundary 단계 시작이 접촉 단계 변화·소리 사건과 0.5초 안에 맞는다
 verified = 쓸 수 있는 증거 중 절반 이상이 맞고, 최소 하나는 맞음 (증거가 하나도 없으면 'unverifiable').
 실수 후보: 참여자가 누른 '실수했어요'와 2초 안이면 confirmed_by_participant.
@@ -15,8 +15,9 @@ from typing import List, Optional
 
 import numpy as np
 
-GRASPY = {"grasp", "lift", "carry", "place", "release", "pour", "push", "open", "close", "wipe", "scrub", "cut", "stir"}
-NOISY = {"place", "release", "wipe", "scrub", "rinse", "cut", "stir", "pour"}
+# 손이 물체에 닿아 있어야 하는 기본 동작 / 소리가 나기 쉬운 기본 동작 (spark.PRIMITIVES)
+GRASPY = {"grasp", "lift", "pull", "push", "twist", "press", "squeeze", "tear", "wipe", "insert", "transport", "place", "handover"}
+NOISY = {"place", "tear", "wipe", "insert", "press", "squeeze"}
 
 
 def verify_steps(steps: List[dict], t_s: np.ndarray, motion: Optional[np.ndarray] = None,

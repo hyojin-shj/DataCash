@@ -157,7 +157,7 @@ def process(session_dir, out_dir, level: str = "bio", fps: float = 30.0, masked_
             d["observation.physio"] = P
         d["observation.objects"] = object_rows(objects, src, size)
         ep_steps = [x for x in (steps or []) if x["end_s"] > a_s and x["start_s"] < b_s]
-        d["annotation.events"], d["annotation.step"] = event_rows(grid, fps, marks, confirmed, ep_steps, verified_steps)
+        d["annotation.events"], d["annotation.step"], d["annotation.primitive"] = event_rows(grid, fps, marks, confirmed, ep_steps, verified_steps)
         err = al.error_ms
         d["sync.error_ms"] = np.tile([err.get("video", 0), err.get("audio", 0), err.get("touch", err.get("wrist", 0)),
                                       err.get("physio", 0)], (len(grid), 1)).astype(np.float32)

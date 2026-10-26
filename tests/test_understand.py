@@ -36,3 +36,42 @@ def test_mute_only_personal_spans():
     y = mute(x, rate, [(1000, 1500)])
     assert y[int(0.5 * rate)] == 1.0 and y[int(1.2 * rate)] == 0.0 and y[int(3 * rate)] == 1.0
     assert 0.0 <= y[int(0.86 * rate)] <= 1.0                      # 페이드
+
+
+def test_primitive_channel_in_lerobot(synth_session, synth_tracks, tmp_path):
+    """Spark 단계의 기본 동작이 장면마다 annotation.primitive 로 들어가고, 번호표가 info.json 에 있다."""
+    import json
+
+    import numpy as np
+    import pyarrow.parquet as pq
+
+    from datacache.understand.spark import PRIMITIVES
+
+    d, _ = synth_session
+    hand, objs, _ = synth_tracks
+    steps = [{"start_s": 5.0, "end_s": 6.0, "instruction": "Reach for the cup", "hand": "right", "objects": ["cup"], "action": "reach"},
+             {"start_s": 6.0, "end_s": 10.0, "instruction": "Grasp the cup", "hand": "right", "objects": ["cup"], "action": "grasp"}]
+    process(d, tmp_path / "o", hand_points=hand, objects=objs, steps=steps, extract=False)
+    t = pq.read_table(tmp_path / "o" / "lerobot" / "data" / "chunk-000" / "file-000.parquet")
+    p = np.array(t.column("annotation.primitive").to_pylist(), dtype=float).ravel()
+    ts = np.array(t.column("timestamp").to_pylist())
+    names = json.loads((tmp_path / "o" / "lerobot" / "meta" / "info.json").read_text())["datacache"]["primitives"]
+    assert names == PRIMITIVES
+    assert names[int(p[np.argmin(abs(ts - 5.5))])] == "reach" and names[int(p[np.argmin(abs(ts - 8.0))])] == "grasp"
+    assert p[np.argmin(abs(ts - 2.0))] == -1
+
+
+def test_missions_use_known_primitives():
+    """미션 12개의 예상 순서가 Spark 라벨 단위 안에 있고, 앱 안의 미션 목록이 서버와 같다."""
+    import json
+    from pathlib import Path
+
+    from datacache.understand.spark import PRIMITIVES
+
+    root = Path(__file__).parents[1]
+    srv = json.loads((root / "datacache" / "missions.json").read_text())
+    app = json.loads((root / "app" / "app" / "src" / "main" / "assets" / "missions.json").read_text())
+    assert srv == app and len(srv["missions"]) == 12
+    assert set(srv["primitives_ko"]) == set(PRIMITIVES)
+    for m in srv["missions"]:
+        assert m["primitives"][0] == "reach" and m["primitives"][-1] == "release" and set(m["primitives"]) <= set(PRIMITIVES)

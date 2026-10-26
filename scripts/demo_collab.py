@@ -29,7 +29,7 @@ def main():
             d = Path(f"data/synth/effort_{k}")
             generate(d, seed=100 + k, grip_n=float(g))
             m = json.loads((d / "meta.json").read_text())
-            m["mission"] = {"id": "carry_laundry", "title": "빨래 바구니 나르기"}
+            m["mission"] = {"id": "lift_box", "title": "상자 들어 올려 옮기기"}
             (d / "meta.json").write_text(json.dumps(m, ensure_ascii=False))
             run_session(d, f"out/synth/effort_{k}", use_api=False)
             sets.append(Path(f"out/synth/effort_{k}/lerobot"))

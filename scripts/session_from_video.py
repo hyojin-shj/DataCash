@@ -21,7 +21,7 @@ def main():
     ap.add_argument("out")
     ap.add_argument("--start", type=float, default=0)
     ap.add_argument("--dur", type=float, default=8)
-    ap.add_argument("--mission", default="cooking")
+    ap.add_argument("--mission", default="pick_place_cup")
     ap.add_argument("--title", default="요리")
     ap.add_argument("--source", default="")
     a = ap.parse_args()

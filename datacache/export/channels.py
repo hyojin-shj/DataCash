@@ -14,6 +14,7 @@
   observation.objects           20  물체 4칸 × (x1, y1, x2, y2 비율, 있음)  — SAM 3.1
   annotation.events              4  '실수했어요' · 확인된 접촉 · 단계 경계 · 라벨 검증됨
   annotation.step                1  단계 번호 (에피소드 정보의 steps 문장 목록, -1 없음)
+  annotation.primitive           1  조작 기본 동작 번호 (PRIMITIVES: reach·grasp·lift·pull·…·release, -1 없음)
   sync.error_ms                  4  감각별 동기화 오차 (영상 · 소리 · 손목·촉각 · 생체)
 """
 
@@ -25,6 +26,7 @@ from typing import Dict, List, Optional
 import numpy as np
 
 from ..touch.contact import PHASES
+from ..understand.spark import PRIMITIVES
 
 POSE_JOINTS = ["nose", "left_eye_inner", "left_eye", "left_eye_outer", "right_eye_inner", "right_eye", "right_eye_outer",
                "left_ear", "right_ear", "mouth_left", "mouth_right", "left_shoulder", "right_shoulder", "left_elbow",
@@ -50,6 +52,7 @@ NAMES: Dict[str, List[str]] = {
     "observation.objects": [f"obj{k}_{c}" for k in range(N_OBJ) for c in ("x1", "y1", "x2", "y2", "present")],
     "annotation.events": ["self_mark", "contact_confirmed", "step_boundary", "label_verified"],
     "annotation.step": ["step_index"],
+    "annotation.primitive": ["primitive_index"],
     "sync.error_ms": ["video", "audio", "wrist_touch", "physio"],
 }
 
@@ -193,6 +196,7 @@ def audio_rows(audio, grid, onsets, confirmed, fps) -> np.ndarray:
 def event_rows(grid, fps, marks_ns, confirmed, steps, verified_steps) -> tuple:
     E = np.zeros((len(grid), 4), np.float32)
     S = np.full((len(grid), 1), -1, np.float32)
+    P = np.full((len(grid), 1), -1, np.float32)
     step = 1e9 / fps
     for t in marks_ns or []:
         r = int(np.searchsorted(grid, t - step / 2))
@@ -206,12 +210,14 @@ def event_rows(grid, fps, marks_ns, confirmed, steps, verified_steps) -> tuple:
     for k, st in enumerate(steps or []):
         sel = (t_s >= st["start_s"]) & (t_s < st["end_s"])
         S[sel, 0] = k
+        if st.get("action") in PRIMITIVES:
+            P[sel, 0] = PRIMITIVES.index(st["action"])
         r = int(np.searchsorted(t_s, st["start_s"]))
         if 0 <= r < len(grid):
             E[r, 2] = 1.0
         if verified_steps and k < len(verified_steps) and verified_steps[k]:
             E[sel, 3] = 1.0
-    return E, S
+    return E, S, P
 
 
 def phase_name(p: float) -> str:

@@ -83,6 +83,7 @@
   pre.cert { white-space: pre-wrap; font-size: 12.5px; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 18px; max-height: 520px; overflow: auto; }
   footer { padding: 36px 0 60px; color: var(--sub); font-size: 13px; border-top: 1px solid var(--line); }
   @media (max-width: 960px) { header.hero .wrap, .viewer, .quote { grid-template-columns: 1fr; } .grid4, .levels { grid-template-columns: 1fr 1fr; } }
+  .prims { font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--accent-ink); margin-top: 4px; }
 </style>
 </head>
 <body>
@@ -197,7 +198,7 @@ async function load() {
   $("#k-rec").textContent = CAT.totals.recordings;
   $("#k-hours").textContent = hrs(CAT.totals.hours);
   $("#catBody").innerHTML = CAT.missions.map(m => `<tr>
-    <td><b>${esc(m.title)}</b><div class="note">${esc(m.title_en)}</div></td><td class="note">${esc(m.purpose)}</td>
+    <td><b>${esc(m.title)}</b><div class="note">${esc(m.title_en)}</div></td><td class="note">${esc(m.purpose)}${(m.primitives || []).length ? `<div class="prims">${m.primitives.map(esc).join(" → ")}</div>` : ""}</td>
     <td>${m.recordings}${m.synthetic_only ? ' <span class="pill">합성 시험</span>' : ""}</td>
     <td>${hrs(m.hours.basic)}</td><td>${hrs(m.hours.premium)}</td><td>${hrs(m.hours.bio)}</td>
     <td>${m.steps ? `<span class="pill ok">${m.verified_steps}/${m.steps}</span>` : "-"}</td></tr>`).join("");

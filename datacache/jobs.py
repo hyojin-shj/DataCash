@@ -24,7 +24,7 @@ def _mission(meta: dict, missions_path: Optional[Path] = None) -> dict:
     ms = {m["id"]: m for m in json.loads(p.read_text())["missions"]}
     mid = (meta.get("mission") or {}).get("id")
     return ms.get(mid, {"id": mid or "unknown", "title": (meta.get("mission") or {}).get("title", "task"),
-                        "title_en": "household task", "objects": []})
+                        "title_en": "manipulation task", "objects": []})
 
 
 def calibration_key(meta: dict) -> Optional[str]:
@@ -138,7 +138,8 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
             dur = cap.get(7) / (cap.get(5) or 30)
             cap.release()
             clip = clip_mp4(src, out / "understand_clip.mp4", 0, min(dur, 90), max_side=640, audio=False)
-            u = understand_clip(clip, f"{mission.get('title_en')} ({mission.get('title')})", min(dur, 90))
+            u = understand_clip(clip, f"{mission.get('title_en')} ({mission.get('title')})", min(dur, 90),
+                               primitives=mission.get("primitives"))
             steps, mistakes = u["steps"], u["mistakes"]
             scene = {"task": u["task"], "completed": u["completed"], "environment": u["environment"], "model": u["model"]}
             clip.unlink()

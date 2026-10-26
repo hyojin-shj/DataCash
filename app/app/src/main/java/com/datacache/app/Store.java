@@ -70,6 +70,10 @@ final class Store {
         return new JSONObject(asset(c, "missions.json")).getJSONArray("missions");
     }
 
+    static JSONObject primitivesKo(Context c) throws Exception {
+        return new JSONObject(asset(c, "missions.json")).getJSONObject("primitives_ko");
+    }
+
     static JSONObject mission(Context c, String id) throws Exception {
         JSONArray ms = missions(c);
         for (int i = 0; i < ms.length(); i++) if (ms.getJSONObject(i).getString("id").equals(id)) return ms.getJSONObject(i);

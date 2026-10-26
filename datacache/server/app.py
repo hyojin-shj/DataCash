@@ -119,7 +119,7 @@ class Store:
             mine = [r for r in rows if r["mission"] == m["id"]]
             hours = {lv: round(sum(r["minutes"] for r in mine if pricing.LEVELS.index(r["level"]) >= pricing.LEVELS.index(lv)) / 60, 3)
                      for lv in pricing.LEVELS}
-            out.append({**{k: m[k] for k in ("id", "title", "title_en", "guide", "purpose", "objects")},
+            out.append({**{k: m[k] for k in ("id", "title", "title_en", "guide", "purpose", "objects", "primitives")},
                         "recordings": len(mine), "hours": hours, "episodes": sum(r["episodes"] for r in mine),
                         "verified_steps": sum(r["verified_steps"] for r in mine), "steps": sum(r["steps"] for r in mine),
                         "samples": [r["sid"] for r in sorted(mine, key=lambda r: (-pricing.LEVELS.index(r["level"]), -r["steps"], r["synthetic"]))][:4],
@@ -127,7 +127,7 @@ class Store:
         extra = sorted({r["mission"] for r in rows} - {m["id"] for m in ms})
         for mid in extra:
             mine = [r for r in rows if r["mission"] == mid]
-            out.append({"id": mid, "title": mid, "title_en": mid, "guide": "", "purpose": "", "objects": [],
+            out.append({"id": mid, "title": mid, "title_en": mid, "guide": "", "purpose": "", "objects": [], "primitives": [],
                         "recordings": len(mine), "hours": {lv: round(sum(r["minutes"] for r in mine) / 60, 3) for lv in pricing.LEVELS},
                         "episodes": sum(r["episodes"] for r in mine), "verified_steps": sum(r["verified_steps"] for r in mine),
                         "steps": sum(r["steps"] for r in mine), "samples": [r["sid"] for r in mine][:4],

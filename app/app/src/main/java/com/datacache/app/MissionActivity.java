@@ -24,6 +24,18 @@ public class MissionActivity extends Activity {
             TextView p = Ui.text(this, "로봇이 배우는 것 · " + m.getString("purpose"), 13, Ui.SUB, false);
             p.setPadding(0, Ui.dp(this, 6), 0, 0);
             c.addView(p);
+            JSONArray prims = m.optJSONArray("primitives");
+            if (prims != null) {
+                JSONObject ko = Store.primitivesKo(this);
+                StringBuilder seq = new StringBuilder();
+                for (int i = 0; i < prims.length(); i++) {
+                    if (i > 0) seq.append(" → ");
+                    seq.append(ko.optString(prims.getString(i), prims.getString(i)));
+                }
+                TextView q = Ui.text(this, "동작 순서 · " + seq, 13, Ui.PRIMARY_DARK, true);
+                q.setPadding(0, Ui.dp(this, 6), 0, 0);
+                c.addView(q);
+            }
             TextView tip = Ui.text(this, "워치를 차고 찍으면 촉각(쥐는 힘)·몸 감각까지 담겨 보상이 더 커요. 녹화 중 실수하면 '실수했어요'를 눌러 주세요 — 로봇은 실수에서도 배워요.",
                     13, Ui.ACCENT_INK, false);
             tip.setBackground(Ui.round(Ui.ACCENT_SOFT, Ui.dp(this, 12)));

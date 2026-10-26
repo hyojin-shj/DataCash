@@ -206,7 +206,7 @@ def generate(out, duration: float = 20.0, fps: float = 30.0, drift_ppm: float = 
         (out / "clock_sync.csv").write_text("phone_send_ns,watch_ns,phone_recv_ns\n" + "".join(f"{a},{b},{c}\n" for a, b, c in rows))
 
     meta = {
-        "session_id": out.name, "synthetic": True, "mission": {"id": "carry_cup", "title": "컵 옮기기", "situation": "합성"},
+        "session_id": out.name, "synthetic": True, "mission": {"id": "pick_place_cup", "title": "컵 집어 옮기기", "situation": "합성"},
         "devices": {"phone": {"model": "synthetic-phone"}, "watch": {"model": "synthetic-watch"}},
         "participant": {"consent": {"video": True, "bio": physio}, "age_band": "30대"},
         "self_marks_ns": [int(P0 + mark * NS)],

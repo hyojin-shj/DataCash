@@ -1,49 +1,409 @@
 {
+  "primitives_ko": {
+    "reach": "다가가기",
+    "grasp": "쥐기",
+    "lift": "들기",
+    "pull": "당기기",
+    "push": "밀기",
+    "twist": "돌리기",
+    "press": "누르기",
+    "squeeze": "짜기",
+    "tear": "찢기",
+    "wipe": "닦기",
+    "insert": "끼우기",
+    "transport": "옮기기",
+    "place": "놓기",
+    "handover": "건네기",
+    "release": "손 떼기",
+    "other": "기타"
+  },
   "missions": [
     {
-      "id": "carry_laundry",
-      "title": "빨래 바구니 나르기",
-      "title_en": "Carry a laundry basket",
-      "guide": "바구니를 들어 방에서 방으로 옮기기 · 1~3분 · 몸 전체와 손이 보이게",
-      "purpose": "휴머노이드가 사람과 같이 무거운 물건을 나르는 동작·쥐는 힘·힘듦을 배운다",
-      "objects": ["laundry basket"],
-      "situations": ["가벼운 바구니", "가득 찬 바구니", "두 손으로", "한 손으로 옆구리에", "문턱 넘기", "계단 몇 칸", "바닥에 내려놓기", "선반 위로 올리기", "다른 방에서", "쉬었다가 다시"]
+      "id": "pull_tissue",
+      "title": "티슈 뽑기",
+      "title_en": "Pull a tissue",
+      "guide": "티슈 상자에서 한 장씩 뽑기 · 30초~1분 · 5번 반복 · 손과 상자가 보이게",
+      "purpose": "얇고 잘 찢어지는 물체를 손끝으로 집어 당기는 힘 조절",
+      "objects": [
+        "tissue box",
+        "tissue"
+      ],
+      "primitives": [
+        "reach",
+        "grasp",
+        "pull",
+        "release"
+      ],
+      "situations": [
+        "새 상자 (빡빡함)",
+        "거의 빈 상자",
+        "물티슈 (뚜껑 열고)",
+        "두 장이 같이 나올 때",
+        "오른손으로",
+        "왼손으로",
+        "가슴 높이 1인칭 (폰을 목걸이·거치대에)",
+        "옆에서 찍기",
+        "천천히 또렷하게",
+        "평소 속도로",
+        "놓쳤다가 다시 (실수했어요 누르기)",
+        "다른 물건·다른 장소에서"
+      ]
     },
     {
-      "id": "dishwashing",
-      "title": "설거지",
-      "title_en": "Wash dishes",
-      "guide": "싱크대에서 그릇 씻기 · 1~3분 · 손이 잘 보이게",
-      "purpose": "가사 로봇의 쥐기·문지르기·헹구기·내려놓기",
-      "objects": ["plate", "cup", "sponge"],
-      "situations": ["맨손으로 컵·접시", "고무장갑 끼고", "프라이팬·냄비", "거품 많이", "헹구기만", "어두운 조명", "선반 위 각도", "가슴 높이 1인칭", "건조대에 정리까지", "다른 싱크대"]
+      "id": "pick_place_cup",
+      "title": "컵 집어 옮기기",
+      "title_en": "Pick and place a cup",
+      "guide": "컵을 집어 다른 자리에 놓기 · 30초~1분 · 5번 반복",
+      "purpose": "가장 기본적인 집기·옮기기·놓기와 내려놓는 순간의 접촉",
+      "objects": [
+        "cup"
+      ],
+      "primitives": [
+        "reach",
+        "grasp",
+        "lift",
+        "transport",
+        "place",
+        "release"
+      ],
+      "situations": [
+        "빈 컵",
+        "물 반 컵",
+        "손잡이로 잡기",
+        "선반 위로",
+        "오른손으로",
+        "왼손으로",
+        "가슴 높이 1인칭 (폰을 목걸이·거치대에)",
+        "옆에서 찍기",
+        "천천히 또렷하게",
+        "평소 속도로",
+        "놓쳤다가 다시 (실수했어요 누르기)",
+        "다른 물건·다른 장소에서"
+      ]
     },
     {
-      "id": "wipe_table",
-      "title": "식탁 닦기",
-      "title_en": "Wipe the table",
-      "guide": "행주로 식탁을 닦고 물건을 옮겼다 다시 놓기 · 1~2분",
-      "purpose": "문지르는 힘(행주 변형)·물건 들었다 놓기",
-      "objects": ["cloth", "cup", "bowl"],
-      "situations": ["빈 식탁", "물건 옮기며", "얼룩 세게", "젖은 행주", "마른 행주", "원형 식탁", "어두운 조명", "1인칭", "옆에서", "다른 식탁"]
+      "id": "pull_stacked_cup",
+      "title": "겹친 컵 빼기",
+      "title_en": "Pull a cup from a stack",
+      "guide": "겹쳐 쌓인 종이컵·컵에서 맨 위 하나 빼기 · 30초~1분 · 5번 반복",
+      "purpose": "마찰을 이기며 빼는 힘과 다른 손으로 잡아 주기",
+      "objects": [
+        "cup"
+      ],
+      "primitives": [
+        "reach",
+        "grasp",
+        "pull",
+        "place",
+        "release"
+      ],
+      "situations": [
+        "종이컵 묶음",
+        "플라스틱 컵",
+        "한 손으로",
+        "두 손으로 (아래 잡고)",
+        "오른손으로",
+        "왼손으로",
+        "가슴 높이 1인칭 (폰을 목걸이·거치대에)",
+        "옆에서 찍기",
+        "천천히 또렷하게",
+        "평소 속도로",
+        "놓쳤다가 다시 (실수했어요 누르기)",
+        "다른 물건·다른 장소에서"
+      ]
     },
     {
-      "id": "cooking",
-      "title": "요리",
-      "title_en": "Cook a simple dish",
-      "guide": "프라이팬으로 간단한 요리 · 1~3분 · 조리하는 손이 보이게",
-      "purpose": "주방 로봇의 도구 쓰기·붓기·젓기",
-      "objects": ["frying pan", "spatula", "bowl"],
-      "situations": ["계란 프라이", "볶음", "냄비 끓이기", "도마에서 썰기", "뒤집개로 뒤집기", "가스레인지", "저녁 조명", "위에서", "1인칭", "접시에 담기까지"]
+      "id": "tear_pouch",
+      "title": "파우치·봉지 뜯기",
+      "title_en": "Tear open a pouch",
+      "guide": "과자 봉지·소스 파우치를 두 손으로 뜯기 · 30초~1분 · 3번 반복",
+      "purpose": "양손 협업과 찢는 순간의 힘·소리",
+      "objects": [
+        "pouch",
+        "snack bag"
+      ],
+      "primitives": [
+        "reach",
+        "grasp",
+        "tear",
+        "release"
+      ],
+      "situations": [
+        "홈 있는 파우치",
+        "과자 봉지",
+        "지퍼백 열기",
+        "잘 안 뜯어질 때",
+        "오른손으로",
+        "왼손으로",
+        "가슴 높이 1인칭 (폰을 목걸이·거치대에)",
+        "옆에서 찍기",
+        "천천히 또렷하게",
+        "평소 속도로",
+        "놓쳤다가 다시 (실수했어요 누르기)",
+        "다른 물건·다른 장소에서"
+      ]
     },
     {
-      "id": "put_away",
-      "title": "물건 정리하기",
-      "title_en": "Put things away",
-      "guide": "식탁·책상 위 물건을 제자리(서랍·선반)에 · 1~2분",
-      "purpose": "집기·열기·닫기·놓기의 순서",
-      "objects": ["cup", "book", "drawer"],
-      "situations": ["컵을 찬장에", "책을 책장에", "서랍 열고 닫기", "한 손으로", "두 손으로", "높은 선반", "낮은 서랍", "어두운 조명", "1인칭", "다른 방에서"]
+      "id": "spray_bottle",
+      "title": "분무기 뿌리기",
+      "title_en": "Use a spray bottle",
+      "guide": "분무기를 쥐고 방아쇠를 당겨 뿌리기 · 30초~1분 · 5번 반복",
+      "purpose": "도구를 쥔 채 손가락으로 누르는 조작",
+      "objects": [
+        "spray bottle"
+      ],
+      "primitives": [
+        "reach",
+        "grasp",
+        "lift",
+        "press",
+        "place",
+        "release"
+      ],
+      "situations": [
+        "식물에",
+        "유리에",
+        "한 번씩 끊어서",
+        "연속으로",
+        "오른손으로",
+        "왼손으로",
+        "가슴 높이 1인칭 (폰을 목걸이·거치대에)",
+        "옆에서 찍기",
+        "천천히 또렷하게",
+        "평소 속도로",
+        "놓쳤다가 다시 (실수했어요 누르기)",
+        "다른 물건·다른 장소에서"
+      ]
+    },
+    {
+      "id": "squeeze_bottle",
+      "title": "소스·튜브 짜기",
+      "title_en": "Squeeze a sauce bottle",
+      "guide": "소스 병·치약을 짜서 접시·칫솔에 덜기 · 30초~1분 · 3번 반복",
+      "purpose": "쥐는 힘을 조절해 원하는 만큼만 짜기",
+      "objects": [
+        "sauce bottle",
+        "toothpaste"
+      ],
+      "primitives": [
+        "reach",
+        "grasp",
+        "lift",
+        "squeeze",
+        "place",
+        "release"
+      ],
+      "situations": [
+        "거의 가득 찬 병",
+        "거의 빈 병",
+        "치약",
+        "조금만 / 많이",
+        "오른손으로",
+        "왼손으로",
+        "가슴 높이 1인칭 (폰을 목걸이·거치대에)",
+        "옆에서 찍기",
+        "천천히 또렷하게",
+        "평소 속도로",
+        "놓쳤다가 다시 (실수했어요 누르기)",
+        "다른 물건·다른 장소에서"
+      ]
+    },
+    {
+      "id": "twist_cap",
+      "title": "병뚜껑 열고 닫기",
+      "title_en": "Twist a bottle cap",
+      "guide": "물병·잼 병 뚜껑을 돌려 열고 다시 닫기 · 30초~1분 · 3번 반복",
+      "purpose": "한 손은 잡고 한 손은 돌리는 회전 조작",
+      "objects": [
+        "bottle",
+        "bottle cap",
+        "jar"
+      ],
+      "primitives": [
+        "reach",
+        "grasp",
+        "twist",
+        "release"
+      ],
+      "situations": [
+        "페트병",
+        "잼 병 (빡빡함)",
+        "약통",
+        "한 손으로 열기",
+        "오른손으로",
+        "왼손으로",
+        "가슴 높이 1인칭 (폰을 목걸이·거치대에)",
+        "옆에서 찍기",
+        "천천히 또렷하게",
+        "평소 속도로",
+        "놓쳤다가 다시 (실수했어요 누르기)",
+        "다른 물건·다른 장소에서"
+      ]
+    },
+    {
+      "id": "wipe_surface",
+      "title": "안경·접시 닦기",
+      "title_en": "Wipe glasses or a plate",
+      "guide": "천으로 안경알·접시 표면을 닦기 · 30초~1분",
+      "purpose": "물체를 잡고 다른 손으로 표면을 따라 문지르는 힘",
+      "objects": [
+        "glasses",
+        "plate",
+        "cloth"
+      ],
+      "primitives": [
+        "reach",
+        "grasp",
+        "wipe",
+        "place",
+        "release"
+      ],
+      "situations": [
+        "안경",
+        "접시",
+        "휴대폰 화면",
+        "젖은 천 / 마른 천",
+        "오른손으로",
+        "왼손으로",
+        "가슴 높이 1인칭 (폰을 목걸이·거치대에)",
+        "옆에서 찍기",
+        "천천히 또렷하게",
+        "평소 속도로",
+        "놓쳤다가 다시 (실수했어요 누르기)",
+        "다른 물건·다른 장소에서"
+      ]
+    },
+    {
+      "id": "pick_small_fruit",
+      "title": "포도·작은 과일 따기",
+      "title_en": "Pick grapes",
+      "guide": "포도송이에서 알을 하나씩 따서 그릇에 · 30초~1분 · 5알",
+      "purpose": "으깨지 않게 약하게 쥐고 떼어 내는 섬세한 쥐기",
+      "objects": [
+        "grape",
+        "bowl"
+      ],
+      "primitives": [
+        "reach",
+        "grasp",
+        "pull",
+        "transport",
+        "place",
+        "release"
+      ],
+      "situations": [
+        "포도",
+        "방울토마토",
+        "블루베리",
+        "젓가락으로",
+        "오른손으로",
+        "왼손으로",
+        "가슴 높이 1인칭 (폰을 목걸이·거치대에)",
+        "옆에서 찍기",
+        "천천히 또렷하게",
+        "평소 속도로",
+        "놓쳤다가 다시 (실수했어요 누르기)",
+        "다른 물건·다른 장소에서"
+      ]
+    },
+    {
+      "id": "lift_box",
+      "title": "상자 들어 올려 옮기기",
+      "title_en": "Lift and carry a box",
+      "guide": "상자를 들어 올려 몇 걸음 옮겨 내려놓기 · 30초~1분 · 3번 반복",
+      "purpose": "무게 있는 물체를 두 손으로 드는 자세·쥐는 힘·힘듦 (심박)",
+      "objects": [
+        "box"
+      ],
+      "primitives": [
+        "reach",
+        "grasp",
+        "lift",
+        "transport",
+        "place",
+        "release"
+      ],
+      "situations": [
+        "빈 상자",
+        "책 넣은 무거운 상자",
+        "바닥에서 탁자로",
+        "탁자에서 바닥으로",
+        "오른손으로",
+        "왼손으로",
+        "가슴 높이 1인칭 (폰을 목걸이·거치대에)",
+        "옆에서 찍기",
+        "천천히 또렷하게",
+        "평소 속도로",
+        "놓쳤다가 다시 (실수했어요 누르기)",
+        "다른 물건·다른 장소에서"
+      ]
+    },
+    {
+      "id": "handover",
+      "title": "물건 건네주기",
+      "title_en": "Hand an object over",
+      "guide": "다른 사람에게 물건을 건네거나 받기 · 30초~1분 · 5번 반복 (상대 얼굴은 가려져요)",
+      "purpose": "사람과 로봇이 물건을 주고받는 순간 (잡는 손이 바뀌는 시점)",
+      "objects": [
+        "cup",
+        "book",
+        "phone"
+      ],
+      "primitives": [
+        "reach",
+        "grasp",
+        "lift",
+        "transport",
+        "handover",
+        "release"
+      ],
+      "situations": [
+        "건네주기",
+        "건네받기",
+        "컵",
+        "책·휴대폰",
+        "오른손으로",
+        "왼손으로",
+        "가슴 높이 1인칭 (폰을 목걸이·거치대에)",
+        "옆에서 찍기",
+        "천천히 또렷하게",
+        "평소 속도로",
+        "놓쳤다가 다시 (실수했어요 누르기)",
+        "다른 물건·다른 장소에서"
+      ]
+    },
+    {
+      "id": "stack_blocks",
+      "title": "블록 쌓기·끼우기",
+      "title_en": "Stack or snap blocks",
+      "guide": "레고·블록을 집어 쌓거나 끼우기 · 30초~1분 · 5개",
+      "purpose": "작은 물체를 정확한 자리에 놓고 끼우는 정밀 조작 ('딸깍' 소리)",
+      "objects": [
+        "lego brick",
+        "toy block"
+      ],
+      "primitives": [
+        "reach",
+        "grasp",
+        "lift",
+        "insert",
+        "press",
+        "release"
+      ],
+      "situations": [
+        "레고 끼우기",
+        "나무 블록 쌓기",
+        "작은 블록",
+        "빼기 (분해)",
+        "오른손으로",
+        "왼손으로",
+        "가슴 높이 1인칭 (폰을 목걸이·거치대에)",
+        "옆에서 찍기",
+        "천천히 또렷하게",
+        "평소 속도로",
+        "놓쳤다가 다시 (실수했어요 누르기)",
+        "다른 물건·다른 장소에서"
+      ]
     }
   ]
 }

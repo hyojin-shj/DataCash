@@ -24,6 +24,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from ..media import run
+from ..understand.spark import PRIMITIVES
 from .channels import LEVEL_DROP, NAMES, EpisodeChannels
 
 VIDEO_KEY = "observation.images.ego"
@@ -159,7 +160,8 @@ def export(out_dir, episodes: List[EpisodeChannels], videos: List[Path], fps: fl
             "video_files_size_in_mb": 500, "fps": fps, "splits": {"train": f"0:{len(episodes)}"},
             "data_path": "data/chunk-{chunk_index:03d}/file-{file_index:03d}.parquet",
             "video_path": "videos/{video_key}/chunk-{chunk_index:03d}/file-{file_index:03d}.mp4",
-            "features": features, "datacache": {"level": level, "channels_dropped": sorted(drop)}}
+            "features": features, "datacache": {"level": level, "channels_dropped": sorted(drop),
+                                                  "primitives": PRIMITIVES}}   # annotation.primitive 번호 → 이름
     (out / "meta" / "info.json").write_text(json.dumps(info, indent=2, ensure_ascii=False))
     return out
 
