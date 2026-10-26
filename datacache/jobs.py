@@ -7,6 +7,7 @@ API 를 쓸 수 없으면(한도·오류) 그 단계만 건너뛰고 나머지�
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Optional
 
@@ -58,6 +59,19 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
             report["skipped"].append(f"privacy: {e}")
         except Exception as e:
             report["skipped"].append(f"privacy: {type(e).__name__}: {str(e)[:200]}")
+    # 2-1. 참여자 얼굴 → 실존하지 않는 가상 인물 (LivePortrait + MediaPipe 자르기, 재식별 검사)
+    if masked is not None and use_api is not None and not synthetic and os.environ.get("DATACACHE_FACESWAP", "1") == "1":
+        try:
+            from .privacy.faceswap import pick_donor, swap_video
+
+            donor = pick_donor(video)
+            if donor is not None:
+                sr = swap_video(video, masked, out / "masked_swap.mp4", donor,
+                                participant_boxes=getattr(r, "participant_boxes", None), log=log)
+                masked = out / "masked_swap.mp4"
+                privacy = {**(privacy or {}), "face_swap": sr.to_dict()}
+        except Exception as e:
+            report["skipped"].append(f"face_swap: {type(e).__name__}: {str(e)[:200]}")
     if masked is None and not synthetic:
         report["error"] = "가린 영상이 없어 판매용 데이터셋을 만들지 않음"
         (out / "job.json").write_text(json.dumps(report, indent=2, ensure_ascii=False))
