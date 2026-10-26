@@ -77,7 +77,7 @@ public class ResultActivity extends Activity {
         state.setText(Uploader.stateKo(s));
         bar.setProgress(s.equals("done") ? 100 : s.equals("processing") ? 60 : s.equals("queued") ? 40 : bar.getProgress());
         StringBuilder b = new StringBuilder();
-        if (s.equals("processing") || s.equals("queued")) b.append("가상 인물 치환 · 가리기 · 4감 동기화 중이에요. 앱을 닫아도 서버가 계속해요.");
+        if (s.equals("processing") || s.equals("queued")) b.append("가리기 · 라벨 · 4감 동기화 중이에요. 앱을 닫아도 서버가 계속해요.");
         if (s.equals("done")) {
             int r = st.optInt("reward");
             state.setText(String.format(Locale.KOREA, "+%,d원 적립", r));
