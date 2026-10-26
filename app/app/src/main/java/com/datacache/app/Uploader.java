@@ -18,7 +18,7 @@ final class Uploader {
 
     static final String[] FILES = {"meta.json", "video.mp4", "video_frames.csv", "audio.wav", "audio.json", "phone_imu.csv",
             "beacon.csv", "watch_imu.csv", "watch_audio.wav", "watch_audio.json", "watch_vib.csv", "watch_hr.csv",
-            "watch_skin.csv", "clock_sync.csv"};
+            "watch_skin.csv", "clock_sync.csv", "phone_server_sync.csv"};
 
     interface Progress { void on(String step, int pct); }
 

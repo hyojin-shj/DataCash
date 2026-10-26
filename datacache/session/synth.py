@@ -32,7 +32,8 @@ def _chirp(rate, f0, f1, dur):
 
 def generate(out, duration: float = 20.0, fps: float = 30.0, drift_ppm: float = 40.0, seed: int = 0,
              phone_audio_rate: int = 48000, watch_audio_rate: int = 48000, watch_imu_rate: float = 400.0,
-             physio: bool = True, size=(320, 240), grip_n: float = 8.0, hr_per_n: float = 3.1) -> dict:
+             physio: bool = True, size=(320, 240), grip_n: float = 8.0, hr_per_n: float = 3.1,
+             via_server: bool = False) -> dict:
     rng = np.random.default_rng(seed)
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
@@ -189,7 +190,20 @@ def generate(out, duration: float = 20.0, fps: float = 30.0, drift_ppm: float = 
     for tau in np.arange(0.0, duration, 0.5):
         up, down = abs(rng.normal(0.006, 0.002)), abs(rng.normal(0.002, 0.001))
         rows.append((int(P0 + tau * NS), int(to_watch(tau + up)), int(P0 + (tau + up + down) * NS)))
-    (out / "clock_sync.csv").write_text("phone_send_ns,watch_ns,phone_recv_ns\n" + "".join(f"{a},{b},{c}\n" for a, b, c in rows))
+    if via_server:   # 폰·워치가 각자 서버와 주고받는다 (서버 시계 S0, 자체 드리프트 −15ppm)
+        S0, ds = 50_000_000_000_000, -15e-6
+        def srv(tau):
+            return int(S0 + tau * (1 + ds) * NS)
+        prow, wrow = [], []
+        for tau in np.arange(0.0, duration, 0.5):
+            up, down = abs(rng.normal(0.004, 0.0015)), abs(rng.normal(0.003, 0.001))
+            prow.append((int(P0 + tau * NS), srv(tau + up), int(P0 + (tau + up + down) * NS)))
+            up, down = abs(rng.normal(0.007, 0.002)), abs(rng.normal(0.004, 0.0015))
+            wrow.append((int(to_watch(tau)), srv(tau + up), int(to_watch(tau + up + down))))
+        (out / "phone_server_sync.csv").write_text("device_send_ns,server_ns,device_recv_ns\n" + "".join(f"{a},{b},{c}\n" for a, b, c in prow))
+        (out / "watch_server_sync.csv").write_text("device_send_ns,server_ns,device_recv_ns\n" + "".join(f"{a},{b},{c}\n" for a, b, c in wrow))
+    else:
+        (out / "clock_sync.csv").write_text("phone_send_ns,watch_ns,phone_recv_ns\n" + "".join(f"{a},{b},{c}\n" for a, b, c in rows))
 
     meta = {
         "session_id": out.name, "synthetic": True, "mission": {"id": "carry_cup", "title": "컵 옮기기", "situation": "합성"},

@@ -45,3 +45,18 @@ def test_low_rate_watch_mic_falls_back(tmp_path):
     assert al.watch_to_phone.method == "vibration_pulse"
     mid = s.watch_imu.t_ns[len(s.watch_imu.t_ns) // 2]
     assert abs(al.watch_to_phone(np.array([mid]))[0] - watch_to_phone_truth(truth, [mid])[0]) / 1e6 < 3.0
+
+
+def test_clock_via_server_without_direct_link(tmp_path):
+    """폰·워치가 직접 통신하지 않고 각자 서버와 시각을 주고받아도 워치 → 폰 사상이 수 ms 안."""
+    from datacache.session.synth import generate
+    from datacache.sync.clock import via_server
+
+    truth = generate(tmp_path / "s", duration=14.0, via_server=True)
+    s = load_session(tmp_path / "s")
+    assert s.clock_sync is None and s.phone_server_sync is not None
+    m = via_server(s.phone_server_sync, s.watch_server_sync)
+    mid = s.watch_imu.t_ns[len(s.watch_imu.t_ns) // 2]
+    assert abs(m(np.array([mid]))[0] - watch_to_phone_truth(truth, [mid])[0]) / 1e6 < 6.0
+    al = align_session(s)
+    assert "clock_via_server" in al.methods and al.watch_to_phone.method == "beacon"   # 비콘이 더 정확하면 비콘

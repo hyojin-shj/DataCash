@@ -20,7 +20,7 @@ import numpy as np
 from .. import config
 from ..session.format import Session
 from .acoustic import can_hear, chirp, find_events, tone
-from .clock import rtt_map
+from .clock import rtt_map, via_server
 from .linear import ClockMap, fit
 
 SOUND_TRAVEL_MS = 1.0   # 폰 스피커 → 워치 마이크 (보통 30~50cm). 비콘 짝에서 뺀다
@@ -146,8 +146,10 @@ def align_session(s: Session, responses=None) -> Alignment:
         al.ok = {k: v <= LIMIT_MS[k] for k, v in al.error_ms.items()}
         return al
     rtt = rtt_map(s.clock_sync)
+    if rtt is None and s.phone_server_sync is not None and s.watch_server_sync is not None:
+        rtt = via_server(s.phone_server_sync, s.watch_server_sync)   # 폰·워치가 각자 서버와 맞춘 기록으로
     if rtt:
-        al.methods["clock_rtt"] = {**rtt.to_dict(), "rtt_ms_median": round(getattr(rtt, "rtt_ms_median", 0.0), 2)}
+        al.methods[rtt.method] = {**rtt.to_dict(), "rtt_ms_median": round(getattr(rtt, "rtt_ms_median", 0.0), 2)}
     guess = rtt
     if responses is None:
         from ..touch.vibration import pulse_responses
@@ -171,11 +173,11 @@ def align_session(s: Session, responses=None) -> Alignment:
         cands["vibration_pulse"] = mv
         al.methods["vibration_pulse"].update(mv.to_dict())
     if rtt:
-        cands["clock_rtt"] = rtt
+        cands[rtt.method] = rtt
     # 고르기: 비콘 > 진동 펄스 > 시계 (짝이 충분하고 잔차가 작을 때)
     chosen = None
-    for k in ("beacon", "vibration_pulse", "clock_rtt"):
-        if k in cands and (k == "clock_rtt" or cands[k].resid_ms < 2.0):
+    for k in ("beacon", "vibration_pulse", "clock_rtt", "clock_via_server"):
+        if k in cands and (k.startswith("clock") or cands[k].resid_ms < 2.0):
             chosen = cands[k]
             break
     al.watch_to_phone = chosen
@@ -187,7 +189,7 @@ def align_session(s: Session, responses=None) -> Alignment:
     for k, m in cands.items():
         if m is not chosen:
             al.checks[f"diff_{k}_ms"] = float((m(np.array([mid]))[0] - chosen(np.array([mid]))[0]) / 1e6)
-    base = {"beacon": 0.3, "vibration_pulse": 1.5, "clock_rtt": 3.0}[chosen.method]
+    base = {"beacon": 0.3, "vibration_pulse": 1.5, "clock_rtt": 3.0, "clock_via_server": 5.0}[chosen.method]
     werr = float(np.hypot(base, chosen.resid_ms))
     al.error_ms["wrist"] = werr
     al.error_ms["touch"] = float(np.hypot(werr, 2.5))           # 펄스 간격·IMU 샘플(400Hz=2.5ms)

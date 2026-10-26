@@ -71,6 +71,8 @@ class Session:
     watch_hr: Optional[Stream] = None
     watch_skin: Optional[Stream] = None
     clock_sync: Optional[np.ndarray] = None      # (n, 3) int64
+    phone_server_sync: Optional[np.ndarray] = None   # (n, 3) 폰↔서버
+    watch_server_sync: Optional[np.ndarray] = None   # (n, 3) 워치↔서버
     extra: dict = field(default_factory=dict)
 
     @property
@@ -108,6 +110,14 @@ def load_session(root) -> Session:
         cs = np.array([[int(v) for v in ln.split(",")] for ln in (root / "clock_sync.csv").read_text().splitlines()[1:]
                        if ln.strip()], dtype=np.int64)
     beacon = read_csv(root / "beacon.csv")
+
+    def rows3(name):
+        p = root / name
+        if not p.exists():
+            return None
+        r = [[int(v) for v in ln.split(",")] for ln in p.read_text().splitlines()[1:] if ln.strip()]
+        return np.array(r, dtype=np.int64) if r else None
+
     return Session(
         root=root, meta=meta,
         video_path=(root / "video.mp4") if (root / "video.mp4").exists() else None,
@@ -121,4 +131,6 @@ def load_session(root) -> Session:
         watch_hr=_stream(root, "watch_hr.csv", "watch"),
         watch_skin=_stream(root, "watch_skin.csv", "watch"),
         clock_sync=cs,
+        phone_server_sync=rows3("phone_server_sync.csv"),
+        watch_server_sync=rows3("watch_server_sync.csv"),
     )

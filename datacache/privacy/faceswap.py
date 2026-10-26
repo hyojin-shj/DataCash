@@ -35,6 +35,7 @@ class SwapReport:
     swapped: int = 0
     no_face: int = 0
     reid_blocked: int = 0
+    small_face_covered: int = 0     # 478점을 못 찾은 작은 얼굴 → YuNet 으로 찾아 가림 (원래 얼굴이 남지 않게)
     reid_max: float = 0.0
     reid_mean: float = 0.0
     seconds: float = 0.0
@@ -177,6 +178,28 @@ class LivePortraitSwap:
         return (warped * mw + frame * (1 - mw)).astype(np.uint8)
 
 
+def cover_small_faces(base, original, reid: "Reid", participant_box=None) -> int:
+    """치환할 수 없는 작은 얼굴을 YuNet 으로 찾아 모자이크로 덮는다 (참여자 상자가 있으면 그 안의 얼굴만). 덮은 개수."""
+    h, w = original.shape[:2]
+    reid.det.setInputSize((w, h))
+    _, faces = reid.det.detect(original)
+    n = 0
+    for f in faces if faces is not None else []:
+        x, y, fw, fh = (int(v) for v in f[:4])
+        cx, cy = x + fw / 2, y + fh / 2
+        if participant_box is not None and not (participant_box[0] <= cx <= participant_box[2] and participant_box[1] <= cy <= participant_box[3]):
+            continue
+        pad = int(0.35 * max(fw, fh))
+        x0, y0, x1, y1 = max(0, x - pad), max(0, y - pad), min(w, x + fw + pad), min(h, y + fh + pad)
+        if x1 - x0 < 4 or y1 - y0 < 4:
+            continue
+        roi = base[y0:y1, x0:x1]
+        small = cv2.resize(roi, (max(1, (x1 - x0) // 10), max(1, (y1 - y0) // 10)), interpolation=cv2.INTER_AREA)
+        base[y0:y1, x0:x1] = cv2.resize(small, (x1 - x0, y1 - y0), interpolation=cv2.INTER_NEAREST)
+        n += 1
+    return n
+
+
 def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[dict] = None, reid_every: int = 3,
                log=print) -> SwapReport:
     """original: 원래 영상(얼굴·움직임 읽기용), base: 가린 영상(같은 장면 수) 위에 바꾼 얼굴을 붙인다."""
@@ -211,6 +234,8 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
             faces = [f for f in faces if pb[0] <= f[:, 0].mean() <= pb[2] and pb[1] <= f[:, 1].mean() <= pb[3]] or faces
         if not faces:
             rep.no_face += 1
+            covered = cover_small_faces(fb, fo, reid, pb)
+            rep.small_face_covered += covered > 0
             vw.write(fb)
             i += 1
             continue

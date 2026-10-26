@@ -36,6 +36,7 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
     private AudioWav audio;
     private Imu imu;
     private Beacon beacon;
+    private ServerSync sync;
     private File dir;
     private boolean recording, busy;
     private long startNs;
@@ -138,6 +139,8 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
             imu.start(dir);
             beacon = new Beacon();
             beacon.start(dir);
+            sync = new ServerSync(this);   // 서버에 녹화 시작을 알리고 시각을 주고받는다 (워치가 같이 기록)
+            sync.start(dir);
         } catch (Exception e) {
             Toast.makeText(this, "시작 실패: " + e.getMessage(), Toast.LENGTH_LONG).show();
             busy = false;
@@ -177,6 +180,7 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
             try {
                 JSONObject video = camera.stop(dir);
                 beacon.stop();
+                sync.stop();
                 JSONObject a = audio.stop(dir);
                 long imuRows = imu.stop();
                 JSONArray mk = new JSONArray();

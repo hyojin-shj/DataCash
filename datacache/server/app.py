@@ -45,7 +45,8 @@ from .. import config, pricing
 
 FILES = {"meta.json", "video.mp4", "video_frames.csv", "audio.wav", "audio.json", "phone_imu.csv", "beacon.csv",
          "watch_imu.csv", "watch_audio.wav", "watch_audio.json", "watch_vib.csv", "watch_hr.csv", "watch_skin.csv",
-         "clock_sync.csv"}
+         "clock_sync.csv", "phone_server_sync.csv", "watch_server_sync.csv", "watch_meta.json"}
+WATCH_WAIT_S = 240   # 폰 업로드 뒤 워치 업로드를 기다리는 최대 시간
 SID = re.compile(r"^[A-Za-z0-9_\-]{3,64}$")
 EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 WEB = config.ROOT / "web"
@@ -58,6 +59,7 @@ class Store:
             (root / d).mkdir(parents=True, exist_ok=True)
         self.q: Queue = Queue()
         self.lock = threading.Lock()
+        self.live: dict = {}          # 지금 녹화 중인 세션 {sid, started, watch_joined}
         threading.Thread(target=self._worker, daemon=True).start()
 
     # ---- 상태 ----
@@ -77,6 +79,11 @@ class Store:
 
         while True:
             sid = self.q.get()
+            st0 = self.status(sid)
+            if st0.get("watch_joined") and not st0.get("watch_done"):   # 워치가 같이 찍었으면 워치 업로드를 기다린다
+                t0 = time.time()
+                while time.time() - t0 < WATCH_WAIT_S and not self.status(sid).get("watch_done"):
+                    time.sleep(2)
             self.set_status(sid, state="processing")
             try:
                 rep = run_session(self.root / "sessions" / sid, self.root / "out" / sid, use_api=self.use_api)
@@ -178,6 +185,10 @@ class QuoteIn(BaseModel):
     refine: bool = False
 
 
+class LiveIn(BaseModel):
+    sid: str
+
+
 class OrderIn(QuoteIn):
     org: str
     email: str
@@ -235,6 +246,40 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
             raise HTTPException(400, "meta.json·video.mp4 가 필요함")
         st.q.put(sid)
         return st.set_status(sid, state="queued")
+
+    # ---- 폰·워치 연결 (서로 직접 통신하지 않는다: 둘 다 서버와 시각을 주고받고, 서버가 녹화 시작·끝을 알려 준다) ----
+    @app.get("/api/time")
+    def server_time(x_dc_token: Optional[str] = Header(None)):
+        auth(x_dc_token)
+        return {"ns": time.monotonic_ns()}
+
+    @app.post("/api/live/start")
+    def live_start(b: LiveIn, x_dc_token: Optional[str] = Header(None)):
+        auth(x_dc_token)
+        if not SID.match(b.sid):
+            raise HTTPException(400, "세션 id")
+        st.live = {"sid": b.sid, "state": "recording", "started": time.time(), "watch_joined": False}
+        return st.live
+
+    @app.post("/api/live/stop")
+    def live_stop(b: LiveIn, x_dc_token: Optional[str] = Header(None)):
+        auth(x_dc_token)
+        if st.live.get("sid") == b.sid:
+            st.live["state"] = "stopped"
+            st.set_status(b.sid, watch_joined=bool(st.live.get("watch_joined")))
+        return st.live
+
+    @app.get("/api/live")
+    def live(role: str = "phone", x_dc_token: Optional[str] = Header(None)):
+        auth(x_dc_token)
+        if role == "watch" and st.live.get("state") == "recording":
+            st.live["watch_joined"] = True
+        return st.live or {"state": "idle"}
+
+    @app.post("/api/sessions/{sid}/watch_done")
+    def watch_done(sid: str, x_dc_token: Optional[str] = Header(None)):
+        auth(x_dc_token)
+        return st.set_status(sid, watch_done=True)
 
     @app.get("/api/sessions/{sid}/status")
     def status(sid: str, x_dc_token: Optional[str] = Header(None)):
