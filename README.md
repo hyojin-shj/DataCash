@@ -1,7 +1,7 @@
 # DataCache (데이터캐시)
 
 집에 이미 있는 기기(폰·워치)만으로 **촉각·시각·청각·몸 감각**을 한 시간축에 모으는 생활밀착형 고품질 로봇 데이터 양산소.
-사용자는 집에서 미션을 찍어 보상을 받고, 휴머노이드·피지컬 AI 회사는 개인정보가 지워진 4감 데이터를 LeRobot v3.0 그대로 산다.
+사용자는 집에서 로봇 조작 기본 동작 미션(티슈 뽑기·컵 옮기기·파우치 뜯기·뚜껑 돌리기 등 12가지)을 폰·워치로 찍어 보상을 받고, 휴머노이드·피지컬 AI 회사는 개인정보가 지워진 4감 데이터를 LeRobot v3.0 그대로 산다.
 Meta Global AI Developer Hackathon (Indie Developer · Push the Frontier) 출품작.
 
 ![DataCache](docs/1026_datacache_brand.png)
@@ -32,7 +32,10 @@ Muse Wonder 는 한국에서 쓸 수 없어 영상 이해는 Spark 1.3 으로 �
 ## 핵심 기술
 
 1. **가치 보존 개인정보 처리** — 블러 대신: SAM 3.1 로 동의 안 한 것만 가리고, 참여자 얼굴은 실사 가상 인물로 치환
-   (LivePortrait(MIT) + MediaPipe 자르기 — 비상업 InsightFace 를 쓰지 않는다), 장면마다 SFace 재식별 검사
+   (LivePortrait(MIT) + MediaPipe 자르기 — 비상업 InsightFace 를 쓰지 않는다), 장면마다 SFace 재식별 검사.
+   먼 장면의 40px 얼굴도 YuNet → 둘레 키워 치환. 본인 얼굴 등록·녹화 전 얼굴 확인으로 참여자를 알아보고,
+   동의 받은 가족은 가리지 않고 사람마다 다른 가상 얼굴로 (`datacache/people.py`, 사진 대신 특징값만 저장).
+   이의 신청은 자동 확인 → 검토자 → 결과, 개인정보 신고는 즉시 판매 중지 (`datacache/appeals.py`)
 2. **4감 자동 동기화** — 사용자 동작 없이: 폰↔워치 시계 왕복, 18~20kHz 음향 비콘(폰 마이크·워치 마이크가 같이 들음),
    워치 진동 펄스(촉각 펄스가 동기 신호를 겸함), 영상 움직임↔손목 상관으로 검증 (`datacache/sync/`)
 3. **주변 기기로 만드는 촉각** — 워치 능동 진동 감지(울림 크기·사그라드는 속도 → 저울 보정 쥐는 힘), 영상 접촉 단계,
@@ -45,7 +48,7 @@ Muse Wonder 는 한국에서 쓸 수 없어 영상 이해는 Spark 1.3 으로 �
 `observation.images.ego` (가린·치환 영상) · `observation.hands` · `observation.body` · `observation.body_world` ·
 `observation.imu.phone` · `observation.imu.wrist` · `observation.audio` · **`observation.touch`** (접촉·쥐는 힘 N·접촉 단계·물체) ·
 `observation.touch.vibration` · **`observation.physio`** (심박·HRR·피부온도 변화, 생체 동의만) · `observation.objects` ·
-`annotation.events` · `annotation.step` · `sync.error_ms` + 에피소드 정보(단계·실수·장면·성공·동기화·촉각 보정) + 품질 인증서.
+`annotation.events` · `annotation.step` · `annotation.primitive` (reach·grasp·pull…release) · `sync.error_ms` + 에피소드 정보(단계·실수·장면·성공·동기화·촉각 보정) + 품질 인증서.
 실제 `lerobot` 0.6.1 로 읽힌다 (`scripts/validate_lerobot.py`).
 
 등급: 기본 60,000원/시간 · 고품질(+손목·쥐는 힘) 100,000원 · 생체(+심박·체온) 150,000원 (시장 사례 기준, `datacache/pricing.py`).
@@ -68,7 +71,7 @@ LivePortrait 는 저장소에 넣지 않는다 — [KwaiVGI/LivePortrait](https:
 
 | 폴더 | 하는 일 |
 |---|---|
-| `app/` | 일반 사용자 안드로이드 앱 (동의·미션·녹화·실수 표시·미션 후 질문·업로드·적립) |
+| `app/` | 일반 사용자 안드로이드 앱 (동의·오늘의 보너스 미션·얼굴 확인·녹화·실수 표시·미션 후 질문·업로드·적립·동의 인원·이의 신청·계좌) + 워치 앱 |
 | `web/` | 구매 기업 데스크톱 웹 (4감 타임라인·카탈로그·견적·주문·내려받기), 운영자 화면 |
 | `datacache/meta` | Meta Model API 클라이언트 (비용 장부·한도) |
 | `datacache/session` | 녹화 세션 형식, 정답을 아는 합성 4감 세션 |

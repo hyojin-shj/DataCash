@@ -48,3 +48,25 @@
 - food_shop: [File:Dishes you can't miss in Xi'an.webm](https://commons.wikimedia.org/wiki/File:Dishes_you_can%27t_miss_in_Xi%27an.webm) · China News Service · CC BY 3.0
 - game_lounge_screens: [File:2023-03-31 Retro Games Lounge.webm](https://commons.wikimedia.org/wiki/File:2023-03-31_Retro_Games_Lounge.webm) · Computerarchiv-Muenchen.de · CC BY-SA 4.0
 - mirror_bathroom: [File:Man in hotel bathroom with mirrors all around, turning and making video thereof.webm](https://commons.wikimedia.org/wiki/File:Man_in_hotel_bathroom_with_mirrors_all_around,_turning_and_making_video_thereof.webm) · Pittigrilli · CC BY-SA 4.0
+
+## 얼굴 치환 감도 (10-27 오후)
+
+공개 요리 영상(960×540, 192장면, 먼 장면과 가까운 장면이 섞임)으로 쟀다.
+
+| | 치환 | 작은 얼굴 치환 | 모자이크 | 얼굴 없음 | 재식별 막음 |
+|---|---|---|---|---|---|
+| 전 (MediaPipe 만) | 106 | 0 | 86 | 86 | 0 |
+| 후 (YuNet → 둘레 키워 478점) | **183** | 81 | 4 | 4 | 5 |
+
+- **원인:** 먼 장면의 얼굴(높이 약 40px)을 MediaPipe 얼굴 478점이 못 찾아서, 치환 대신 모자이크로 덮고 있었다.
+- **고침:**
+  - YuNet 으로 작은 얼굴 상자를 먼저 찾는다.
+  - 상자 3배 둘레를 360px 로 키워 478점을 찾고, 원래 좌표로 되돌려 같은 방식으로 치환한다 (`find_small_faces`).
+  - 테스트 `test_small_face_found_for_swap`: 40px 얼굴을 원래 방식으로는 못 찾고 새 방식으로 찾는다.
+- **재식별 막음 5장면:** 크게 돌린 옆얼굴이다.
+  - 가상 얼굴이 원래 사람과 너무 닮게 나와 검사가 막았다 (최대 0.675).
+  - 예전엔 이런 장면을 회색 네모로 덮었는데, 지금은 얼굴 둘레를 굵은 모자이크(가로 7칸)로 덮어 덜 튄다.
+- **동의한 가족도 치환한다:**
+  - 본인·가족 알아보기는 SFace 0.45 이상이고, 다음으로 닮은 등록자보다 0.05 높아야 한다.
+  - OpenCV 권장 0.363 보다 엄격하다. 저장소의 가상 인물 6명끼리도 0.33~0.60 이 나와서다.
+  - 가족마다 서로 다른 가상 인물을 쓴다.
