@@ -24,3 +24,15 @@ def test_mistake_confirmed_by_self_mark():
     m = check_mistakes([{"t_s": 8.6, "description": "cup slips", "recovered": True},
                         {"t_s": 15.0, "description": "spill", "recovered": False}], [8.0])
     assert m[0]["confirmed_by_participant"] and not m[1]["confirmed_by_participant"]
+
+
+def test_mute_only_personal_spans():
+    import numpy as np
+
+    from datacache.privacy.speech import mute
+
+    rate = 16000
+    x = np.ones(rate * 4, np.float32)
+    y = mute(x, rate, [(1000, 1500)])
+    assert y[int(0.5 * rate)] == 1.0 and y[int(1.2 * rate)] == 0.0 and y[int(3 * rate)] == 1.0
+    assert 0.0 <= y[int(0.86 * rate)] <= 1.0                      # 페이드

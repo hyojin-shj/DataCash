@@ -77,6 +77,18 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
         (out / "job.json").write_text(json.dumps(report, indent=2, ensure_ascii=False))
         return report
 
+    # 2-2. 말소리 개인정보 끄기 (Voice Transcribe + Spark, 받아쓴 글자는 남기지 않는다)
+    if use_api and (sd / "audio.wav").exists() and not synthetic:
+        try:
+            from .privacy.speech import clean_audio
+
+            sp = clean_audio(sd / "audio.wav", sd / "audio_clean.wav")
+            privacy = {**(privacy or {}), "speech": sp}
+        except BudgetExceeded as e:
+            report["skipped"].append(f"speech: {e}")
+        except Exception as e:
+            report["skipped"].append(f"speech: {type(e).__name__}: {str(e)[:200]}")
+
     # 3. Muse Spark 이해 (가린 영상만)
     steps, mistakes, scene = None, None, None
     if use_api:

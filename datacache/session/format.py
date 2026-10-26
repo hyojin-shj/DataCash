@@ -95,7 +95,8 @@ def _audio(root: Path, stem: str, clock: str) -> Optional[Audio]:
     x, rate = read_wav(root / f"{stem}.wav")
     if x is None:
         return None
-    info = json.loads((root / f"{stem}.json").read_text())
+    meta_p = root / f"{stem}.json"
+    info = json.loads((meta_p if meta_p.exists() else root / f"{stem.replace('_clean', '')}.json").read_text())
     return Audio(x, int(rate), int(info["start_ns"]), clock)
 
 
@@ -111,7 +112,7 @@ def load_session(root) -> Session:
         root=root, meta=meta,
         video_path=(root / "video.mp4") if (root / "video.mp4").exists() else None,
         frame_ns=read_ns(root / "video_frames.csv", 1),
-        audio=_audio(root, "audio", "phone"),
+        audio=_audio(root, "audio_clean" if (root / "audio_clean.wav").exists() else "audio", "phone"),
         phone_imu=_stream(root, "phone_imu.csv", "phone"),
         beacon_ns=read_ns(root / "beacon.csv"), beacon=None if beacon is None else beacon[:, 1:],
         watch_imu=_stream(root, "watch_imu.csv", "watch"),
