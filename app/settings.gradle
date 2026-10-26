@@ -13,4 +13,4 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "datacache"
-include ':app'
+include ':app', ':wear'

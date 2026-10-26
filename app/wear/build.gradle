@@ -1,0 +1,25 @@
+plugins {
+    id 'com.android.application'
+}
+
+// 갤럭시 워치(Wear OS) 앱 — 손목 IMU · 능동 진동 펄스 · 심박 · 마이크 · 서버 시각. 외부 라이브러리 없이.
+android {
+    namespace 'com.datacache.wear'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.datacache.wear'
+        minSdk 30
+        targetSdk 34
+        versionCode 1
+        versionName '0.1-hackathon'
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+}
