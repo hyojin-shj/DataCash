@@ -32,7 +32,7 @@ def _chirp(rate, f0, f1, dur):
 
 def generate(out, duration: float = 20.0, fps: float = 30.0, drift_ppm: float = 40.0, seed: int = 0,
              phone_audio_rate: int = 48000, watch_audio_rate: int = 48000, watch_imu_rate: float = 400.0,
-             physio: bool = True, size=(320, 240)) -> dict:
+             physio: bool = True, size=(320, 240), grip_n: float = 8.0, hr_per_n: float = 3.1) -> dict:
     rng = np.random.default_rng(seed)
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
@@ -49,7 +49,7 @@ def generate(out, duration: float = 20.0, fps: float = 30.0, drift_ppm: float = 
         f = np.zeros_like(np.asarray(tau, float))
         for a, b, n in presses:
             f = np.where((tau >= a) & (tau < b), n, f)
-        return np.where((tau >= grasp0) & (tau < grasp1), 8.0, f)
+        return np.where((tau >= grasp0) & (tau < grasp1), grip_n, f)
 
     W, H = size
     cup0 = np.array([210.0, 150.0])
@@ -175,7 +175,11 @@ def generate(out, duration: float = 20.0, fps: float = 30.0, drift_ppm: float = 
     # ---- 생체 ----
     if physio:
         hr_tau = np.arange(0, duration, 1.0)
-        hr = 70 + 25 * np.clip((hr_tau - grasp0) / 3.0, 0, 1) * (hr_tau < grasp1 + 3)
+        # 무거울수록(쥐는 힘이 클수록) 심박이 더 오른다 — 들기 시작하면 오르고 내려놓은 뒤 천천히 돌아온다
+        rise = hr_per_n * grip_n + rng.normal(0, 1.5)
+        up = np.clip((hr_tau - grasp0) / 3.0, 0, 1) * (hr_tau < grasp1)
+        down = np.where(hr_tau >= grasp1, np.exp(-(hr_tau - grasp1) / 4.0), 0.0)
+        hr = 70 + rise * np.maximum(up, down * (hr_tau >= grasp1)) + rng.normal(0, 0.8, len(hr_tau))
         (out / "watch_hr.csv").write_text("t_ns,bpm\n" + "".join(f"{int(to_watch(t))},{b:.1f}\n" for t, b in zip(hr_tau, hr)))
         (out / "watch_skin.csv").write_text("t_ns,temp_c\n" + "".join(
             f"{int(to_watch(t))},{33.0 + 0.02 * t:.3f}\n" for t in hr_tau))
@@ -202,7 +206,7 @@ def generate(out, duration: float = 20.0, fps: float = 30.0, drift_ppm: float = 
               for t in frame_tau]
     (out / "tracks.json").write_text(json.dumps(tracks))
     truth = {"P0": P0, "W0": W0, "drift": drift, "speaker_latency_s": spk_lat, "motor_latency_s": motor_lat,
-             "grasp": [grasp0, grasp1], "putdown_s": grasp1, "mark_s": mark, "grip_force_n": 8.0,
+             "grasp": [grasp0, grasp1], "putdown_s": grasp1, "mark_s": mark, "grip_force_n": grip_n,
              "presses": presses, "fps": fps, "duration": duration}
     (out / "truth.json").write_text(json.dumps(truth, indent=2))
     return truth
