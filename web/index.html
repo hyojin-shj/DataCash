@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DataCache for Business</title>
+<link rel="icon" href="/static/favicon.png">
+<style>
+  :root {
+    --primary: #FF5F5F; --primary-dark: #E84646; --primary-soft: #FFECEC;
+    --accent: #FFAF5F; --accent-ink: #D97F1F; --accent-soft: #FFF3E3;
+    --ink: #333333; --sub: #6E6E73; --line: #ECECEE; --bg: #FAFAFB; --card: #FFFFFF;
+    --touch: #FF5F5F; --hr: #8E5CF7; --sound: #2E9BF0; --contact: #FFAF5F; --ok: #16A36B;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", sans-serif;
+         color: var(--ink); background: var(--bg); line-height: 1.55; }
+  a { color: var(--primary-dark); text-decoration: none; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 28px; }
+  nav { position: sticky; top: 0; z-index: 10; background: rgba(255,255,255,.92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+  nav .wrap { display: flex; align-items: center; gap: 28px; height: 64px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 19px; color: var(--ink); }
+  .brand img { width: 34px; height: 34px; }
+  .brand small { color: var(--sub); font-weight: 600; font-size: 13px; }
+  nav .links { display: flex; gap: 22px; margin-left: auto; font-size: 14px; font-weight: 600; }
+  nav .links a { color: var(--ink); }
+  .btn { display: inline-flex; align-items: center; gap: 6px; border: 0; cursor: pointer; border-radius: 12px; padding: 12px 20px;
+         font-weight: 700; font-size: 15px; background: var(--primary); color: #fff; }
+  .btn:hover { background: var(--primary-dark); }
+  .btn.ghost { background: var(--primary-soft); color: var(--primary-dark); }
+  .btn.small { padding: 8px 14px; font-size: 13px; border-radius: 10px; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  header.hero { background: linear-gradient(120deg, #FF5F5F 0%, #FF8A5F 55%, #FFAF5F 100%); color: #fff; }
+  header.hero .wrap { display: grid; grid-template-columns: 1.3fr 1fr; gap: 40px; padding: 64px 28px; align-items: center; }
+  .hero h1 { font-size: 42px; line-height: 1.2; margin: 0 0 16px; letter-spacing: -0.5px; }
+  .hero p { font-size: 17px; opacity: .95; margin: 0 0 24px; }
+  .hero .btn { background: #fff; color: var(--primary-dark); }
+  .hero .btn.ghost { background: rgba(255,255,255,.18); color: #fff; }
+  .kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .kpi { background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.3); border-radius: 16px; padding: 18px; }
+  .kpi b { display: block; font-size: 28px; }
+  .kpi span { font-size: 13px; opacity: .9; }
+  section { padding: 56px 0; }
+  h2 { font-size: 28px; margin: 0 0 8px; letter-spacing: -0.3px; }
+  .lead { color: var(--sub); margin: 0 0 28px; }
+  .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 22px; }
+  .sense .tag { display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 99px; margin-bottom: 10px; }
+  .sense h3 { margin: 0 0 6px; font-size: 18px; }
+  .sense p { margin: 0; color: var(--sub); font-size: 14px; }
+  .sense ul { margin: 10px 0 0; padding-left: 18px; font-size: 13px; color: var(--ink); }
+  .viewer { display: grid; grid-template-columns: 1fr 1.25fr; gap: 20px; }
+  .viewer img { width: 100%; border-radius: 14px; background: #eee; aspect-ratio: 4/3; object-fit: contain; }
+  .viewer canvas { width: 100%; height: 360px; display: block; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  select, input[type=number], input[type=text], input[type=email], textarea {
+    font: inherit; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: #fff; color: var(--ink); }
+  input[type=range] { accent-color: var(--primary); width: 100%; }
+  .legend { display: flex; gap: 14px; font-size: 12px; color: var(--sub); flex-wrap: wrap; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 12px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 12px; color: var(--sub); font-weight: 700; text-transform: none; }
+  .pill { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px; background: var(--accent-soft); color: var(--accent-ink); }
+  .pill.ok { background: #E6F7EF; color: var(--ok); }
+  .levels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .level h3 { margin: 0; }
+  .level .price { font-size: 26px; font-weight: 800; color: var(--primary-dark); margin: 8px 0 4px; }
+  .level .price small { font-size: 13px; color: var(--sub); font-weight: 600; }
+  .level p { font-size: 13px; color: var(--sub); margin: 8px 0 0; }
+  .level.sel { border: 2px solid var(--primary); }
+  .quote { display: grid; grid-template-columns: 1.1fr 1fr; gap: 20px; }
+  .lines div { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed var(--line); font-size: 14px; }
+  .total { font-size: 30px; font-weight: 800; color: var(--primary-dark); }
+  .checks { display: flex; flex-wrap: wrap; gap: 8px; }
+  .checks label { border: 1px solid var(--line); border-radius: 99px; padding: 6px 12px; font-size: 13px; cursor: pointer; background: #fff; }
+  .checks input { display: none; }
+  .checks label.on { background: var(--primary-soft); border-color: var(--primary); color: var(--primary-dark); font-weight: 700; }
+  .note { font-size: 12px; color: var(--sub); }
+  .steps { margin: 12px 0 0; padding: 0; list-style: none; font-size: 13px; }
+  .steps li { padding: 6px 0; border-bottom: 1px solid var(--line); display: flex; gap: 8px; }
+  .steps li b { min-width: 74px; color: var(--sub); font-weight: 600; }
+  pre.cert { white-space: pre-wrap; font-size: 12.5px; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 18px; max-height: 520px; overflow: auto; }
+  footer { padding: 36px 0 60px; color: var(--sub); font-size: 13px; border-top: 1px solid var(--line); }
+  @media (max-width: 960px) { header.hero .wrap, .viewer, .quote { grid-template-columns: 1fr; } .grid4, .levels { grid-template-columns: 1fr 1fr; } }
+</style>
+</head>
+<body>
+<nav><div class="wrap">
+  <a class="brand" href="#"><img src="/static/icon.png" alt="">DataCache <small>for Business</small></a>
+  <div class="links"><a href="#senses">4감 데이터</a><a href="#sample">예시 보기</a><a href="#catalog">카탈로그</a><a href="#buy">견적·구매</a></div>
+</div></nav>
+
+<header class="hero"><div class="wrap">
+  <div>
+    <h1>집에 이미 있는 폰과 워치로 모은<br>로봇이 배울 4감 데이터</h1>
+    <p>실제 집에서 사람이 한 일을 촉각·시각·청각·몸 감각까지 한 시간축에 담았습니다. 동의하지 않은 사람·화면·서류는 SAM 3.1 로 정확히 가리고,
+      라벨은 Muse Spark 가 붙인 뒤 센서로 다시 확인합니다. LeRobot v3.0 그대로 받아 바로 학습하세요.</p>
+    <div class="row"><a class="btn" href="#buy">견적 받기</a><a class="btn ghost" href="#sample">예시 데이터 보기</a></div>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><b id="k-rec">-</b><span>처리된 녹화</span></div>
+    <div class="kpi"><b id="k-hours">-</b><span>시간 (받아들인 분량)</span></div>
+    <div class="kpi"><b>4감</b><span>촉각 · 시각 · 청각 · 몸 감각</span></div>
+    <div class="kpi"><b>&lt; 1ms</b><span>워치↔폰 자동 동기화 (합성 검증)</span></div>
+  </div>
+</div></header>
+
+<section id="senses"><div class="wrap">
+  <h2>촉각 센서 없이, 집에 있는 기기만으로</h2>
+  <p class="lead">새 장비를 나눠 주지 않습니다. 사용자가 이미 가진 폰·워치로 모으고, 기기들이 서로를 맞추게 합니다.</p>
+  <div class="grid4">
+    <div class="card sense"><span class="tag" style="background:var(--primary-soft);color:var(--primary-dark)">촉각</span>
+      <h3>쥐는 힘 · 접촉</h3><p>워치가 0.5초마다 짧게 울리고 손목의 울림을 재서 쥐는 힘(N)을 읽습니다 (저울로 보정).</p>
+      <ul><li>잡음·놓음·미끄러짐: 영상 + SAM 3.1</li><li>내려놓음·문지름: 접촉음 + 손목 충격</li></ul></div>
+    <div class="card sense"><span class="tag" style="background:#EEF6FE;color:var(--sound)">시각</span>
+      <h3>가린 영상 · 관절 · 물체</h3><p>손 21점 × 양손, 전신 33관절(3D), 조작 물체 영역. 참여자 얼굴은 실사 가상 인물로 치환.</p>
+      <ul><li>사람·아이·화면·거울·액자·서류 가리기</li><li>단계 지시문 (Muse Spark)</li></ul></div>
+    <div class="card sense"><span class="tag" style="background:var(--accent-soft);color:var(--accent-ink)">청각</span>
+      <h3>소리 · 접촉음</h3><p>폰·워치 마이크. 개인정보가 담긴 말은 받아써서 그 구간만 끕니다 (Voice Transcribe).</p>
+      <ul><li>소리 세기·사건</li><li>18~20kHz 음향 비콘으로 기기끼리 동기화</li></ul></div>
+    <div class="card sense"><span class="tag" style="background:#F3EEFE;color:var(--hr)">몸 감각</span>
+      <h3>움직임 · 심박 · 체온</h3><p>손목 IMU, 심박·HRR·피부온도 변화 (생체 동의한 녹화만). 판정·조언 없이 원값과 본인 응답만.</p>
+      <ul><li>사람이 얼마나 힘들었나 → 사람을 이해하며 같이 일하는 로봇</li></ul></div>
+  </div>
+</div></section>
+
+<section id="sample" style="background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line)"><div class="wrap">
+  <h2>예시 데이터 — 4감 타임라인</h2>
+  <p class="lead">한 에피소드의 장면과, 같은 시간축의 쥐는 힘·심박·소리·단계 라벨입니다. 타임라인을 누르면 그 장면으로 갑니다.</p>
+  <div class="row" style="margin-bottom:14px">
+    <select id="sampleSel"></select><span class="note" id="sampleNote"></span>
+    <button class="btn small ghost" id="certBtn">품질 인증서</button>
+  </div>
+  <div class="viewer">
+    <div><img id="frame" alt="가린 장면"><input type="range" id="scrub" min="0" max="0" value="0">
+      <ul class="steps" id="stepList"></ul></div>
+    <div class="card" style="padding:14px"><canvas id="chart" width="900" height="360"></canvas>
+      <div class="legend">
+        <span><i style="background:var(--touch)"></i>쥐는 힘 (N)</span><span><i style="background:var(--hr)"></i>심박 (bpm)</span>
+        <span><i style="background:var(--sound)"></i>소리 세기</span><span><i style="background:var(--contact)"></i>접촉 단계</span>
+        <span>▲ 확인된 접촉음 · ◆ '실수했어요'</span></div>
+      <div class="note" id="syncNote" style="margin-top:8px"></div></div>
+  </div>
+  <pre class="cert" id="cert" hidden></pre>
+</div></section>
+
+<section id="catalog"><div class="wrap">
+  <h2>카탈로그</h2>
+  <p class="lead">처리된 녹화의 품질 인증서에서 바로 계산한 숫자입니다 (지어낸 숫자 없음).</p>
+  <div class="card" style="padding:6px 16px"><table>
+    <thead><tr><th>미션</th><th>쓰임</th><th>녹화</th><th>기본</th><th>고품질</th><th>생체</th><th>검증된 단계</th></tr></thead>
+    <tbody id="catBody"></tbody></table></div>
+</div></section>
+
+<section id="buy" style="background:#fff;border-top:1px solid var(--line)"><div class="wrap">
+  <h2>등급과 가격</h2>
+  <p class="lead">받아들인(검수 통과) 시간 기준. 라벨 붙은 1인칭 데이터 시장가(시간당 $30~60)를 기준으로 잡았습니다.</p>
+  <div class="levels" id="levels"></div>
+  <div class="quote" style="margin-top:28px">
+    <div class="card">
+      <h3 style="margin-top:0">견적</h3>
+      <div class="note">미션 (비우면 전체)</div><div class="checks" id="mChecks" style="margin:8px 0 16px"></div>
+      <div class="row"><label>시간 <input type="number" id="hours" value="10" min="1" step="1" style="width:90px"></label>
+        <label><input type="checkbox" id="custom"> 맞춤 수집 (×1.5, 최소 10시간, 착수비)</label>
+        <label><input type="checkbox" id="refine"> 정제 요청 (10%)</label></div>
+      <div class="lines" id="qLines" style="margin-top:16px"></div>
+      <div class="row" style="justify-content:space-between;margin-top:12px"><span class="note" id="qAvail"></span><span class="total" id="qTotal">-</span></div>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0">주문</h3>
+      <div style="display:grid;gap:10px">
+        <input type="text" id="org" placeholder="회사·기관 이름"><input type="email" id="email" placeholder="이메일">
+        <textarea id="note" rows="3" placeholder="필요한 조건 (선택)"></textarea>
+        <button class="btn" id="orderBtn">주문하기</button>
+        <div class="note">운영자가 계약·결제를 확인하고 승인하면, 이 화면에 일회용 내려받기 주소(7일, 5번)가 나타납니다.</div>
+        <div id="orderBox"></div>
+      </div>
+    </div>
+  </div>
+</div></section>
+
+<footer><div class="wrap">
+  DataCache · Meta Global AI Developer Hackathon (Push the Frontier) · 모든 녹화는 참여자 동의·철회 기록이 있고, 철회하면 판매에서 빠집니다.
+  <span id="synthNote"></span>
+</div></footer>
+
+<script>
+const $ = s => document.querySelector(s);
+const won = n => (Math.round(n) || 0).toLocaleString("ko-KR") + "원";
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let CAT = null, LEVEL = "premium", TL = null, SID = null;
+
+async function load() {
+  CAT = await (await fetch("/api/market/catalog")).json();
+  $("#k-rec").textContent = CAT.totals.recordings;
+  $("#k-hours").textContent = CAT.totals.hours.toFixed(2);
+  $("#catBody").innerHTML = CAT.missions.map(m => `<tr>
+    <td><b>${esc(m.title)}</b><div class="note">${esc(m.title_en)}</div></td><td class="note">${esc(m.purpose)}</td>
+    <td>${m.recordings}${m.synthetic_only ? ' <span class="pill">합성 시험</span>' : ""}</td>
+    <td>${m.hours.basic.toFixed(2)}h</td><td>${m.hours.premium.toFixed(2)}h</td><td>${m.hours.bio.toFixed(2)}h</td>
+    <td>${m.steps ? `<span class="pill ok">${m.verified_steps}/${m.steps}</span>` : "-"}</td></tr>`).join("");
+  $("#levels").innerHTML = CAT.levels.map(l => `<div class="card level ${l.id === LEVEL ? "sel" : ""}" data-l="${l.id}" style="cursor:pointer">
+    <h3>${esc(l.name)}</h3><div class="price">${won(l.per_hour)}<small> / 시간</small></div>
+    <div class="note">분당 ${won(l.per_hour / 60)} · 촬영자 보상 시간당 ${won(l.reward_per_hour)}</div><p>${esc(l.desc)}</p></div>`).join("");
+  document.querySelectorAll(".level").forEach(e => e.onclick = () => { LEVEL = e.dataset.l; load_levels(); quote(); });
+  $("#mChecks").innerHTML = CAT.missions.map(m => `<label><input type="checkbox" value="${esc(m.id)}">${esc(m.title)}</label>`).join("");
+  document.querySelectorAll("#mChecks label").forEach(l => l.onclick = e => { setTimeout(() => { l.classList.toggle("on", l.querySelector("input").checked); quote(); }, 0); });
+  const samples = CAT.missions.flatMap(m => m.samples.map(s => ({s, m})));
+  $("#sampleSel").innerHTML = samples.map(x => `<option value="${esc(x.s)}">${esc(x.m.title)} · ${esc(x.s)}</option>`).join("") || "<option>예시 없음</option>";
+  if (CAT.missions.some(m => m.synthetic_only)) $("#synthNote").textContent = " · '합성 시험' 표시는 정답을 아는 합성 녹화로 파이프라인을 검증한 데이터입니다 (판매 대상 아님).";
+  if (samples.length) loadSample(samples[0].s);
+  quote();
+}
+function load_levels() { document.querySelectorAll(".level").forEach(e => e.classList.toggle("sel", e.dataset.l === LEVEL)); }
+
+async function loadSample(sid) {
+  SID = sid; $("#cert").hidden = true;
+  TL = await (await fetch(`/api/market/sample/${encodeURIComponent(sid)}/timeline`)).json();
+  $("#scrub").max = TL.frames - 1; $("#scrub").value = 0;
+  const s = TL.sync || {};
+  $("#syncNote").textContent = `동기화: ${s.chosen || "-"} · 감각별 오차(ms) ` + Object.entries(s.error_ms || {}).map(([k, v]) => `${k} ${v}`).join(", ");
+  $("#sampleNote").textContent = TL.scene ? `Muse Spark: ${TL.scene.task} (완료: ${TL.scene.completed})` : "";
+  $("#stepList").innerHTML = (TL.steps || []).map(st => `<li><b>${st.start_s.toFixed(1)}–${st.end_s.toFixed(1)}s</b>
+    <span>${esc(st.instruction)}</span>${st.verified === true ? '<span class="pill ok">센서 확인</span>' : st.verified === false ? '<span class="pill">미확인</span>' : ""}</li>`).join("");
+  setFrame(0); draw();
+}
+function setFrame(i) { $("#frame").src = `/api/market/sample/${encodeURIComponent(SID)}/frame/${i}`; draw(i); }
+$("#scrub").oninput = e => setFrame(+e.target.value);
+$("#sampleSel").onchange = e => loadSample(e.target.value);
+$("#certBtn").onclick = async () => { const c = $("#cert"); if (!c.hidden) { c.hidden = true; return; }
+  c.textContent = await (await fetch(`/api/market/certificate/${encodeURIComponent(SID)}`)).text(); c.hidden = false; };
+
+function draw(cur = +$("#scrub").value) {
+  if (!TL) return;
+  const cv = $("#chart"), g = cv.getContext("2d"), W = cv.width, H = cv.height, n = TL.t.length;
+  g.clearRect(0, 0, W, H);
+  const x = i => 40 + (W - 60) * i / Math.max(1, n - 1);
+  const lanes = [[20, 110], [130, 210], [230, 290], [305, 340]];
+  g.font = "12px sans-serif"; g.fillStyle = "#8a8a8e";
+  ["쥐는 힘 N", "심박", "소리", "접촉"].forEach((s, k) => g.fillText(s, 0, lanes[k][0] + 10));
+  (TL.steps || []).forEach((st, k) => { const a = x(st.start_s * n / TL.t[n - 1]), b = x(st.end_s * n / TL.t[n - 1]);
+    g.fillStyle = k % 2 ? "rgba(255,175,95,.10)" : "rgba(255,95,95,.07)"; g.fillRect(a, 0, b - a, H); });
+  function line(arr, lane, color, lo, hi) {
+    if (!arr) return; const [y0, y1] = lane; g.strokeStyle = color; g.lineWidth = 2; g.beginPath();
+    arr.forEach((v, i) => { const y = y1 - (Math.min(hi, Math.max(lo, v)) - lo) / (hi - lo) * (y1 - y0); i ? g.lineTo(x(i), y) : g.moveTo(x(i), y); });
+    g.stroke(); }
+  const gmax = Math.max(5, ...(TL.grip_n || [0]));
+  line(TL.grip_n, lanes[0], "#FF5F5F", 0, gmax * 1.1);
+  const hrv = (TL.hr || []).filter(v => v > 0);
+  if (hrv.length) line(TL.hr.map(v => v || Math.min(...hrv)), lanes[1], "#8E5CF7", Math.min(...hrv) - 5, Math.max(...hrv) + 5);
+  line(TL.audio_db, lanes[2], "#2E9BF0", -70, 0);
+  if (TL.phase) TL.phase.forEach((p, i) => { if (p > 0) { g.fillStyle = ["", "#FFE1B8", "#FFC680", "#FFAF5F", "#FF5F5F", "#C9C9CE"][p] || "#FFAF5F";
+    g.fillRect(x(i), lanes[3][0], Math.max(1, (W - 60) / n + .5), lanes[3][1] - lanes[3][0]); } });
+  g.fillStyle = "#2E9BF0"; (TL.contact_sound || []).forEach((v, i) => { if (v > 0) { g.beginPath(); g.moveTo(x(i), lanes[2][0] - 2); g.lineTo(x(i) - 6, lanes[2][0] - 12); g.lineTo(x(i) + 6, lanes[2][0] - 12); g.fill(); } });
+  g.fillStyle = "#333"; (TL.self_mark || []).forEach((v, i) => { if (v > 0) { g.save(); g.translate(x(i), 8); g.rotate(Math.PI / 4); g.fillRect(-5, -5, 10, 10); g.restore(); } });
+  g.strokeStyle = "#333"; g.lineWidth = 1; g.beginPath(); g.moveTo(x(cur), 0); g.lineTo(x(cur), H); g.stroke();
+  g.fillStyle = "#333"; g.fillText(`${(TL.t[cur] || 0).toFixed(2)}s · 힘 ${(TL.grip_n?.[cur] ?? 0).toFixed(1)}N` + (TL.hr ? ` · 심박 ${TL.hr[cur] ?? "-"}` : ""), Math.min(W - 220, x(cur) + 6), H - 4);
+}
+$("#chart").onclick = e => { if (!TL) return; const r = e.target.getBoundingClientRect(); const fx = (e.clientX - r.left) / r.width * e.target.width;
+  const i = Math.round((fx - 40) / (e.target.width - 60) * (TL.t.length - 1)); $("#scrub").value = Math.max(0, Math.min(TL.t.length - 1, i)); setFrame(+$("#scrub").value); };
+
+function picked() { return [...document.querySelectorAll("#mChecks input:checked")].map(i => i.value); }
+async function quote() {
+  const body = {missions: picked(), level: LEVEL, hours: +$("#hours").value || 1, custom: $("#custom").checked, refine: $("#refine").checked};
+  const q = await (await fetch("/api/market/quote", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)})).json();
+  $("#qLines").innerHTML = `<div><span>${esc(q.level_ko)} · ${q.hours}시간 × ${won(q.per_hour)}</span><span>${won(q.data)}</span></div>` +
+    (q.discount_pct ? `<div><span>묶음 할인</span><span>${q.discount_pct}% 적용</span></div>` : "") +
+    (q.setup ? `<div><span>맞춤 수집 착수비</span><span>${won(q.setup)}</span></div>` : "") +
+    (q.refine ? `<div><span>정제 요청</span><span>${won(q.refine)}</span></div>` : "");
+  $("#qTotal").textContent = won(q.total);
+  $("#qAvail").textContent = `지금 바로 받을 수 있는 분량: ${q.available_hours}시간` + (q.custom ? " (맞춤 수집은 새로 모읍니다)" : "");
+}
+["#hours", "#custom", "#refine"].forEach(s => $(s).oninput = quote);
+$("#orderBtn").onclick = async () => {
+  const body = {missions: picked(), level: LEVEL, hours: +$("#hours").value || 1, custom: $("#custom").checked, refine: $("#refine").checked,
+                org: $("#org").value, email: $("#email").value, note: $("#note").value};
+  const r = await fetch("/api/market/orders", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
+  const o = await r.json();
+  if (!r.ok) { $("#orderBox").innerHTML = `<div class="note" style="color:var(--primary-dark)">${esc(o.detail)}</div>`; return; }
+  localStorage.setItem("dc_order", o.id); poll(o.id);
+};
+async function poll(id) {
+  const o = await (await fetch(`/api/market/orders/${encodeURIComponent(id)}`)).json();
+  const label = {pending: "승인 대기", building: "묶음 만드는 중", ready: "준비됨", failed: "실패"}[o.status] || o.status;
+  $("#orderBox").innerHTML = `<div class="card" style="background:var(--bg)"><b>주문 ${esc(o.id)}</b> · ${label} · ${won(o.quote.total)}
+    ${o.download ? `<div style="margin-top:8px"><a class="btn small" href="${o.download}">LeRobot 묶음 내려받기 (${o.size_mb}MB)</a>
+    <div class="note">${esc((o.expires || "").slice(0, 10))}까지 · ${o.downloads}/5번</div></div>` : ""}${o.error ? `<div class="note">${esc(o.error)}</div>` : ""}</div>`;
+  if (o.status === "pending" || o.status === "building") setTimeout(() => poll(id), 4000);
+}
+try { const id = localStorage.getItem("dc_order"); if (id) poll(id); } catch (e) {}
+load();
+</script>
+</body>
+</html>

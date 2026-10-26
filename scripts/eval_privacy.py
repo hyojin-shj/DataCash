@@ -45,6 +45,13 @@ def hands_count(frames):
     return n
 
 
+def iou(a, b):
+    x1, y1, x2, y2 = max(a[0], b[0]), max(a[1], b[1]), min(a[2], b[2]), min(a[3], b[3])
+    inter = max(0, x2 - x1) * max(0, y2 - y1)
+    ua = (a[2] - a[0]) * (a[3] - a[1]) + (b[2] - b[0]) * (b[3] - b[1]) - inter
+    return inter / ua if ua > 0 else 0.0
+
+
 def sample(video, k=6):
     cap = cv2.VideoCapture(str(video))
     n = int(cap.get(7))
@@ -86,7 +93,8 @@ def main(only=None):
                 found = [o for o in sam.image(p, "person") if (o.confidence or 0) >= 0.5]
             except BudgetExceeded:
                 found = []
-            others = max(0, len(found) - (1 if r.participant is not None else 0))
+            pb = r.participant_boxes.get(i)
+            others = sum(1 for o in found if pb is None or iou(o.box, pb) < 0.3)   # 참여자와 겹치는 검출은 참여자
             redet += others > 0
             imgs.append(np.hstack([cv2.resize(fo, (320, 240)), cv2.resize(fm, (320, 240))]))
         rep["others_redetected_frames"] = f"{redet}/{len(so)}"

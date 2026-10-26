@@ -34,6 +34,7 @@ class PrivacyResult:
     objects: List[Dict[int, tuple]]                 # 장면마다 {물체 칸: 상자} (조작 물체, LeRobot 용)
     object_names: List[str]
     report: dict = field(default_factory=dict)
+    participant_boxes: Dict[int, tuple] = field(default_factory=dict)   # 장면마다 참여자 상자 (재검사·접촉용)
 
 
 def _choose_participant(people: Dict[int, List[SamObject]], hand_pts: Optional[Sequence] = None) -> Optional[str]:
@@ -124,4 +125,5 @@ def mask_video(video, out_path, manipulated: Sequence[str] = (), participant: Op
     report.update(frames=fi, masked_area_mean_pct=round(100 * float(np.mean(masked_frac)) if masked_frac else 0.0, 2),
                   frames_with_masking_pct=round(100 * float(np.mean(np.array(masked_frac) > 0)) if masked_frac else 0.0, 1))
     names = [f"{c}#{oid}" for (c, oid), _ in sorted(slots.items(), key=lambda kv: kv[1])]
-    return PrivacyResult(out_path, pid, objects, names, report)
+    pboxes = {fi_: tuple(o.box) for fi_, objs in people.items() for o in objs if o.object_id == pid}
+    return PrivacyResult(out_path, pid, objects, names, report, pboxes)

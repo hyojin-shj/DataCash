@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DataCache · 주문 관리</title>
+<link rel="icon" href="/static/favicon.png">
+<style>
+  :root { --primary: #FF5F5F; --primary-dark: #E84646; --ink: #333; --sub: #6E6E73; --line: #ECECEE; --bg: #FAFAFB; --ok: #16A36B; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif; background: var(--bg); color: var(--ink); }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 28px; }
+  h1 { display: flex; align-items: center; gap: 10px; font-size: 22px; }
+  h1 img { width: 32px; }
+  .o { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 16px; margin-bottom: 12px; }
+  .top { display: flex; justify-content: space-between; gap: 10px; }
+  .st { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 99px; background: #F1F1F3; }
+  .st.ready { background: #E6F7EF; color: var(--ok); } .st.failed { background: #FFECEC; color: var(--primary-dark); }
+  .meta { color: var(--sub); font-size: 13px; margin-top: 6px; }
+  button { border: 0; border-radius: 10px; padding: 9px 16px; font-weight: 700; background: var(--primary); color: #fff; cursor: pointer; margin-top: 10px; }
+</style>
+</head>
+<body><div class="wrap">
+  <h1><img src="/static/icon.png" alt="">주문 관리</h1>
+  <p class="meta">계약·결제를 확인한 뒤 승인하면 묶음(LeRobot)이 만들어지고 구매자 화면에 내려받기 주소가 나타납니다.</p>
+  <div id="list">불러오는 중…</div>
+</div>
+<script>
+const token = new URLSearchParams(location.search).get("token") || "";
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const won = n => (Math.round(n) || 0).toLocaleString("ko-KR") + "원";
+async function load() {
+  const r = await fetch("/api/admin/orders?token=" + encodeURIComponent(token));
+  if (!r.ok) { document.getElementById("list").textContent = "토큰이 맞지 않습니다"; return; }
+  const os = (await r.json()).orders;
+  document.getElementById("list").innerHTML = os.length ? os.map(o => `<div class="o"><div class="top"><b>${esc(o.org)} · ${esc(o.email)}</b>
+    <span class="st ${esc(o.status)}">${esc(o.status)}</span></div>
+    <div class="meta">${esc(o.created)} · ${o.missions.length ? esc(o.missions.join(", ")) : "전체 미션"} · ${esc(o.quote.level_ko)} · ${o.quote.hours}시간 · ${won(o.quote.total)}
+    ${o.size_mb ? ` · ${o.size_mb}MB · 녹화 ${o.recordings}편 · 받은 횟수 ${o.downloads}` : ""}${o.error ? `<br>오류: ${esc(o.error)}` : ""}${o.note ? `<br>요청: ${esc(o.note)}` : ""}</div>
+    ${o.status === "pending" || o.status === "failed" ? `<button onclick="approve('${esc(o.id)}')">승인하고 묶음 만들기</button>` : ""}</div>`).join("") : "아직 주문이 없습니다";
+  if (os.some(o => o.status === "building")) setTimeout(load, 3000);
+}
+async function approve(id) { await fetch(`/api/admin/orders/${encodeURIComponent(id)}/approve?token=${encodeURIComponent(token)}`, {method: "POST"}); setTimeout(load, 600); }
+load();
+</script>
+</body>
+</html>
