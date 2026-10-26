@@ -1,0 +1,47 @@
+"""4감 자동 동기화: 사용자 동작 없이 워치 시계를 폰 시계로 1ms 안에, 드리프트까지."""
+
+import numpy as np
+
+from datacache.session import load_session
+from datacache.session.synth import watch_to_phone_truth
+from datacache.sync import align_session
+from datacache.sync.clock import rtt_map
+from datacache.sync.linear import fit
+
+
+def test_linear_fit_rejects_outliers():
+    w = np.arange(0, 20, 1, dtype=np.int64) * 1_000_000_000 + 5_000_000_000_000
+    p = (1_000_000_000_000 + (w - w[0]) / (1 + 40e-6)).astype(np.int64)
+    p[5] += 50_000_000  # 50ms 엇나간 짝 하나
+    m = fit(w, p, "t")
+    assert m.n == 19 and abs(m.drift_ppm - 40) < 1 and m.resid_ms < 0.01
+
+
+def test_beacon_beats_clock_and_pulses_agree(synth_session):
+    d, truth = synth_session
+    s = load_session(d)
+    al = align_session(s)
+    assert al.watch_to_phone.method == "beacon"
+    mid = s.watch_imu.t_ns[len(s.watch_imu.t_ns) // 2]
+    err = abs(al.watch_to_phone(np.array([mid]))[0] - watch_to_phone_truth(truth, [mid])[0]) / 1e6
+    assert err < 1.0, err                                        # 비콘: 1ms 안
+    assert abs(al.watch_to_phone.drift_ppm - 40) < 5             # 드리프트도 찾는다
+    assert al.methods["vibration_pulse"]["n"] >= 30              # 촉각 펄스가 동기 신호를 겸한다
+    assert abs(al.checks["diff_vibration_pulse_ms"]) < 2.0
+    rtt = rtt_map(s.clock_sync)
+    rtt_err = abs(rtt(np.array([mid]))[0] - watch_to_phone_truth(truth, [mid])[0]) / 1e6
+    assert rtt_err < 5.0                                         # 시계 주고받기만으로도 수 ms
+    assert all(al.ok.values())
+
+
+def test_low_rate_watch_mic_falls_back(tmp_path):
+    """워치 마이크가 16kHz 면 18kHz 비콘을 못 듣는다 → 진동 펄스로."""
+    from datacache.session.synth import generate
+
+    truth = generate(tmp_path / "s", duration=14.0, watch_audio_rate=16000)
+    s = load_session(tmp_path / "s")
+    al = align_session(s)
+    assert "못 들음" in al.methods["beacon"]["note"]
+    assert al.watch_to_phone.method == "vibration_pulse"
+    mid = s.watch_imu.t_ns[len(s.watch_imu.t_ns) // 2]
+    assert abs(al.watch_to_phone(np.array([mid]))[0] - watch_to_phone_truth(truth, [mid])[0]) / 1e6 < 3.0
