@@ -27,7 +27,7 @@ from ..media import run
 from .channels import LEVEL_DROP, NAMES, EpisodeChannels
 
 VIDEO_KEY = "observation.images.ego"
-INFO_KEYS = ("steps", "outcome", "sync", "touch", "human_state", "privacy", "source")
+INFO_KEYS = ("steps", "mistakes", "scene", "outcome", "sync", "touch", "human_state", "privacy", "source")
 
 
 def _stats(a: np.ndarray) -> dict:

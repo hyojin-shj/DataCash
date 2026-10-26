@@ -44,7 +44,12 @@ def to_markdown(c: dict) -> str:
     if st:
         L += ["", "## 단계 라벨 (Muse Spark, 감각으로 검증)", "", "| 구간 (초) | 지시문 | 검증 |", "|---|---|---|"]
         for x in st:
-            L.append(f"| {x['start_s']:.1f}~{x['end_s']:.1f} | {x['instruction']} | {x.get('verified', '-')} |")
+            ev = ", ".join(f"{k} {'O' if v else 'X'}" for k, v in (x.get("evidence") or {}).items())
+            L.append(f"| {x['start_s']:.1f}~{x['end_s']:.1f} | {x['instruction']} | {x.get('verified', '-')} ({ev}) |")
+    mk = c.get("mistakes")
+    if mk:
+        L += ["", "실수 후보 (Muse Spark): " + "; ".join(f"{m['t_s']:.1f}초 {m['description']}"
+                                                     + (" — 참여자 표시와 일치" if m.get("confirmed_by_participant") else "") for m in mk)]
     o = c.get("outcome")
     if o:
         L += ["", "## 성공·실패 (본인 표시)", "", f"- 결과: {o.get('outcome')}, 다시 한 횟수: {o.get('retries')}, "

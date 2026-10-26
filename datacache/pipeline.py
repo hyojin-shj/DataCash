@@ -43,7 +43,7 @@ def _fingertips(labels) -> List[Optional[np.ndarray]]:
 def process(session_dir, out_dir, level: str = "bio", fps: float = 30.0, masked_video=None, labels=None,
             objects: Optional[Sequence[dict]] = None, hand_points=None, steps: Optional[list] = None,
             verified_steps: Optional[list] = None, episodes_s: Optional[list] = None, privacy: Optional[dict] = None,
-            extract: bool = True) -> dict:
+            extract: bool = True, mistakes: Optional[list] = None, scene: Optional[dict] = None) -> dict:
     s = load_session(session_dir)
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -91,8 +91,28 @@ def process(session_dir, out_dir, level: str = "bio", fps: float = 30.0, masked_
                              s.watch_skin.values[:, 0] if s.watch_skin else None,
                              (s.meta.get("participant") or {}).get("age_band"))
 
-    # 4~5. 에피소드마다 격자 + 채널
+    # 단계 라벨 검증 (Muse Spark 라벨을 촉각·소리·손목 움직임으로)
     frame_ns = s.frame_ns
+    if steps:
+        from .understand.verify import check_mistakes, verify_steps
+
+        g_all, src_all = make_grid(frame_ns, int(frame_ns[0]), int(frame_ns[-1]), fps)
+        t_all = (g_all - frame_ns[0]) / 1e9
+        motion = None
+        if wrist_ok:
+            acc, _ = interp(g_all, m(s.watch_imu.t_ns), s.watch_imu.values[:, :3])
+            motion = np.abs(np.linalg.norm(acc, axis=1) - np.median(np.linalg.norm(acc, axis=1)))
+        T_all, _ = touch_rows(cframes, src_all, g_all, grip, vib)
+        ph = phase_events(cframes, (frame_ns - frame_ns[0]) / 1e9) if cframes else []
+        steps = verify_steps(steps, t_all, motion=motion, contact=T_all[:, 0] if cframes else None,
+                             grip=T_all[:, 1] if grip else None,
+                             sound_t_s=[(e["t_ns"] - frame_ns[0]) / 1e9 for e in onsets],
+                             contact_change_t_s=[e["t_s"] for e in ph])
+        verified_steps = [x["verified"] is True for x in steps]
+        if mistakes:
+            mistakes = check_mistakes(mistakes, [(t - frame_ns[0]) / 1e9 for t in (s.meta.get("self_marks_ns") or [])])
+
+    # 4~5. 에피소드마다 격자 + 채널
     spans = episodes_s or [(0.0, (frame_ns[-1] - frame_ns[0]) / 1e9)]
     eps, vids = [], []
     marks = s.meta.get("self_marks_ns") or []
@@ -133,6 +153,8 @@ def process(session_dir, out_dir, level: str = "bio", fps: float = 30.0, masked_
         t0 = (grid[0] - frame_ns[0]) / 1e9
         ep.info = {
             "steps": ep_steps or None,
+            "scene": scene,
+            "mistakes": [x for x in (mistakes or []) if a_s <= x["t_s"] <= b_s] or None,
             "outcome": {**(s.meta.get("outcome") or {}),
                         "self_marks_s": [round(float((t - grid[0]) / 1e9), 2) for t in marks if grid[0] <= t <= grid[-1]]},
             "sync": al.to_dict(),
@@ -159,7 +181,8 @@ def process(session_dir, out_dir, level: str = "bio", fps: float = 30.0, masked_
                   "contact_events": eps[0].info["touch"]["contact_events"] if eps else [],
                   "confirmed_sounds": eps[0].info["touch"]["confirmed_sounds"] if eps else []},
         "human_state": eps[0].info["human_state"] if eps else None,
-        "steps": steps, "outcome": eps[0].info["outcome"] if eps else None, "privacy": privacy,
+        "steps": steps, "mistakes": mistakes, "scene": scene,
+        "outcome": eps[0].info["outcome"] if eps else None, "privacy": privacy,
     }
     certificate.write(cert, out)
     return cert
