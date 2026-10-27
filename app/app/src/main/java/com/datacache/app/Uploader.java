@@ -97,6 +97,19 @@ final class Uploader {
         return st;
     }
 
+    /** 아직 끝나지 않은 녹화(처리 중·이의 검토·계좌 기다림)만 서버 상태를 다시 받는다. */
+    static void refreshPending(Context c) {
+        for (File d : Store.sessions(c)) {
+            JSONObject st = localState(d);
+            String s = st.optString("state");
+            JSONObject py = st.optJSONObject("payout");
+            boolean open = s.equals("queued") || s.equals("processing") || s.equals("uploading")
+                    || (s.equals("done") && (py == null || py.optString("status").equals("waiting_account")));
+            if (!open) continue;
+            try { status(c, d); } catch (Exception ignored) { return; }      // 서버가 안 되면 다음에
+        }
+    }
+
     static JSONObject localState(File dir) {
         try {
             File f = new File(dir, "upload.json");

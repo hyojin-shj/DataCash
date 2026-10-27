@@ -55,6 +55,12 @@ public class DevicesActivity extends Activity {
         watch.addView(Ui.button(this, "워치로 쥐는 힘 맞추기 (한 번만)", true, v -> startActivity(new Intent(this, CalibrationActivity.class))),
                 Ui.margins(this, -1, -2, 0, 0, 16, 0, 0));
         Ui.add(this, body, watch);
+
+        body.addView(Ui.sectionTitle(this, "곧 연결할 수 있어요"));
+        LinearLayout soon = Ui.listCard(this);
+        soon.addView(Ui.row(this, Icon.FILM, Ui.SUB, Ui.FIELD, "홈 카메라", "고정된 각도에서 함께 찍어 3인칭 장면을 더해요", Ui.chip(this, "준비 중", Ui.SUB, Ui.FIELD), null));
+        soon.addView(Ui.row(this, Icon.SPARK, Ui.SUB, Ui.FIELD, "스마트 스피커·허브", "집 안 소리·기기 상태를 같은 시간축에", Ui.chip(this, "준비 중", Ui.SUB, Ui.FIELD), null));
+        Ui.add(this, body, soon);
         check();
     }
 

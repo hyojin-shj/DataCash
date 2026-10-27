@@ -147,7 +147,10 @@ public class SurveyActivity extends Activity {
             Files.write(mf, meta.toString(2));
         } catch (Exception ignored) {
         }
-        startActivity(new Intent(this, ResultActivity.class).putExtra("dir", dir.getAbsolutePath()).putExtra("upload", true));
+        Uploader.save(dir, "state", "saved");
+        ProcessService.enqueue(this, dir);          // 앱을 닫아도 올리고 검수 결과를 알려 준다
+        android.widget.Toast.makeText(this, "저장됐어요 · 검수하러 올리는 중이에요", android.widget.Toast.LENGTH_LONG).show();
+        startActivity(new Intent(this, HomeActivity.class).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP));
         finish();
     }
 }

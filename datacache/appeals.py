@@ -19,6 +19,7 @@ from typing import Callable, List, Optional
 
 from . import pricing
 
+DAILY_LIMIT = 5
 REASONS = {"reward": "보상이 적어요", "failed": "처리가 실패했어요", "privacy": "가려야 할 게 보여요",
            "label": "라벨·단계가 틀려요", "other": "기타"}
 
@@ -53,8 +54,12 @@ class Appeals:
         """신청을 받고 바로 자동 확인까지 한다."""
         if reason not in REASONS:
             raise ValueError("사유")
-        if any(a["sid"] == sid and a["state"] in ("auto", "review") for a in self.for_device(device)):
+        mine = self.for_device(device)
+        if any(a["sid"] == sid and a["state"] in ("auto", "review", "reprocessing") for a in mine):
             raise ValueError("이미 진행 중인 이의 신청이 있음")
+        day = datetime.now(timezone.utc).timestamp() - 86400
+        if sum(datetime.fromisoformat(a["created"]).timestamp() > day for a in mine) >= DAILY_LIMIT:
+            raise ValueError(f"이의 신청은 하루 {DAILY_LIMIT}번까지예요")
         a = {"id": secrets.token_hex(5), "device": device, "sid": sid, "reason": reason, "reason_ko": REASONS[reason],
              "detail": detail[:500], "created": _now(), "state": "auto", "extra_reward": 0,
              "steps": [{"stage": "filed", "at": _now(), "note": "신청 받음"}]}

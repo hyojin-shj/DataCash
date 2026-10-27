@@ -16,6 +16,9 @@
     GET  /api/donors/{id}.png                가상 인물 사진 (실존하지 않는 사람)
     POST /api/sessions/{sid}/appeal          이의 신청 {reason, detail} → 바로 자동 확인
     GET  /api/appeals                        내 이의 신청 (단계 기록)
+    GET  /api/sessions/{sid}/preview/{k}     가상 얼굴 미리보기: 판매용(가리고 바꾼) 영상의 k번째(0~5) 고른 장면 JPEG (내 녹화만)
+    GET  /api/payout/account                 받은 보상 합계 · 계좌 연결 기다리는 보상 · 계좌 표시
+    POST /api/payout/account                 받을 계좌 표시 {label: "KB국민 ****1234"} → 기다리던 보상을 보냄 (시험 입금)
   구매 기업 (공개 읽기)
     GET  /                                   구매 기업용 웹
     GET  /api/market/catalog                 미션별 시간·등급·채널 (처리된 녹화의 인증서에서 계산, 지어낸 숫자 없음)
@@ -56,6 +59,7 @@ from pydantic import BaseModel, Field
 
 from .. import config, pricing
 from ..appeals import Appeals
+from ..payout import Payouts
 from ..people import People, embed_jpeg
 
 FILES = {"meta.json", "video.mp4", "video_frames.csv", "audio.wav", "audio.json", "phone_imu.csv", "beacon.csv",
@@ -77,6 +81,7 @@ class Store:
         self.live: dict = {}          # 지금 녹화 중인 세션 {sid, started, watch_joined}
         self.people = People(root / "people")
         self.appeals = Appeals(root / "appeals")
+        self.payouts = Payouts(root / "payout")
         threading.Thread(target=self._worker, daemon=True).start()
 
     # ---- 상태 ----
@@ -109,6 +114,16 @@ class Store:
             except Exception as e:
                 fin = self.set_status(sid, state="failed", error=f"{type(e).__name__}: {str(e)[:300]}")
             self.appeals.reprocessed(sid, fin)
+            self.settle(sid)
+
+    def settle(self, sid: str) -> dict:
+        """승인된 녹화의 보상을 입금 기록으로 (계좌가 없으면 기다림)."""
+        s = self.status(sid)
+        p = self.payouts.settle(self.device_of(sid), s)
+        return self.set_status(sid, payout=p) if p != s.get("payout") else s
+
+    def device_sessions(self, device: str) -> List[str]:
+        return [d.name for d in (self.root / "sessions").iterdir() if d.is_dir() and self.device_of(d.name) == device]
 
     def device_of(self, sid: str) -> Optional[str]:
         p = self.root / "sessions" / sid / "meta.json"
@@ -234,6 +249,10 @@ class DonorIn(BaseModel):
 
 class BioIn(BaseModel):
     bio: bool
+
+
+class AccountIn(BaseModel):
+    label: str = Field(max_length=40)
 
 
 class AppealIn(BaseModel):
@@ -442,9 +461,58 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
             st.q.put(s)
 
         try:
-            return st.appeals.file(dev, sid, b.reason, b.detail, st.status(sid), requeue, lambda s: st.set_status(s, withheld=True))
+            a = st.appeals.file(dev, sid, b.reason, b.detail, st.status(sid), requeue, lambda s: st.set_status(s, withheld=True))
         except ValueError as e:
             raise HTTPException(400, str(e))
+        credit_appeal(a)
+        return a
+
+    def credit_appeal(a: dict) -> None:
+        """인정된 추가 보상 → 그 녹화의 입금에 더한다."""
+        if a.get("state") == "accepted" and a.get("extra_reward"):
+            s = st.status(a["sid"])
+            st.set_status(a["sid"], appeal_extra=int(s.get("appeal_extra") or 0) + int(a["extra_reward"]))
+            st.settle(a["sid"])
+
+    @app.get("/api/sessions/{sid}/preview/{k}")
+    def preview(sid: str, k: int, x_dc_token: Optional[str] = Header(None), x_dc_device: Optional[str] = Header(None)):
+        auth(x_dc_token)
+        if not SID.match(sid) or st.device_of(sid) != device(x_dc_device) or not 0 <= k < 6:
+            raise HTTPException(404)
+        out = root / "out" / sid
+        v = next((p for p in (out / "masked_swap.mp4", out / "masked.mp4") if p.exists()), None)
+        if v is None:
+            raise HTTPException(404, "아직 처리 중이에요")
+        cap = cv2.VideoCapture(str(v))
+        n = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        cap.set(cv2.CAP_PROP_POS_FRAMES, int(np.linspace(n * 0.1, n * 0.9, 6)[k]))
+        ok, f = cap.read()
+        cap.release()
+        if not ok:
+            raise HTTPException(404)
+        f = cv2.resize(f, (480, int(480 * f.shape[0] / f.shape[1])))
+        return Response(cv2.imencode(".jpg", f, [cv2.IMWRITE_JPEG_QUALITY, 85])[1].tobytes(), media_type="image/jpeg")
+
+    @app.get("/api/payout/account")
+    def payout_get(x_dc_token: Optional[str] = Header(None), x_dc_device: Optional[str] = Header(None)):
+        auth(x_dc_token)
+        dev = device(x_dc_device)
+        return st.payouts.summary(dev, (st.status(s) for s in st.device_sessions(dev)))
+
+    @app.post("/api/payout/account")
+    def payout_set(b: AccountIn, x_dc_token: Optional[str] = Header(None), x_dc_device: Optional[str] = Header(None)):
+        auth(x_dc_token)
+        dev = device(x_dc_device)
+        try:
+            st.payouts.set_account(dev, b.label)
+        except ValueError as e:
+            raise HTTPException(400, str(e))
+        sent = 0
+        for sid in st.device_sessions(dev):           # 계좌를 기다리던 보상을 지금 보낸다
+            before = (st.status(sid).get("payout") or {}).get("status")
+            after = (st.settle(sid).get("payout") or {}).get("status")
+            sent += before == "waiting_account" and after == "sent"
+        return {**st.payouts.summary(dev, (st.status(s) for s in st.device_sessions(dev))), "sent_now": sent}
 
     @app.get("/api/appeals")
     def appeals_mine(x_dc_token: Optional[str] = Header(None), x_dc_device: Optional[str] = Header(None)):
@@ -597,6 +665,7 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
             raise HTTPException(400, str(e))
         if a["reason"] == "privacy" and not b.accept:      # 가리기에 문제 없다고 판단 → 다시 판매
             st.set_status(a["sid"], withheld=False)
+        credit_appeal(a)
         return a
 
     return app

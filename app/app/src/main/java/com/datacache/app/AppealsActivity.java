@@ -28,14 +28,37 @@ public class AppealsActivity extends Activity {
     protected void onCreate(Bundle state) {
         super.onCreate(state);
         LinearLayout body = Ui.page(this, "이의 신청 현황", true);
-        TextView intro = Ui.text(this, "자동 확인으로 바로 끝나지 않으면 검토자가 확인해요. '가려야 할 게 보여요'는 신청하는 즉시 판매에서 빠져요.",
+        TextView intro = Ui.text(this, "먼저 자동으로 확인하고, 자동으로 끝나지 않으면 검토자가 확인해요. '가려야 할 게 보여요'는 신청하는 즉시 판매에서 빠져요. 하루 5번까지 신청할 수 있어요.",
                 13, Ui.SUB, false);
         intro.setPadding(Ui.dp(this, 4), 0, Ui.dp(this, 4), Ui.dp(this, 14));
         body.addView(intro);
         list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
         body.addView(list);
+    }
+
+    private final android.os.Handler ui = new android.os.Handler(android.os.Looper.getMainLooper());
+    private boolean visible;
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        visible = true;
+        tick();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        visible = false;
+    }
+
+    /** 떠 있는 동안 5초마다 (자동 확인·검토 결과가 바뀌면 보이게, 인정된 보상이 입금되면 '띠링'). */
+    private void tick() {
+        if (!visible) return;
         load();
+        new Thread(() -> { Uploader.refreshPending(this); ui.post(() -> { if (visible) Payout.checkNew(this); }); }).start();
+        ui.postDelayed(this::tick, 5000);
     }
 
     private void load() {
@@ -56,17 +79,61 @@ public class AppealsActivity extends Activity {
 
     private void show(JSONArray as) {
         list.removeAllViews();
-        if (as.length() == 0) {
+        int open = 0, ok = 0, no = 0, won = 0;
+        java.util.Set<String> appealed = new java.util.HashSet<>();
+        for (int i = 0; i < as.length(); i++) {
+            JSONObject a = as.optJSONObject(i);
+            String st = a.optString("state");
+            appealed.add(a.optString("sid"));
+            if (st.equals("accepted")) { ok++; won += a.optInt("extra_reward"); } else if (st.equals("rejected")) no++; else open++;
+        }
+        LinearLayout stats = Ui.card(this);
+        stats.setOrientation(LinearLayout.HORIZONTAL);
+        String[][] cells = {{"진행 중", String.valueOf(open)}, {"인정", String.valueOf(ok)}, {"기각", String.valueOf(no)},
+                {"되찾은 보상", String.format(Locale.KOREA, "%,d원", won)}};
+        for (String[] c : cells) {
+            LinearLayout cell = new LinearLayout(this);
+            cell.setOrientation(LinearLayout.VERTICAL);
+            cell.setGravity(Gravity.CENTER_HORIZONTAL);
+            cell.addView(Ui.text(this, c[0], 12, Ui.SUB, false));
+            TextView v = Ui.text(this, c[1], 18, Ui.INK, true);
+            v.setPadding(0, Ui.dp(this, 6), 0, 0);
+            cell.addView(v);
+            stats.addView(cell, Ui.weight());
+        }
+        Ui.add(this, list, stats);
+        LinearLayout can = Ui.listCard(this);       // 반려됐는데 아직 신청 안 한 녹화
+        for (java.io.File d : Store.sessions(this)) {
+            JSONObject st = Uploader.localState(d);
+            if (!st.optString("state").equals("rejected") || appealed.contains(d.getName())) continue;
+            TextView b = Ui.chip(this, "이의 신청", Ui.PRIMARY_DARK, Ui.PRIMARY_SOFT);
+            b.setOnClickListener(v -> ask(this, d.getName(), this::load));
+            can.addView(Ui.row(this, Icon.FILM, Ui.SUB, Ui.FIELD, st.optString("title", "녹화"), "반려 · " + st.optString("error", ""), b, null));
+        }
+        java.util.List<JSONObject> going = new java.util.ArrayList<>(), done = new java.util.ArrayList<>();
+        for (int i = 0; i < as.length(); i++) {
+            JSONObject a = as.optJSONObject(i);
+            (a.optString("state").equals("accepted") || a.optString("state").equals("rejected") ? done : going).add(a);
+        }
+        section("진행 중", going, "진행 중인 이의 신청이 없어요");
+        section("결과", done, "아직 결과가 없어요");
+        list.addView(Ui.sectionTitle(this, "이의 신청할 수 있는 녹화"));
+        if (can.getChildCount() == 0) can.addView(Ui.row(this, Icon.LIST, Ui.SUB, Ui.FIELD, "반려된 녹화가 없어요",
+                "승인된 녹화도 내 녹화 기록에서 신청할 수 있어요", null, null));
+        Ui.add(this, list, can);
+    }
+
+    private void section(String title, java.util.List<JSONObject> items, String empty) {
+        list.addView(Ui.sectionTitle(this, title));
+        if (items.isEmpty()) {
             LinearLayout c = Ui.listCard(this);
-            c.addView(Ui.row(this, Icon.LIST, Ui.SUB, Ui.FIELD, "이의 신청이 없어요", "내 녹화 기록에서 녹화마다 신청할 수 있어요", null, null));
+            c.addView(Ui.row(this, Icon.LIST, Ui.SUB, Ui.FIELD, empty, null, null, null));
             Ui.add(this, list, c);
             return;
         }
-        for (int i = 0; i < as.length(); i++) {
-            JSONObject a = as.optJSONObject(i);
+        for (JSONObject a : items) {
             String state = a.optString("state");
             int extra = a.optInt("extra_reward");
-            if (state.equals("accepted") && extra > 0) Store.creditOnce(this, "appeal:" + a.optString("id"), extra);
             LinearLayout c = Ui.card(this);
             LinearLayout top = new LinearLayout(this);
             top.setGravity(Gravity.CENTER_VERTICAL);

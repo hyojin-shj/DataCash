@@ -14,9 +14,33 @@ import java.util.Locale;
 
 /** 내 녹화 기록: 확정 보상·검수 중 요약 + 녹화마다 상태 뱃지, 올리기 전이면 다시 올리기, 결과 보기. */
 public class HistoryActivity extends Activity {
+    private final android.os.Handler ui = new android.os.Handler(android.os.Looper.getMainLooper());
+    private boolean visible;
+
+    /** 떠 있는 동안 5초마다 처리 중인 녹화의 결과를 받아 다시 그리고, 입금되면 '띠링'. */
+    private void poll() {
+        if (!visible) return;
+        new Thread(() -> {
+            Uploader.refreshPending(this);
+            ui.post(() -> { if (visible) { render(); Payout.checkNew(this); ui.postDelayed(this::poll, 5000); } });
+        }).start();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        visible = false;
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
+        visible = true;
+        render();
+        ui.postDelayed(this::poll, 1500);
+    }
+
+    private void render() {
         LinearLayout body = Ui.page(this, "내 녹화 기록", true);
         File[] ss = Store.sessions(this);
         int confirmed = 0, reviewing = 0;
@@ -60,10 +84,18 @@ public class HistoryActivity extends Activity {
         String when = n.length() >= 13 ? String.format("%s.%s.%s %s:%s", n.substring(0, 4), n.substring(4, 6), n.substring(6, 8),
                 n.substring(9, 11), n.substring(11, 13)) : n;
         String sub = when;
-        if (s.equals("done")) sub += String.format(Locale.KOREA, " · %.1f분 · %s", st.optDouble("minutes"), levelKo(st.optString("level")));
+        if (s.equals("done")) {
+            sub += String.format(Locale.KOREA, " · %.1f분 · %s", st.optDouble("minutes"), levelKo(st.optString("level")));
+            JSONObject py = st.optJSONObject("payout");
+            if (py != null) sub += py.optString("status").equals("sent") ? "\n입금 완료 · " + py.optString("label")
+                    : "\n계좌를 연결하면 바로 입금돼요";
+            if (st.optInt("appeal_extra") > 0) sub += String.format(Locale.KOREA, "\n이의 신청 인정 +%,d원", st.optInt("appeal_extra"));
+        } else if (s.equals("rejected")) {
+            sub += "\n이유: " + st.optString("error", "검수 기준에 맞지 않아요");
+        }
         int fg = s.equals("done") ? Ui.OK : s.equals("rejected") || s.equals("failed") || s.equals("upload_failed") ? Ui.PRIMARY_DARK : Ui.SUB;
         int bg = s.equals("done") ? Ui.OK_SOFT : fg == Ui.PRIMARY_DARK ? Ui.PRIMARY_SOFT : Ui.FIELD;
-        String chip = s.equals("done") && st.optInt("reward") > 0 ? String.format(Locale.KOREA, "+%,d원", st.optInt("reward"))
+        String chip = s.equals("done") && st.optInt("reward") > 0 ? String.format(Locale.KOREA, "+%,d원", st.optInt("reward") + st.optInt("appeal_extra"))
                 : s.equals("saved") ? "올리기 전" : Uploader.stateKo(s);
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
@@ -72,7 +104,12 @@ public class HistoryActivity extends Activity {
         acts.setOrientation(LinearLayout.VERTICAL);
         acts.setPadding(Ui.dp(this, 70), 0, Ui.dp(this, 8), Ui.dp(this, 12));
         if (s.equals("saved") || s.equals("upload_failed")) {
-            TextView up = Ui.button(this, "다시 올리기", false, v -> open(d, true));
+            TextView up = Ui.button(this, "다시 올리기", false, v -> {
+                Uploader.save(d, "state", "saved");
+                ProcessService.enqueue(this, d);
+                android.widget.Toast.makeText(this, "올리는 중이에요", android.widget.Toast.LENGTH_SHORT).show();
+                recreate();
+            });
             up.setMinHeight(Ui.dp(this, 44));
             acts.addView(up, Ui.margins(this, -1, -2, 0, 0, 0, 0, 8));
         }
@@ -81,6 +118,12 @@ public class HistoryActivity extends Activity {
         more.setPadding(0, Ui.dp(this, 2), Ui.dp(this, 18), 0);
         more.setOnClickListener(v -> open(d, false));
         links.addView(more);
+        if (s.equals("done") || s.equals("rejected")) {
+            TextView pv = Ui.text(this, "가상 얼굴 미리보기 ›", 13, Ui.PRIMARY, true);
+            pv.setPadding(0, Ui.dp(this, 2), Ui.dp(this, 18), 0);
+            pv.setOnClickListener(v -> startActivity(new Intent(this, PreviewActivity.class).putExtra("dir", d.getAbsolutePath())));
+            links.addView(pv);
+        }
         if (!s.equals("saved") && !s.equals("uploading")) {     // 서버에 올라간 녹화만
             TextView ap = Ui.text(this, "이의 신청 ›", 13, Ui.SUB, true);
             ap.setPadding(0, Ui.dp(this, 2), 0, 0);

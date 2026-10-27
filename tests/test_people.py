@@ -123,3 +123,20 @@ def test_appeals_auto_then_review(client):
     assert json.loads((root / "status" / "s_priv.json").read_text())["withheld"]   # 인정 → 판매에서 계속 빠짐
     mine = c.get("/api/appeals", headers=DEV).json()["appeals"]
     assert {x["sid"] for x in mine} == {"s_reward", "s_priv"}
+
+
+def test_payout_waits_for_account_then_sends(client):
+    c, root = client
+    st = c.app.state.store
+    _session(root, "s_pay", "phoneA1", {"state": "done", "minutes": 1.0, "level": "bio", "reward": 830})
+    assert st.settle("s_pay")["payout"] == {"status": "waiting_account", "amount": 830}
+    assert c.get("/api/payout/account", headers=DEV).json() == {"label": "", "total": 0, "waiting": 830}
+    assert c.post("/api/payout/account", json={"label": "KB국민 1234567890"}, headers=DEV).status_code == 400   # 번호 전체는 안 받음
+    r = c.post("/api/payout/account", json={"label": "KB국민 ****7890"}, headers=DEV).json()
+    assert r["sent_now"] == 1 and r["total"] == 830 and r["waiting"] == 0
+    p = c.get("/api/sessions/s_pay/status", headers=DEV).json()["payout"]
+    assert p["status"] == "sent" and p["label"] == "KB국민 ****7890"
+    _session(root, "s_low", "phoneA1", {"state": "done", "minutes": 1.0, "level": "bio", "reward": 300, "today_bonus": True})
+    st.settle("s_low")
+    c.post("/api/sessions/s_low/appeal", json={"reason": "reward"}, headers=DEV)            # 자동 인정 +950원
+    assert c.get("/api/sessions/s_low/status", headers=DEV).json()["payout"]["amount"] == 1250

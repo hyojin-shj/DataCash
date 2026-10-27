@@ -36,15 +36,46 @@ public class HomeActivity extends Activity {
     private LinearLayout pages, dots;
     private HorizontalScrollView pager;
 
+    private final android.os.Handler ui = new android.os.Handler(android.os.Looper.getMainLooper());
+    private boolean visible;
+
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
         if (!Store.consented(this)) startActivity(new Intent(this, ConsentActivity.class));
+        if (android.os.Build.VERSION.SDK_INT >= 33
+                && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 11);   // 적립 알림
+        }
+        for (File d : Store.sessions(this)) {     // 앱이 꺼져서 멈춘 올리기를 다시 맡긴다
+            String st = Uploader.localState(d).optString("state");
+            if ((st.equals("uploading") || st.equals("saved")) && new File(d, "meta.json").exists()) {
+                Uploader.save(d, "state", "saved");
+                ProcessService.enqueue(this, d);
+            }
+        }
+    }
+
+    /** 떠 있는 동안 5초마다 처리 중인 녹화의 결과를 받고, 입금되면 '띠링'. */
+    private void poll() {
+        if (!visible) return;
+        new Thread(() -> {
+            Uploader.refreshPending(this);
+            ui.post(() -> { if (visible) { Payout.checkNew(this); ui.postDelayed(this::poll, 5000); } });
+        }).start();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        visible = false;
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        visible = true;
+        ui.postDelayed(this::poll, 1500);
         render();
         new Thread(() -> {
             try {
@@ -69,10 +100,16 @@ public class HomeActivity extends Activity {
     }
 
     private void render() {
-        int todayCount = 0;
+        int todayCount = 0, todayWon = 0;
         String todayPrefix = Clock.sessionId().substring(0, 8);
-        for (File d : Store.sessions(this)) if (d.getName().startsWith(todayPrefix)) todayCount++;
-        TextView badge = Ui.chip(this, todayCount == 0 ? "오늘 첫 미션" : "오늘 " + todayCount + "개 찍음", Ui.PRIMARY, Ui.PRIMARY_SOFT);
+        for (File d : Store.sessions(this)) {
+            if (!d.getName().startsWith(todayPrefix)) continue;
+            todayCount++;
+            JSONObject st = Uploader.localState(d);
+            if (st.optString("state").equals("done")) todayWon += st.optInt("reward") + st.optInt("appeal_extra");
+        }
+        TextView badge = Ui.chip(this, todayWon > 0 ? String.format(Locale.KOREA, "오늘 +%,d원", todayWon)
+                : todayCount == 0 ? "오늘 첫 미션" : "오늘 " + todayCount + "번 찍음", Ui.PRIMARY, Ui.PRIMARY_SOFT);
         badge.setTextSize(13);
         LinearLayout body = Ui.page(this, null, false, badge);
         try {
@@ -251,6 +288,7 @@ public class HomeActivity extends Activity {
             JSONObject m = ms.getJSONObject(i);
             pages.addView(missionCard(m), Ui.margins(this, pageWidth(), -2, 0, 0, 0, 12, 0));
         }
+        pages.addView(summaryCard(), Ui.margins(this, pageWidth(), -1, 0, 0, 0, 12, 0));
         pager.addView(pages);
         return pager;
     }
@@ -270,6 +308,39 @@ public class HomeActivity extends Activity {
             d.setBackground(Ui.round(i == sel ? Ui.PRIMARY : Ui.LINE, Ui.dp(this, 4)));
             dots.addView(d, Ui.margins(this, Ui.dp(this, i == sel ? 18 : 7), Ui.dp(this, 7), 0, 3, 0, 3, 0));
         }
+    }
+
+    /** 마지막 장: 오늘 요약 (녹화 · 적립 예정 · 동의 인원). */
+    private LinearLayout summaryCard() {
+        int rec = 0, expect = 0;
+        String todayPrefix = Clock.sessionId().substring(0, 8);
+        for (File d : Store.sessions(this)) {
+            if (!d.getName().startsWith(todayPrefix) || !new File(d, "meta.json").exists()) continue;
+            rec++;
+            JSONObject st = Uploader.localState(d);
+            String s = st.optString("state");
+            expect += s.equals("done") ? st.optInt("reward") + st.optInt("appeal_extra")
+                    : s.equals("rejected") || s.equals("failed") ? 0 : Store.perMission(this);
+        }
+        LinearLayout c = Ui.card(this);
+        FrameLayout tile = Ui.iconTile(this, Icon.SPARK, Ui.ACCENT_INK, Ui.ACCENT_SOFT, 46);
+        c.addView(tile, new LinearLayout.LayoutParams(Ui.dp(this, 46), Ui.dp(this, 46)));
+        TextView t = Ui.text(this, "오늘 요약", 21, Ui.INK, true);
+        t.setPadding(0, Ui.dp(this, 14), 0, Ui.dp(this, 10));
+        c.addView(t);
+        String[][] rows = {{"오늘 녹화", rec + "건"}, {"적립 예정", String.format(Locale.KOREA, "%,d원", expect)},
+                {"동의 인원", Store.ownerFace(this) ? "본인 얼굴 등록됨" : "본인 얼굴 등록 필요"}};
+        for (String[] r : rows) {
+            LinearLayout line = new LinearLayout(this);
+            line.setPadding(0, Ui.dp(this, 5), 0, Ui.dp(this, 5));
+            line.addView(Ui.text(this, r[0], 14, Ui.SUB, false), Ui.weight());
+            line.addView(Ui.text(this, r[1], 15, Ui.INK, true));
+            c.addView(line);
+        }
+        TextView back = Ui.text(this, "← 앞으로 넘기면 기업이 의뢰한 미션들이 있어요", 12, Ui.SUB, false);
+        back.setPadding(0, Ui.dp(this, 14), 0, 0);
+        c.addView(back);
+        return c;
     }
 
     private LinearLayout missionCard(JSONObject m) throws Exception {

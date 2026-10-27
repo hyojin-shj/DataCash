@@ -8,6 +8,12 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-feature android:name="android.hardware.camera" android:required="true" />
 
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+
     <application
         android:label="데이터캐시"
         android:icon="@mipmap/ic_launcher"
@@ -32,7 +38,9 @@
         <activity android:name=".PayoutActivity" android:screenOrientation="portrait" android:windowSoftInputMode="adjustResize" />
         <activity android:name=".FaceActivity" android:theme="@style/RecordTheme" android:screenOrientation="portrait" />
         <activity android:name=".PeopleActivity" android:screenOrientation="portrait" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".PreviewActivity" android:screenOrientation="portrait" />
         <activity android:name=".AppealsActivity" android:screenOrientation="portrait" />
+        <service android:name=".ProcessService" android:exported="false" android:foregroundServiceType="dataSync" />
         <activity android:name=".CalibrationActivity" android:screenOrientation="portrait" android:windowSoftInputMode="adjustResize" />
     </application>
 </manifest>

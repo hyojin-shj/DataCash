@@ -20,7 +20,6 @@ public class ResultActivity extends Activity {
     private TextView state, detail;
     private ProgressBar bar;
     private final Handler ui = new Handler(Looper.getMainLooper());
-    private boolean credited;
 
     @Override
     protected void onCreate(Bundle state0) {
@@ -41,7 +40,6 @@ public class ResultActivity extends Activity {
         detail = Ui.text(this, "", 14, Ui.SUB, false);
         detail.setPadding(0, Ui.dp(this, 10), 0, 0);
         c.addView(detail);
-        credited = local.optBoolean("credited", false);
         Ui.add(this, body, c);
         Ui.add(this, body, Ui.button(this, "다시 올리기", false, v -> upload()));
         if (getIntent().getBooleanExtra("upload", false)) upload(); else poll();
@@ -84,11 +82,7 @@ public class ResultActivity extends Activity {
             b.append(String.format(Locale.KOREA, "받아들인 분량 %.1f분 · 등급 %s · 동기화 %s", st.optDouble("minutes"), st.optString("level"), st.optString("sync")));
             JSONArray sk = st.optJSONArray("skipped");
             if (sk != null && sk.length() > 0) b.append("\n건너뛴 단계: ").append(sk.toString());
-            if (!credited && r > 0) {
-                Store.addEarned(this, r);
-                credited = true;
-                Uploader.save(dir, "credited", true);
-            }
+            Payout.checkNew(this);
         }
         if (s.equals("rejected") || s.equals("failed")) b.append(st.optString("error"));
         detail.setText(b.toString());
