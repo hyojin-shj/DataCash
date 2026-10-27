@@ -91,8 +91,11 @@ def _vib_pairs(s: Session, guess: Optional[ClockMap], responses):
     return pairs, f"펄스 {len(responses)}개 중 {len(pairs)}개 짝"
 
 
-def _motion_check(s: Session, m: ClockMap, max_lag_s: float = 1.0) -> Optional[float]:
-    """⑤ 영상 프레임 차이 에너지 ↔ 손목 가속 크기 상관으로 남은 어긋남(ms). 정밀하지 않다 — 크게 틀렸는지만 본다."""
+def _motion_check(s: Session, m: ClockMap, max_lag_s: float = 1.0) -> Optional[dict]:
+    """⑤ 영상 프레임 차이 에너지 ↔ 손목 가속 크기 상관 — 참고용 검사.
+    실제 폰+워치 녹화 10편(홈데이터미션, 10-24·25)에서 이 검사의 최고 상관 위치가 -5~+4초로 제각각이었고
+    (같은 녹화들의 시계 왕복 잔차는 0.5~2.3ms 로 고르다), 화면 전체 움직임에는 몸통·배경·가리기 효과가 섞이므로
+    판매 여부를 이 검사로 정하지 않는다. {lag_ms, cc, cc_at_0, verdict} — verdict: consistent · suspect · inconclusive."""
     import cv2
 
     if s.video_path is None or s.frame_ns is None or s.watch_imu is None:
@@ -127,9 +130,16 @@ def _motion_check(s: Session, m: ClockMap, max_lag_s: float = 1.0) -> Optional[f
     v, w = np.convolve(v, k, mode="same"), np.convolve(w, k, mode="same")
     v, w = (v - v.mean()) / (v.std() + 1e-9), (w - w.mean()) / (w.std() + 1e-9)
     lags = np.arange(-int(max_lag_s * 100), int(max_lag_s * 100) + 1)
-    cc = [np.mean(v[max(0, k):len(v) + min(0, k)] * w[max(0, -k):len(w) - max(0, k)]) for k in lags]
-    best = int(lags[int(np.argmax(cc))])
-    return float(best * 10.0) if max(cc) > 0.2 else None
+    cc = []
+    for k in lags:                       # 겹친 부분의 피어슨 상관 (겹침이 짧아도 1을 넘지 않게)
+        x, y = v[max(0, k):len(v) + min(0, k)], w[max(0, -k):len(w) - max(0, k)]
+        cc.append(float(np.corrcoef(x, y)[0, 1]) if len(x) > 50 and x.std() > 0 and y.std() > 0 else 0.0)
+    i = int(np.argmax(cc))
+    c0 = cc[len(lags) // 2]
+    lag = float(lags[i] * 10.0)
+    verdict = ("consistent" if abs(lag) <= 150 or c0 >= cc[i] - 0.05 else
+               "suspect" if cc[i] >= 0.5 and cc[i] - c0 >= 0.3 else "inconclusive")
+    return {"lag_ms": lag, "cc": round(cc[i], 3), "cc_at_0": round(c0, 3), "verdict": verdict}
 
 
 def align_session(s: Session, responses=None) -> Alignment:
@@ -196,10 +206,6 @@ def align_session(s: Session, responses=None) -> Alignment:
     if s.has_physio:
         al.error_ms["physio"] = float(np.hypot(werr, 250.0))    # 심박은 1초마다 한 값 → 절반 주기
     mc = _motion_check(s, chosen)
-    al.checks["motion_lag_ms"] = mc if mc is not None else "판단 불가"
+    al.checks["motion"] = mc if mc is not None else "판단 불가"       # 참고용 (판매 여부는 시계 맞춤 오차로)
     al.ok = {k: v <= LIMIT_MS[k] for k, v in al.error_ms.items()}
-    if isinstance(mc, float) and abs(mc) > 150:                 # 내용이 크게 어긋나면 손목·촉각·생체를 팔지 않는다
-        for k in ("wrist", "touch", "physio"):
-            if k in al.ok:
-                al.ok[k] = False
     return al

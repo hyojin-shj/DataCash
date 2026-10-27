@@ -24,8 +24,9 @@ def _mission(meta: dict, missions_path: Optional[Path] = None, extra: Optional[l
     p = missions_path or Path(__file__).with_name("missions.json")
     ms = {m["id"]: m for m in json.loads(p.read_text())["missions"] + list(extra or [])}
     mid = (meta.get("mission") or {}).get("id")
-    return ms.get(mid, {"id": mid or "unknown", "title": (meta.get("mission") or {}).get("title", "task"),
-                        "title_en": "manipulation task", "objects": []})
+    mm = meta.get("mission") or {}
+    return ms.get(mid, {"id": mid or "unknown", "title": mm.get("title", "task"),
+                        "title_en": mm.get("title_en", "manipulation task"), "objects": mm.get("objects", [])})
 
 
 def face_check_embedding(sd: Path, meta: dict):
