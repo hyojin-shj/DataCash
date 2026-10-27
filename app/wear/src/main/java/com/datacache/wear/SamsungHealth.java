@@ -21,6 +21,7 @@ import java.util.List;
  */
 final class SamsungHealth {
     static final String PKG = "com.samsung.android.service.health.tracking";
+    static final int NO_STATUS = -1;     // 이 SDK 버전에 측정 상태 값이 없음 (피부온도: 1.4.1)
 
     interface Sink {
         void heartRate(long tNs, int bpm, int status);
@@ -139,8 +140,8 @@ final class SamsungHealth {
                 } else {
                     Number obj = (Number) value(dp, "SkinTemperatureSet", "OBJECT_TEMPERATURE");
                     Number amb = (Number) value(dp, "SkinTemperatureSet", "AMBIENT_TEMPERATURE");
-                    Number st = (Number) value(dp, "SkinTemperatureSet", "STATUS");
-                    if (obj != null) sink.skin(tNs, obj.floatValue(), amb == null ? Float.NaN : amb.floatValue(), st == null ? -99 : st.intValue());
+                    Number st = (Number) value(dp, "SkinTemperatureSet", "STATUS");      // SDK 1.4.1 에는 없다 → NO_STATUS
+                    if (obj != null) sink.skin(tNs, obj.floatValue(), amb == null ? Float.NaN : amb.floatValue(), st == null ? NO_STATUS : st.intValue());
                 }
             } catch (Throwable ignored) {
             }

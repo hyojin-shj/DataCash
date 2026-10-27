@@ -79,7 +79,8 @@ final class WristRecorder implements SensorEventListener {
                         if (ms > 0 && st == 0) write(ibi, t + "," + ms + "," + st + "\n");       // 0 = 정상 박동
                     }
                     @Override public void skin(long t, float c, float amb, int st) {
-                        if (st == 0) write(skin, t + "," + c + "," + amb + "," + st + "\n");    // 0 = 측정 성공
+                        boolean ok = st == 0 || (st == SamsungHealth.NO_STATUS && c > 20f && c < 45f);   // 0 = 측정 성공 · 상태가 없는 SDK 는 사람 피부 온도 범위만
+                        if (ok) write(skin, t + "," + c + "," + amb + "," + st + "\n");
                     }
                     @Override public void state(String w) {
                         healthState = w;
