@@ -67,7 +67,7 @@ public class ConsentActivity extends Activity {
             row.addView(ch, lp);
         }
         c3.addView(row);
-        TextView gl = Ui.text(this, "성별 (선택 — 기업이 성별을 정한 의뢰 미션에만 써요)", 15, Ui.INK, true);
+        TextView gl = Ui.text(this, "성별 (선택 — 성별을 정한 의뢰 미션과, 얼굴을 바꿀 가상 인물 고르기에만 써요)", 15, Ui.INK, true);
         gl.setPadding(0, Ui.dp(this, 16), 0, 0);
         c3.addView(gl);
         LinearLayout grow = new LinearLayout(this);
