@@ -9,6 +9,11 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS" />
 
+    <!-- Samsung Health Sensor SDK 가 워치의 Health Platform 서비스에 붙을 수 있게 (안드로이드 11+ 패키지 보기) -->
+    <queries>
+        <package android:name="com.samsung.android.service.health.tracking" />
+    </queries>
+
     <application
         android:label="데이터캐시 워치"
         android:icon="@mipmap/ic_launcher"

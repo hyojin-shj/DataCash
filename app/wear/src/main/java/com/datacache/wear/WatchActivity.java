@@ -88,7 +88,8 @@ public class WatchActivity extends Activity {
                     long d = WristRecorder.now();
                     if (t != null && syncLog != null) synchronized (this) { syncLog.write(c + "," + t.getLong("ns") + "," + d + "\n"); }
                     long s = (WristRecorder.now() - startedNs) / 1_000_000_000L;
-                    ui.post(() -> state.setText(String.format(Locale.KOREA, "● 손목 기록 %d:%02d", s / 60, s % 60)));
+                    String hs = rec != null ? rec.healthState : "";
+                    ui.post(() -> state.setText(String.format(Locale.KOREA, "● 손목 기록 %d:%02d", s / 60, s % 60) + (hs.isEmpty() ? "" : "\n" + hs)));
                     if (!"recording".equals(st) || live == null || !sid.equals(live.optString("sid"))) stopAndUpload();
                 } else if ("recording".equals(st)) {
                     begin(live.getString("sid"));
@@ -124,7 +125,7 @@ public class WatchActivity extends Activity {
             info.put("model", Build.MANUFACTURER + " " + Build.MODEL).put("android", Build.VERSION.RELEASE);
             Files.write(new File(dir, "watch_meta.json"), info.toString(2));
             ui.post(() -> state.setText("올리는 중…"));
-            for (String n : new String[]{"watch_imu.csv", "watch_vib.csv", "watch_hr.csv", "watch_skin.csv", "watch_audio.wav",
+            for (String n : new String[]{"watch_imu.csv", "watch_vib.csv", "watch_hr.csv", "watch_ibi.csv", "watch_skin.csv", "watch_audio.wav",
                     "watch_audio.json", "watch_server_sync.csv", "watch_meta.json"}) {
                 File f = new File(dir, n);
                 if (f.exists()) put("/api/sessions/" + sid + "/files/" + n, f);

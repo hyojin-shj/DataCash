@@ -1,4 +1,4 @@
-#Tue Oct 27 02:08:37 KST 2026
+#Tue Oct 27 10:31:10 KST 2026
 base.1=/Users/simhyojin/Desktop/DataCache/app/wear/build/intermediates/dex/debug/mergeProjectDexDebug/8/classes.dex
 path.1=8/classes.dex
 base.0=/Users/simhyojin/Desktop/DataCache/app/wear/build/intermediates/dex/debug/mergeProjectDexDebug/0/classes.dex

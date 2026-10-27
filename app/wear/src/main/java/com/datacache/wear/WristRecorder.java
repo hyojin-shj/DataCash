@@ -28,15 +28,20 @@ import java.util.Locale;
  * 손목 기록 (워치 시계 BOOTTIME):
  *   watch_imu.csv   가속도(이벤트마다) + 최근 자이로 — 가장 빠른 속도
  *   watch_vib.csv   능동 진동 펄스: 0.5초마다 0.05초 울리고 명령 시각을 적는다 (울림 반응 → 쥐는 힘, 동기 신호도 겸함)
- *   watch_hr.csv    심박 (BODY_SENSORS, 생체 동의 시 폰이 알려 준다)
- *   watch_skin.csv  피부온도 — 기기가 공개 센서로 주면 (갤럭시 워치는 삼성 SDK 가 필요할 수 있다)
+ *   watch_hr.csv    심박 t_ns,bpm,status — 생체 동의 녹화만. Samsung Health Sensor SDK 가 있으면 그것(연속 심박),
+ *                   없거나 연결이 안 되면 안드로이드 기본 심박 센서 (status = -1)
+ *   watch_ibi.csv   박동 간격 t_ns,ibi_ms,status — 삼성 SDK 가 있을 때만
+ *   watch_skin.csv  피부온도 t_ns,temp_c,ambient_c,status — 삼성 SDK (또는 기기가 공개 센서로 줄 때)
  *   watch_audio.wav 마이크 (48kHz 가 되면 음향 비콘을 듣는다, 아니면 16kHz)
  */
 final class WristRecorder implements SensorEventListener {
     static final long PULSE_MS = 50, PERIOD_MS = 500;
     private final Context ctx;
     private final SensorManager sm;
-    private BufferedWriter imu, vib, hr, skin;
+    private BufferedWriter imu, vib, hr, skin, ibi;
+    private SamsungHealth samsung;
+    private boolean stdHeart;
+    volatile String healthState = "";
     private final float[] gyro = new float[3];
     private Thread pulses, audioThread;
     private volatile boolean running;
@@ -62,22 +67,41 @@ final class WristRecorder implements SensorEventListener {
         if (a != null) sm.registerListener(this, a, SensorManager.SENSOR_DELAY_FASTEST);
         info.put("accel", a != null ? a.getName() : JSONObject.NULL).put("gyro", g != null ? g.getName() : JSONObject.NULL);
         if (bio) {
-            Sensor h = sm.getDefaultSensor(Sensor.TYPE_HEART_RATE);
-            if (h != null) {
-                hr = writer("watch_hr.csv", "t_ns,bpm");
-                sm.registerListener(this, h, SensorManager.SENSOR_DELAY_FASTEST);
-            }
-            Sensor sk = null;
-            JSONArray names = new JSONArray();
-            for (Sensor s : sm.getSensorList(Sensor.TYPE_ALL)) {
-                names.put(s.getStringType());
-                String t = s.getStringType().toLowerCase(Locale.US);
-                if (t.contains("skin") && t.contains("temp")) sk = s;
-            }
-            info.put("sensors", names).put("heart_rate", h != null).put("skin_temp", sk != null ? sk.getStringType() : JSONObject.NULL);
-            if (sk != null) {
-                skin = writer("watch_skin.csv", "t_ns,temp_c");
-                sm.registerListener(this, sk, SensorManager.SENSOR_DELAY_NORMAL);
+            hr = writer("watch_hr.csv", "t_ns,bpm,status");
+            if (SamsungHealth.available()) {           // 삼성 SDK: 연속 심박 + 박동 간격 + 피부온도
+                ibi = writer("watch_ibi.csv", "t_ns,ibi_ms,status");
+                skin = writer("watch_skin.csv", "t_ns,temp_c,ambient_c,status");
+                samsung = new SamsungHealth(ctx, new SamsungHealth.Sink() {
+                    @Override public void heartRate(long t, int bpm, int st) {
+                        if (bpm > 0 && st == 1) write(hr, t + "," + bpm + "," + st + "\n");     // 1 = 측정 성공
+                    }
+                    @Override public void ibi(long t, int ms, int st) {
+                        if (ms > 0 && st == 0) write(ibi, t + "," + ms + "," + st + "\n");       // 0 = 정상 박동
+                    }
+                    @Override public void skin(long t, float c, float amb, int st) {
+                        if (st == 0) write(skin, t + "," + c + "," + amb + "," + st + "\n");    // 0 = 측정 성공
+                    }
+                    @Override public void state(String w) {
+                        healthState = w;
+                        if (w.contains("못") || w.contains("error")) standardHeart();   // 연결이 안 되면 기본 심박 센서로
+                    }
+                });
+                samsung.start(true, true);
+            } else {
+                standardHeart();
+                Sensor sk = null;
+                JSONArray names = new JSONArray();
+                for (Sensor s : sm.getSensorList(Sensor.TYPE_ALL)) {
+                    names.put(s.getStringType());
+                    String t = s.getStringType().toLowerCase(Locale.US);
+                    if (t.contains("skin") && t.contains("temp")) sk = s;
+                }
+                info.put("sensors", names).put("skin_temp", sk != null ? sk.getStringType() : JSONObject.NULL);
+                if (sk != null) {
+                    skin = writer("watch_skin.csv", "t_ns,temp_c,ambient_c,status");
+                    sm.registerListener(this, sk, SensorManager.SENSOR_DELAY_NORMAL);
+                }
+                healthState = "기본 심박 센서" + (sk != null ? " + 피부온도" : " (피부온도는 삼성 SDK 필요)");
             }
         }
         running = true;
@@ -132,6 +156,18 @@ final class WristRecorder implements SensorEventListener {
         audioThread.start();
     }
 
+    private synchronized void standardHeart() {
+        if (stdHeart) return;
+        Sensor h = sm.getDefaultSensor(Sensor.TYPE_HEART_RATE);
+        if (h != null) sm.registerListener(this, h, SensorManager.SENSOR_DELAY_FASTEST);
+        stdHeart = true;
+        try { info.put("heart_rate", h != null ? "android TYPE_HEART_RATE" : JSONObject.NULL); } catch (Exception ignored) {}
+    }
+
+    private synchronized void write(BufferedWriter w, String line) {
+        try { if (w != null && running) w.write(line); } catch (Exception ignored) {}
+    }
+
     private BufferedWriter writer(String name, String header) throws Exception {
         BufferedWriter w = new BufferedWriter(new FileWriter(new File(dir, name)));
         w.write(header + "\n");
@@ -146,8 +182,8 @@ final class WristRecorder implements SensorEventListener {
             else if (t == Sensor.TYPE_ACCELEROMETER)
                 imu.write(String.format(Locale.US, "%d,%.5f,%.5f,%.5f,%.5f,%.5f,%.5f\n", e.timestamp, e.values[0], e.values[1], e.values[2], gyro[0], gyro[1], gyro[2]));
             else if (t == Sensor.TYPE_HEART_RATE && hr != null && e.values[0] > 0)
-                hr.write(e.timestamp + "," + e.values[0] + "\n");
-            else if (skin != null) skin.write(e.timestamp + "," + e.values[0] + "\n");
+                hr.write(e.timestamp + "," + e.values[0] + ",-1\n");
+            else if (skin != null && samsung == null) skin.write(e.timestamp + "," + e.values[0] + ",NaN,-1\n");
         } catch (Exception ignored) {
         }
     }
@@ -157,6 +193,7 @@ final class WristRecorder implements SensorEventListener {
     JSONObject stop() throws Exception {
         running = false;
         sm.unregisterListener(this);
+        if (samsung != null) { samsung.stop(); info.put("samsung", samsung.info); }
         try { pulses.join(1500); } catch (InterruptedException ignored) {}
         if (rec != null) {
             try { audioThread.join(2000); } catch (InterruptedException ignored) {}
@@ -167,9 +204,9 @@ final class WristRecorder implements SensorEventListener {
                     .put("rate", audioRate).toString());
         }
         synchronized (this) {
-            for (BufferedWriter w : new BufferedWriter[]{imu, vib, hr, skin}) if (w != null) try { w.close(); } catch (Exception ignored) {}
+            for (BufferedWriter w : new BufferedWriter[]{imu, vib, hr, skin, ibi}) if (w != null) try { w.close(); } catch (Exception ignored) {}
         }
-        info.put("audio_rate", audioRate).put("pulse_ms", PULSE_MS).put("period_ms", PERIOD_MS);
+        info.put("health", healthState).put("audio_rate", audioRate).put("pulse_ms", PULSE_MS).put("period_ms", PERIOD_MS);
         return info;
     }
 

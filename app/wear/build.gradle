@@ -2,7 +2,7 @@ plugins {
     id 'com.android.application'
 }
 
-// 갤럭시 워치(Wear OS) 앱 — 손목 IMU · 능동 진동 펄스 · 심박 · 마이크 · 서버 시각. 외부 라이브러리 없이.
+// 갤럭시 워치(Wear OS) 앱 — 손목 IMU · 능동 진동 펄스 · 심박 · 마이크 · 서버 시각. 외부 라이브러리 없이 (삼성 SDK 는 선택).
 android {
     namespace 'com.datacache.wear'
     compileSdk 34
@@ -22,4 +22,6 @@ android {
 }
 
 dependencies {
+    // Samsung Health Sensor SDK (.aar) 를 libs/ 에 넣으면 같이 들어간다 — 없어도 빌드된다 (SamsungHealth 가 리플렉션으로 부른다)
+    implementation fileTree(dir: 'libs', include: ['*.aar', '*.jar'])
 }

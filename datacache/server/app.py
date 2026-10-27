@@ -69,7 +69,7 @@ from ..requests import Requests, eligible
 from ..people import People, embed_jpeg
 
 FILES = {"meta.json", "video.mp4", "video_frames.csv", "audio.wav", "audio.json", "phone_imu.csv", "beacon.csv",
-         "watch_imu.csv", "watch_audio.wav", "watch_audio.json", "watch_vib.csv", "watch_hr.csv", "watch_skin.csv",
+         "watch_imu.csv", "watch_audio.wav", "watch_audio.json", "watch_vib.csv", "watch_hr.csv", "watch_ibi.csv", "watch_skin.csv",
          "clock_sync.csv", "phone_server_sync.csv", "watch_server_sync.csv", "watch_meta.json"}
 WATCH_WAIT_S = 240   # 폰 업로드 뒤 워치 업로드를 기다리는 최대 시간
 SID = re.compile(r"^[A-Za-z0-9_\-]{3,64}$")

@@ -31,49 +31,57 @@
 18-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:10:5-85
 18-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:10:22-82
 19
-20    <application
-20-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:12:5-25:19
-21        android:debuggable="true"
-22        android:extractNativeLibs="false"
-23        android:icon="@mipmap/ic_launcher"
-23-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:14:9-43
-24        android:label="데이터캐시 워치"
-24-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:13:9-33
-25        android:theme="@android:style/Theme.DeviceDefault"
-25-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:15:9-59
-26        android:usesCleartextTraffic="true" >
-26-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:16:9-44
-27        <uses-library
-27-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:17:9-93
-28            android:name="com.google.android.wearable"
-28-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:17:23-65
-29            android:required="false" />
-29-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:17:66-90
-30
-31        <meta-data
-31-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:18:9-97
-32            android:name="com.google.android.wearable.standalone"
-32-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:18:20-73
-33            android:value="true" />
-33-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:18:74-94
-34
-35        <activity
-35-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:19:9-24:20
-36            android:name="com.datacache.wear.WatchActivity"
-36-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:19:19-48
-37            android:exported="true" >
-37-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:19:49-72
-38            <intent-filter>
-38-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:20:13-23:29
-39                <action android:name="android.intent.action.MAIN" />
-39-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:21:17-69
-39-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:21:25-66
-40
-41                <category android:name="android.intent.category.LAUNCHER" />
-41-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:22:17-77
-41-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:22:27-74
-42            </intent-filter>
-43        </activity>
-44    </application>
+20    <!-- Samsung Health Sensor SDK 가 워치의 Health Platform 서비스에 붙을 수 있게 (안드로이드 11+ 패키지 보기) -->
+21    <queries>
+21-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:13:5-15:15
+22        <package android:name="com.samsung.android.service.health.tracking" />
+22-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:14:9-79
+22-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:14:18-76
+23    </queries>
+24
+25    <application
+25-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:17:5-30:19
+26        android:debuggable="true"
+27        android:extractNativeLibs="false"
+28        android:icon="@mipmap/ic_launcher"
+28-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:19:9-43
+29        android:label="데이터캐시 워치"
+29-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:18:9-33
+30        android:theme="@android:style/Theme.DeviceDefault"
+30-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:20:9-59
+31        android:usesCleartextTraffic="true" >
+31-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:21:9-44
+32        <uses-library
+32-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:22:9-93
+33            android:name="com.google.android.wearable"
+33-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:22:23-65
+34            android:required="false" />
+34-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:22:66-90
+35
+36        <meta-data
+36-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:23:9-97
+37            android:name="com.google.android.wearable.standalone"
+37-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:23:20-73
+38            android:value="true" />
+38-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:23:74-94
+39
+40        <activity
+40-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:24:9-29:20
+41            android:name="com.datacache.wear.WatchActivity"
+41-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:24:19-48
+42            android:exported="true" >
+42-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:24:49-72
+43            <intent-filter>
+43-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:25:13-28:29
+44                <action android:name="android.intent.action.MAIN" />
+44-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:26:17-69
+44-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:26:25-66
 45
-46</manifest>
+46                <category android:name="android.intent.category.LAUNCHER" />
+46-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:27:17-77
+46-->/Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:27:27-74
+47            </intent-filter>
+48        </activity>
+49    </application>
+50
+51</manifest>
