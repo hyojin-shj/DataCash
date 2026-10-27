@@ -1,0 +1,172 @@
+{
+ "donor0": {
+  "gender": "female",
+  "age": 30,
+  "group": "east_asian"
+ },
+ "donor1": {
+  "gender": "male",
+  "age": 30,
+  "group": "east_asian"
+ },
+ "donor2": {
+  "gender": "female",
+  "age": 20,
+  "group": "east_asian"
+ },
+ "donor3": {
+  "gender": "male",
+  "age": 50,
+  "group": "east_asian"
+ },
+ "donor4": {
+  "gender": "female",
+  "age": 40,
+  "group": "white"
+ },
+ "donor5": {
+  "gender": "male",
+  "age": 20,
+  "group": "white"
+ },
+ "donor6": {
+  "gender": "female",
+  "age": 22,
+  "group": "east_asian"
+ },
+ "donor7": {
+  "gender": "male",
+  "age": 22,
+  "group": "east_asian"
+ },
+ "donor8": {
+  "gender": "female",
+  "age": 65,
+  "group": "east_asian"
+ },
+ "donor9": {
+  "gender": "male",
+  "age": 65,
+  "group": "east_asian"
+ },
+ "donor10": {
+  "gender": "female",
+  "age": 22,
+  "group": "southeast_asian"
+ },
+ "donor11": {
+  "gender": "male",
+  "age": 22,
+  "group": "southeast_asian"
+ },
+ "donor12": {
+  "gender": "female",
+  "age": 65,
+  "group": "southeast_asian"
+ },
+ "donor13": {
+  "gender": "male",
+  "age": 65,
+  "group": "southeast_asian"
+ },
+ "donor14": {
+  "gender": "female",
+  "age": 22,
+  "group": "south_asian"
+ },
+ "donor15": {
+  "gender": "male",
+  "age": 22,
+  "group": "south_asian"
+ },
+ "donor16": {
+  "gender": "female",
+  "age": 65,
+  "group": "south_asian"
+ },
+ "donor17": {
+  "gender": "male",
+  "age": 65,
+  "group": "south_asian"
+ },
+ "donor18": {
+  "gender": "female",
+  "age": 22,
+  "group": "black"
+ },
+ "donor19": {
+  "gender": "male",
+  "age": 22,
+  "group": "black"
+ },
+ "donor20": {
+  "gender": "female",
+  "age": 65,
+  "group": "black"
+ },
+ "donor21": {
+  "gender": "male",
+  "age": 65,
+  "group": "black"
+ },
+ "donor22": {
+  "gender": "female",
+  "age": 22,
+  "group": "white"
+ },
+ "donor23": {
+  "gender": "male",
+  "age": 22,
+  "group": "white"
+ },
+ "donor24": {
+  "gender": "female",
+  "age": 65,
+  "group": "white"
+ },
+ "donor25": {
+  "gender": "male",
+  "age": 65,
+  "group": "white"
+ },
+ "donor26": {
+  "gender": "female",
+  "age": 22,
+  "group": "latino"
+ },
+ "donor27": {
+  "gender": "male",
+  "age": 22,
+  "group": "latino"
+ },
+ "donor28": {
+  "gender": "female",
+  "age": 65,
+  "group": "latino"
+ },
+ "donor29": {
+  "gender": "male",
+  "age": 65,
+  "group": "latino"
+ },
+ "donor30": {
+  "gender": "female",
+  "age": 22,
+  "group": "middle_eastern"
+ },
+ "donor31": {
+  "gender": "male",
+  "age": 22,
+  "group": "middle_eastern"
+ },
+ "donor32": {
+  "gender": "female",
+  "age": 65,
+  "group": "middle_eastern"
+ },
+ "donor33": {
+  "gender": "male",
+  "age": 65,
+  "group": "middle_eastern"
+ }
+}

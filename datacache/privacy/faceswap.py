@@ -22,7 +22,7 @@ import numpy as np
 from .. import config
 
 LP_ROOT = Path(os.environ.get("LP_ROOT", Path.home() / "home-data-mission" / "models" / "liveportrait"))
-REID_MAX = 0.30            # SFace 같은 사람 기준 0.363 에 여유
+REID_MAX = 0.363           # SFace 의 '같은 사람' 기준 — 이보다 덜 닮으면 다른 사람 (닮은 가상 인물이 자연스럽다는 의견으로 0.30 → 기준 그대로)
 EXP_RAMP = 0.1             # 표정을 줄인 뒤 장면마다 이만큼씩 되돌린다 (30fps 에서 약 0.3초에 원래대로)
 CROP = 512
 EYE_L, EYE_R, CHIN, MOUTH = (33, 133), (362, 263), 152, (13, 14)
@@ -392,17 +392,19 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
     return rep
 
 
-def pick_donor(original_video, donors_dir=None) -> Optional[Path]:
-    """참여자 얼굴과 가장 덜 닮은 가상 인물 (SFace 유사도 최소)."""
-    r = rank_donors(original_video, donors_dir)
-    return r[0] if r else None
 
 
-DONOR_SAFE = 0.25          # 이보다 덜 닮아야 '다른 사람' (재식별 검사 REID_MAX 0.30 에 여유)
+def _donor_info() -> dict:
+    """가상 인물 이름 → (성별, 나이) — Muse Image 로 만들 때 정한 값 (donors/donors.json, scripts/make_donors.py)."""
+    import json
+
+    p = Path(__file__).parents[1] / "donors" / "donors.json"
+    d = json.loads(p.read_text()) if p.exists() else {}
+    return {k: (v.get("gender"), v.get("age")) for k, v in d.items()}
 
 
-DONOR_INFO = {"donor0": ("female", 30), "donor1": ("male", 30), "donor2": ("female", 20), "donor3": ("male", 50),
-              "donor4": ("female", 40), "donor5": ("male", 20)}       # Muse Image 로 만들 때 정한 성별·나이 (donors/README.md)
+DONOR_INFO = _donor_info()
+AGE_SPAN = 25             # 나이를 알면 이만큼 안쪽만 후보 (20대 참여자에게 60대 얼굴이 붙지 않게)
 
 
 def _age_num(band: Optional[str]) -> Optional[int]:
@@ -412,55 +414,10 @@ def _age_num(band: Optional[str]) -> Optional[int]:
     return 20 if band.startswith("19") else int(digits[:2]) if digits else None
 
 
-TRIAL_FRAMES = 10         # 가상 인물마다 시험으로 바꿔 볼 장면 수
-TRIAL_MARGIN = 0.0        # 시험 최대 닮음이 REID_MAX 미만이면 통과 (넘는 장면은 치환 중 재식별 검사가 따로 가린다)
-
-
-def trial_reid(original_video, donors: List[Path], frames: int = TRIAL_FRAMES, lp: Optional["LivePortraitSwap"] = None) -> dict:
-    """가상 인물마다 영상 곳곳 몇 장면을 실제로 바꿔 보고, 바꾼 얼굴이 원래 사람과 얼마나 닮았는지 (평균·최대).
-    사진끼리는 덜 닮아도 표정·얼굴형이 옮겨지면 닮아질 수 있다 (점심 녹화: 20대 여성 donor2 사진 0.2대 → 바꾼 뒤 최대 0.37)."""
-    fl, reid = FaceLandmarks(), Reid()
-    lp = lp or LivePortraitSwap()
-    cap = cv2.VideoCapture(str(original_video))
-    n = int(cap.get(7))
-    picks = []
-    for i in np.linspace(0, max(0, n - 10), frames).astype(int):
-        cap.set(cv2.CAP_PROP_POS_FRAMES, int(i))
-        ok, f = cap.read()
-        if ok:
-            found = fl(f)
-            if found:
-                picks.append((f, max(found, key=lambda a: np.ptp(a[:, 0]) * np.ptp(a[:, 1]))))
-    cap.release()
-    out = {}
-    for d in donors:
-        img = cv2.imread(str(d))
-        dl = fl(img) if img is not None else []
-        if not dl or not picks:
-            continue
-        lp.source(img, dl[0])
-        sims = []
-        for f, l in picks:
-            M = crop_matrix(l)
-            g = lp.drive(warp_in(f, M))
-            gl = fl(g)
-            swapped = lp.paste(f, g, M, gl[0] if gl else None)
-            e0, e1 = reid.embed(f, l.mean(0)), reid.embed(swapped, l.mean(0))
-            if e0 is not None and e1 is not None:
-                sims.append(reid.sim(e0, e1))
-        if sims:
-            out[d] = (float(np.mean(sims)), float(np.max(sims)))
-    return out
-
-
-def rank_donors(original_video, donors_dir=None, gender: Optional[str] = None, age_band: Optional[str] = None,
-                trial: bool = True) -> List[Path]:
+def rank_donors(original_video, donors_dir=None, gender: Optional[str] = None, age_band: Optional[str] = None) -> List[Path]:
     """가상 인물 순서 (첫째는 참여자, 다음은 동의한 가족에게).
-    1) 사진끼리 '알아볼 수 없을 만큼 다른' 사람(닮음 < DONOR_SAFE)만 후보 — 가장 덜 닮은 사람만 고르면 성별·나이가 달라 어색하다.
-    2) trial: 후보마다 몇 장면을 실제로 바꿔 보고, 바꾼 얼굴이 원래 사람과 닮으면(최대 ≥ REID_MAX - TRIAL_MARGIN) 뒤로.
-    3) 그 안에서 본인이 알려 준 성별이 같고, 바꾼 뒤 가장 닮은 사람부터 — 가장 다른 얼굴은 어색하다는 의견(점심 녹화)대로
-       '알아볼 수는 없되 비슷한' 얼굴. 같은 성별이 모두 못 통과하면 그중 덜 닮은 사람. 연령대는 성별 다음.
-    안전한 사람이 없으면 덜 닮은 순서."""
+    같은 성별 · 나이 차 AGE_SPAN 안에서 사진이 가장 닮은 사람부터 — 닮을수록 치환이 자연스럽다 (점심 녹화 의견:
+    '닮아도 어차피 내가 아니다'). 단 같은 사람 기준(REID_MAX)을 넘게 닮은 사진은 빼고, 치환 중 장면마다 재식별 검사가 지킨다."""
     donors = sorted(Path(donors_dir or Path(__file__).parents[1] / "donors").glob("*.png"))
     if not donors:
         return []
@@ -476,22 +433,19 @@ def rank_donors(original_video, donors_dir=None, gender: Optional[str] = None, a
             embs.append(e)
     if not embs:
         return donors
+
     def worst(d):
         e = reid.embed(cv2.imread(str(d)))
         return 1.0 if e is None else max(reid.sim(e, x) for x in embs)
+
     sims = {d: worst(d) for d in donors}
     age = _age_num(age_band)
-    safe = [d for d in donors if sims[d] < DONOR_SAFE]
-    tried = trial_reid(original_video, safe) if trial and safe else {}
 
     def fit(d):
         g, a = DONOR_INFO.get(d.stem, (None, None))
-        mean, mx = tried.get(d, (sims[d], sims[d]))
-        passed = not tried or mx < REID_MAX - TRIAL_MARGIN
-        return (0 if gender in (None, "") or g == gender else 1,
-                0 if passed else 1,
-                -mean if passed else mx,                     # 통과한 사람 중 가장 닮은 사람 · 못 통과면 덜 닮은 사람
-                abs((a or 0) - age) if age and a else 0)
+        return (0 if sims[d] < REID_MAX else 1,                        # 같은 사람만큼 닮은 사진은 맨 뒤
+                0 if gender in (None, "") or g == gender else 1,
+                0 if not age or not a or abs(a - age) <= AGE_SPAN else 1,
+                -sims[d] if sims[d] < REID_MAX else sims[d])           # 그 안에서 가장 닮은 사람
 
-    rest = sorted((d for d in donors if sims[d] >= DONOR_SAFE), key=lambda d: sims[d])
-    return sorted(safe, key=fit) + rest
+    return sorted(donors, key=fit)

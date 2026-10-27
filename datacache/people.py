@@ -33,8 +33,19 @@ RELATIONS = ("본인", "배우자", "가족", "동거인", "기타")
 AGE_BANDS = ("19~29세", "30대", "40대", "50대", "60대 이상")
 BIO_SCOPE = ["heart_rate", "heart_rate_reserve", "skin_temperature_change", "post_mission_survey"]
 DONORS_DIR = Path(__file__).parent / "donors"
-DONOR_LABELS = {"donor0": "여 30대", "donor1": "남 30대", "donor2": "여 20대", "donor3": "남 50대", "donor4": "여 40대",
-                "donor5": "남 20대"}
+GROUP_KO = {"east_asian": "동아시아", "southeast_asian": "동남아시아", "south_asian": "남아시아", "black": "아프리카계",
+            "white": "유럽계", "latino": "라틴계", "middle_eastern": "중동"}
+
+
+def _donor_labels() -> dict:
+    """가상 인물 이름표 '여 · 20대 · 동아시아' (donors/donors.json)."""
+    p = DONORS_DIR / "donors.json"
+    d = json.loads(p.read_text()) if p.exists() else {}
+    return {k: f"{'여' if v.get('gender') == 'female' else '남'} · {v.get('age', 0) // 10 * 10}대 · {GROUP_KO.get(v.get('group'), '')}"
+            for k, v in d.items()}
+
+
+DONOR_LABELS = _donor_labels()
 _lock = threading.Lock()
 _models = {}
 
@@ -87,7 +98,8 @@ def best_sim(refs: List[list], emb) -> float:
 
 
 def donors() -> List[dict]:
-    return [{"id": p.stem, "label": DONOR_LABELS.get(p.stem, "")} for p in sorted(DONORS_DIR.glob("donor*.png"))]
+    return [{"id": p.stem, "label": DONOR_LABELS.get(p.stem, "")}
+            for p in sorted(DONORS_DIR.glob("donor*.png"), key=lambda p: int(p.stem[5:]))]
 
 
 def now() -> str:

@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 from datacache import config
+from datacache import people as people_mod
 
 DONORS = config.ROOT / "datacache" / "donors"
 pytestmark = pytest.mark.skipif(not (config.MODELS / "yunet.onnx").exists(), reason="얼굴 모델이 없음 (data/models)")
@@ -57,7 +58,7 @@ def test_people_consent_face_donor(client):
     assert c.post(f"/api/people/{p_mom['id']}/donor", json={"donor": "donor3"}, headers=DEV).json()["donor"] == "donor3"
     assert c.post(f"/api/people/{p_me['id']}/consent", json={"bio": False}, headers=DEV).json()["bio_consent"]["agreed"] is False
     lst = c.get("/api/people", headers=DEV).json()
-    assert lst["owner_registered"] and [x["name"] for x in lst["people"]] == ["나", "엄마"] and len(lst["donors"]) == 6
+    assert lst["owner_registered"] and [x["name"] for x in lst["people"]] == ["나", "엄마"] and len(lst["donors"]) == len(list(people_mod.DONORS_DIR.glob("donor*.png"))) >= 30
     assert "embedding" not in json.dumps(lst)                      # 특징값은 밖으로 안 나간다
     assert not list(root.rglob("*.jpg")) and not list(root.rglob("*.png"))   # 사진은 저장하지 않는다
     assert c.get("/api/people", headers={**DEV, "X-DC-Device": "phoneB2"}).json()["people"] == []
