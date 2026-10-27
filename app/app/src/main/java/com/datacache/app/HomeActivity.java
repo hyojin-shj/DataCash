@@ -82,6 +82,7 @@ public class HomeActivity extends Activity {
     protected void onResume() {
         super.onResume();
         visible = true;
+        ProcessService.resume(this);
         ui.postDelayed(this::poll, 1500);
         render();
         new Thread(() -> {

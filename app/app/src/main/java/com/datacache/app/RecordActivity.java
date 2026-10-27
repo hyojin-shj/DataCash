@@ -76,6 +76,9 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
 
     private LinearLayout top, controls, zoomBar;
     private TextView status, countdown, timerBtn, markBtn;
+    private static final String MARK_IDLE = "＋ 실수 표시";
+    private final Runnable markIdle = () -> markBtn.setText(marks.isEmpty() ? MARK_IDLE
+            : String.format(Locale.KOREA, "%s · %d", MARK_IDLE, marks.size()));
     private RecordRing recBtn;
     private View switchBtn;
     private int timerSeconds, countdownLeft;
@@ -206,15 +209,18 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
         controls.addView(switchBtn, new LinearLayout.LayoutParams(Ui.dp(this, 52), Ui.dp(this, 52)));
         root.addView(controls);
 
-        markBtn = Ui.text(this, "실수했어요", 15, Color.WHITE, true);
-        markBtn.setPadding(Ui.dp(this, 18), Ui.dp(this, 10), Ui.dp(this, 18), Ui.dp(this, 10));
-        markBtn.setBackground(Ui.pressable(0x99000000, Ui.dp(this, 22)));
+        // 누르는 버튼으로 읽히게: 처음엔 '실수 표시' (상태 문구처럼 보이면 안 된다), 누르면 잠깐 '표시했어요 · n'
+        markBtn = Ui.text(this, MARK_IDLE, 13, Color.WHITE, true);
+        markBtn.setPadding(Ui.dp(this, 14), Ui.dp(this, 8), Ui.dp(this, 14), Ui.dp(this, 8));
+        markBtn.setBackground(Ui.pressable(0x66000000, Ui.dp(this, 18)));
         markBtn.setContentDescription("방금 실수했거나 다시 하는 중이면 눌러 주세요");
         markBtn.setVisibility(View.GONE);
         markBtn.setOnClickListener(v -> {
             if (!recording) return;
             marks.add(Clock.now());
-            markBtn.setText(String.format(Locale.KOREA, "실수했어요 · %d", marks.size()));
+            markBtn.setText(String.format(Locale.KOREA, "✓ 실수 표시했어요 · %d", marks.size()));
+            ui.removeCallbacks(markIdle);
+            ui.postDelayed(markIdle, 1500);
         });
         FrameLayout.LayoutParams mp = new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
         mp.bottomMargin = Ui.dp(this, 130);
@@ -412,6 +418,7 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
                     busy = false;
                     startNs = Clock.now();
                     marks.clear();
+                    markBtn.setText(MARK_IDLE);
                     recBtn.setRecording(true);
                     timerBtn.setAlpha(0.3f);
                     switchBtn.setAlpha(0.3f);

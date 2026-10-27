@@ -53,7 +53,7 @@ def to_markdown(c: dict) -> str:
     o = c.get("outcome")
     if o:
         L += ["", "## 성공·실패 (본인 표시)", "", f"- 결과: {o.get('outcome')}, 다시 한 횟수: {o.get('retries')}, "
-              f"녹화 중 '실수했어요': {len(o.get('self_marks_s', []))}번 {o.get('self_marks_s', [])}"]
+              f"녹화 중 '실수 표시': {len(o.get('self_marks_s', []))}번 {o.get('self_marks_s', [])}"]
     p = c.get("privacy")
     if p:
         L += ["", "## 개인정보 처리", "", "- " + json.dumps(p, ensure_ascii=False)]

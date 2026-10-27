@@ -27,11 +27,17 @@ import java.util.concurrent.Executors;
 public class ProcessService extends Service {
     private static final String CH_WORK = "work", CH_REWARD = "reward";
     private static final int ID_WORK = 1;
+    /** 올리기는 하나씩 (대역폭), 검수 기다리기는 녹화마다 따로 — 앞 녹화 검수 중에도 다음 녹화가 바로 올라간다. */
     private final ExecutorService one = Executors.newSingleThreadExecutor();
+    private final ExecutorService wait = Executors.newCachedThreadPool();
     private int pending;
     private PowerManager.WakeLock lock;
 
+    /** 이 프로세스에서 맡은 녹화 — 같은 녹화를 두 번 올리지 않게. */
+    private static final java.util.Set<String> active = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
+
     static void enqueue(Context c, File dir) {
+        if (!active.add(dir.getAbsolutePath())) return;
         Intent i = new Intent(c, ProcessService.class).putExtra("dir", dir.getAbsolutePath());
         if (Build.VERSION.SDK_INT >= 26) c.startForegroundService(i); else c.startService(i);
     }
@@ -53,22 +59,47 @@ public class ProcessService extends Service {
         else startForeground(ID_WORK, n);
         String path = intent == null ? null : intent.getStringExtra("dir");
         if (path != null) {
-            pending++;
+            synchronized (this) { pending++; }
             one.execute(() -> {
-                work(new File(path));
-                if (--pending == 0) { stopForeground(STOP_FOREGROUND_REMOVE); stopSelf(); }
+                File dir = new File(path);
+                if (upload(dir)) wait.execute(() -> { await(dir); active.remove(path); finished(); });
+                else { active.remove(path); finished(); }
             });
         }
         return START_REDELIVER_INTENT;
     }
 
-    private void work(File dir) {
+    /** 앱이 꺼지거나 새로 설치돼 끊긴 녹화(저장됨·올리는 중)를 다시 맡는다. */
+    static void resume(Context c) {
+        for (File d : Store.sessions(c)) {
+            String s = Uploader.localState(d).optString("state");
+            if (s.equals("saved") || s.equals("uploading")) enqueue(c, d);
+        }
+    }
+
+    private synchronized void finished() {
+        if (--pending == 0) { stopForeground(STOP_FOREGROUND_REMOVE); stopSelf(); }
+    }
+
+    private boolean upload(File dir) {
         String title = Uploader.localState(dir).optString("title", "녹화");
         try {
             if (!Uploader.localState(dir).has("state") || "upload_failed".equals(Uploader.localState(dir).optString("state"))
-                    || "saved".equals(Uploader.localState(dir).optString("state"))) {
+                    || "saved".equals(Uploader.localState(dir).optString("state"))
+                    || "uploading".equals(Uploader.localState(dir).optString("state"))) {
                 Uploader.upload(this, dir, (step, pct) -> progress(title + " 녹화 · 올리는 중 " + pct + "%", "가리기·치환은 서버에서 하고, 판매에는 가린 영상만 써요"));
             }
+            return true;
+        } catch (Exception e) {
+            Uploader.save(dir, "state", "upload_failed");
+            note(CH_REWARD, title + " 녹화를 올리지 못했어요", "내 녹화 기록에서 '다시 올리기'를 눌러 주세요", false, dir.getName().hashCode());
+            return false;
+        }
+    }
+
+    private void await(File dir) {
+        String title = Uploader.localState(dir).optString("title", "녹화");
+        try {
             long t0 = System.currentTimeMillis();
             while (System.currentTimeMillis() - t0 < 30 * 60_000L) {
                 JSONObject st = Uploader.status(this, dir);
@@ -78,9 +109,8 @@ public class ProcessService extends Service {
                 progress(title + " 녹화 · 검수 중", "가리기 · 라벨 · 4감 맞추기 — 끝나면 알려 드릴게요");
                 Thread.sleep(20_000);
             }
-        } catch (Exception e) {
-            Uploader.save(dir, "state", "upload_failed");
-            note(CH_REWARD, title + " 녹화를 올리지 못했어요", "내 녹화 기록에서 '다시 올리기'를 눌러 주세요", false, dir.getName().hashCode());
+        } catch (Exception ignored) {
+            // 상태를 못 읽어도 녹화는 이미 올라갔다 — 내 녹화 기록에서 다시 확인된다
         }
     }
 

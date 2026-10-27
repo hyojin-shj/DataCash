@@ -84,7 +84,7 @@ public class MissionActivity extends Activity {
         c.addView(n);
         c.addView(Ui.progress(this, sits.length() == 0 ? 0f : (float) done.size() / sits.length()),
                 new LinearLayout.LayoutParams(-1, Ui.dp(this, 6)));
-        TextView tip = Ui.text(this, "워치를 차고 찍으면 촉각(쥐는 힘)·몸 감각까지 담겨 보상이 더 커요. 녹화 중 실수하면 '실수했어요'를 눌러 주세요 — 로봇은 실수에서도 배워요.",
+        TextView tip = Ui.text(this, "워치를 차고 찍으면 촉각(쥐는 힘)·몸 감각까지 담겨 보상이 더 커요. 녹화 중 실수하면 화면 아래 '실수 표시'를 눌러 주세요 — 로봇은 실수에서도 배워요.",
                 13, Ui.ACCENT_INK, false);
         tip.setBackground(Ui.round(Ui.ACCENT_SOFT, Ui.dp(this, 14)));
         tip.setPadding(Ui.dp(this, 14), Ui.dp(this, 12), Ui.dp(this, 14), Ui.dp(this, 12));
