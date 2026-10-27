@@ -23,7 +23,8 @@ from .. import config
 
 LP_ROOT = Path(os.environ.get("LP_ROOT", Path.home() / "home-data-mission" / "models" / "liveportrait"))
 REID_MAX = 0.363           # SFace 의 '같은 사람' 기준 — 이보다 덜 닮으면 다른 사람 (닮은 가상 인물이 자연스럽다는 의견으로 0.30 → 기준 그대로)
-EXP_RAMP = 0.1             # 표정을 줄인 뒤 장면마다 이만큼씩 되돌린다 (30fps 에서 약 0.3초에 원래대로)
+EXP_RAMP = 0.25            # 표정을 줄인 뒤 RAMP_EVERY 장면마다 이만큼씩 되돌린다
+RAMP_EVERY = 5
 CROP = 512
 EYE_L, EYE_R, CHIN, MOUTH = (33, 133), (362, 263), 152, (13, 14)
 FACE_OVAL = [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176, 149,
@@ -333,9 +334,12 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
             c = lmk.mean(0)
             e0 = reid.embed(fo, c)
             # 재식별 검사를 장면마다: 바꾼 얼굴이 원래 사람과 닮으면 모자이크(영상이 끊긴다) 대신 표정을 줄여 다시 만든다
-            start = min(1.0, scales.get(key, 1.0) + EXP_RAMP)       # 줄였던 표정은 조금씩 되돌린다 (깜빡이지 않게)
+            # 바로 앞 장면에서 통과한 표정 세기부터 (매번 원래 표정부터 다시 하면 장면마다 2~3번 만들어 느렸다),
+            # 줄였던 표정은 RAMP_EVERY 장면마다 한 번씩만 조금 올려 본다 (깜빡이지 않게, 약 0.7초에 원래대로)
+            prev = scales.get(key, 1.0)
+            start = min(1.0, prev + EXP_RAMP) if prev < 1.0 and i % RAMP_EVERY == 0 else prev
             tries = []                                     # (닮음, 결과, 표정 비율)
-            for es in dict.fromkeys((start, start * 0.5, 0.0)):
+            for es in dict.fromkeys((start, prev, 0.0) if start > prev else (start, 0.0)):
                 lp.use(person_state(key, 0 if key == "participant" else 1 + family_order.index(key.split(":", 1)[1])))
                 gen = lp.drive(crop, es)
                 gl = fl(gen)
