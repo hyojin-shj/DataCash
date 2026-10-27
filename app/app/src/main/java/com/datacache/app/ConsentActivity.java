@@ -67,6 +67,29 @@ public class ConsentActivity extends Activity {
             row.addView(ch, lp);
         }
         c3.addView(row);
+        TextView gl = Ui.text(this, "성별 (선택 — 기업이 성별을 정한 의뢰 미션에만 써요)", 15, Ui.INK, true);
+        gl.setPadding(0, Ui.dp(this, 16), 0, 0);
+        c3.addView(gl);
+        LinearLayout grow = new LinearLayout(this);
+        List<TextView> gchips = new ArrayList<>();
+        String[][] gs = {{"female", "여성"}, {"male", "남성"}, {"", "밝히지 않음"}};
+        for (String[] g : gs) {
+            TextView ch = Ui.chip(this, g[1], Ui.SUB, Ui.BG);
+            ch.setOnClickListener(v -> {
+                Store.setGender(this, g[0]);
+                for (TextView x : gchips) {
+                    boolean on = x == ch;
+                    x.setTextColor(on ? Ui.PRIMARY_DARK : Ui.SUB);
+                    x.setBackground(Ui.round(on ? Ui.PRIMARY_SOFT : Ui.BG, Ui.dp(this, 99)));
+                }
+            });
+            gchips.add(ch);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2);
+            lp.rightMargin = Ui.dp(this, 6);
+            lp.topMargin = Ui.dp(this, 8);
+            grow.addView(ch, lp);
+        }
+        c3.addView(grow);
         Ui.add(this, body, c3);
 
         Ui.add(this, body, Ui.button(this, "동의하고 시작하기", true, v -> {

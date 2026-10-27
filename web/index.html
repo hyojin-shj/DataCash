@@ -75,6 +75,17 @@
   .checks { display: flex; flex-wrap: wrap; gap: 8px; }
   .checks label { border: 1px solid var(--line); border-radius: 99px; padding: 6px 12px; font-size: 13px; cursor: pointer; background: #fff; }
   .checks input { display: none; }
+  .ask { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+  .chat .msgs { display: flex; flex-direction: column; gap: 10px; max-height: 420px; overflow-y: auto; margin-bottom: 12px; }
+  .msg { padding: 10px 14px; border-radius: 14px; font-size: 14px; line-height: 1.55; max-width: 92%; white-space: pre-wrap; }
+  .msg.me { align-self: flex-end; background: var(--primary); color: #fff; border-bottom-right-radius: 4px; }
+  .msg.bot { align-self: flex-start; background: var(--bg); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+  .chat textarea { flex: 1; resize: vertical; }
+  .mis { border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; margin-top: 10px; }
+  .mis .prims { margin-top: 6px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .tags span { font-size: 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 99px; padding: 3px 10px; }
+  @media (max-width: 960px) { .ask { grid-template-columns: 1fr; } }
   .sens { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
   .sens label { display: block; border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; cursor: pointer; background: #fff; }
   .sens label.on { border-color: var(--primary); background: #FFF6F6; }
@@ -97,7 +108,7 @@
 <body>
 <nav><div class="wrap">
   <a class="brand" href="#"><img src="/static/icon.png" alt="">DataCache <small>for Business</small></a>
-  <div class="links"><a href="#senses">4감 데이터</a><a href="#sample">예시 보기</a><a href="#catalog">카탈로그</a><a href="#buy">견적·구매</a></div>
+  <div class="links"><a href="#ask">말로 의뢰</a><a href="#senses">4감 데이터</a><a href="#sample">예시 보기</a><a href="#catalog">카탈로그</a><a href="#buy">견적·구매</a></div>
 </div></nav>
 
 <header class="hero"><div class="wrap">
@@ -105,7 +116,7 @@
     <h1>집에 이미 있는 폰과 워치로 모은<br>로봇이 배울 4감 데이터</h1>
     <p>실제 집에서 사람이 한 일을 촉각·시각·청각·몸 감각까지 한 시간축에 담았습니다. 동의하지 않은 사람·화면·서류는 SAM 3.1 로 정확히 가리고,
       라벨은 Muse Spark 가 붙인 뒤 센서로 다시 확인합니다. LeRobot v3.0 그대로 받아 바로 학습하세요.</p>
-    <div class="row"><a class="btn" href="#buy">견적 받기</a><a class="btn ghost" href="#sample">예시 데이터 보기</a></div>
+    <div class="row"><a class="btn" href="#ask">필요한 데이터 말로 의뢰하기</a><a class="btn ghost" href="#buy">견적 받기</a><a class="btn ghost" href="#sample">예시 데이터 보기</a></div>
   </div>
   <div class="kpis">
     <div class="kpi"><b id="k-rec">-</b><span>처리된 녹화</span></div>
@@ -114,6 +125,20 @@
     <div class="kpi"><b>&lt; 1ms</b><span>워치↔폰 자동 동기화 (합성 검증)</span></div>
   </div>
 </div></header>
+
+<section id="ask"><div class="wrap">
+  <h2>필요한 데이터를 말로 의뢰하세요</h2>
+  <p class="lead">어떤 로봇에게 무엇을 가르칠지, 누가 찍으면 좋을지, 예산과 꼭 필요한 센서를 적어 주세요.
+    Muse Spark 가 미션을 거꾸로 설계하고, 조건에 맞는 사람에게만 미션이 열려 그대로 모입니다 — 분포를 따로 맞출 필요가 없어요.</p>
+  <div class="ask">
+    <div class="card chat">
+      <div class="msgs" id="msgs"><div class="msg bot">예) "제조업 회사예요. 택배 상하차 로봇을 학습시킬 데이터가 필요해요. 성별 무관 50대 이하, 예산 500만 원, 손 관절과 쥐는 세기는 꼭 넣어 주세요."</div></div>
+      <div class="row" style="gap:8px"><textarea id="askText" rows="2" placeholder="필요한 데이터를 자유롭게 적어 주세요"></textarea>
+        <button class="btn" id="askBtn">보내기</button></div>
+    </div>
+    <div class="card" id="planBox"><h3 style="margin-top:0">제안된 미션</h3><div class="note">대화를 시작하면 여기에 미션·참여 조건·센서·견적이 나와요.</div></div>
+  </div>
+</div></section>
 
 <section id="senses"><div class="wrap">
   <h2>촉각 센서 없이, 집에 있는 기기만으로</h2>
@@ -320,6 +345,58 @@ async function poll(id) {
   if (o.status === "pending" || o.status === "building") setTimeout(() => poll(id), 4000);
 }
 try { const id = localStorage.getItem("dc_order"); if (id) poll(id); } catch (e) {}
+
+// ---------- 말로 의뢰 → 미션 ----------
+const CHAT = [];
+let PLAN = null;
+function bubble(text, me) {
+  const d = document.createElement("div"); d.className = "msg " + (me ? "me" : "bot"); d.textContent = text;
+  $("#msgs").appendChild(d); $("#msgs").scrollTop = 1e9; return d;
+}
+$("#askBtn").onclick = async () => {
+  const t = $("#askText").value.trim(); if (!t) return;
+  $("#askText").value = ""; CHAT.push({role: "user", content: t}); bubble(t, true);
+  const wait = bubble("미션을 설계하는 중… (Muse Spark)", false); $("#askBtn").disabled = true;
+  try {
+    const r = await fetch("/api/market/request/chat", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({messages: CHAT})});
+    const j = await r.json();
+    if (!r.ok) { wait.textContent = j.detail || "다시 시도해 주세요"; return; }
+    const q = (j.plan.questions || []).length ? "\n\n" + j.plan.questions.map(x => "· " + x).join("\n") : "";
+    wait.textContent = j.reply + q; CHAT.push({role: "assistant", content: j.reply + q});
+    PLAN = j.plan; showPlan(j.plan, j.quote);
+  } catch (e) { wait.textContent = "연결이 끊겼어요"; } finally { $("#askBtn").disabled = false; }
+};
+$("#askText").onkeydown = e => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); $("#askBtn").click(); } };
+const AGES = ["19~29세", "30대", "40대", "50대", "60대 이상"], GEN = {any: "성별 무관", female: "여성", male: "남성"};
+function showPlan(p, q) {
+  const ages = p.eligibility.age_bands.length === AGES.length ? "연령 무관 (성인)" : p.eligibility.age_bands.join(" · ");
+  $("#planBox").innerHTML = `<h3 style="margin-top:0">${esc(p.title || "제안된 미션")}</h3>
+    <div class="note">${esc(p.domain)} · ${esc(p.robot_use)}</div>
+    <div class="tags"><span>${esc(ages)}</span><span>${esc(GEN[p.eligibility.gender] || "")}</span>${q.sensors_ko.map(x => `<span>${esc(x)}</span>`).join("")}</div>
+    ${p.missions.map(m => `<div class="mis"><b>${esc(m.title)}</b><div class="note">${esc(m.guide)}</div>
+      <div class="prims">${m.primitives.map(esc).join(" → ")}</div>
+      <div class="tags">${m.situations.slice(0, 8).map(x => `<span>${esc(x)}</span>`).join("")}</div></div>`).join("")}
+    <div class="lines" style="margin-top:14px"><div><span>맞춤 수집 ${q.hours}시간 × ${won(q.per_hour)}</span><span>${won(q.data)}</span></div>
+      <div><span>착수비</span><span>${won(q.setup)}</span></div>
+      ${p.budget_krw ? `<div><span>예산 ${won(p.budget_krw)}</span><span>${q.within_budget ? "안에 맞춤" : "초과"}</span></div>` : ""}</div>
+    <div class="row" style="justify-content:space-between;margin-top:8px"><span class="note">촬영자 보상 시간당 ${won(q.reward_per_hour)}</span><span class="total">${won(q.total)}</span></div>
+    ${p.ready && p.missions.length ? `<div style="display:grid;gap:8px;margin-top:14px"><input id="rqOrg" placeholder="회사·기관 이름"><input id="rqEmail" type="email" placeholder="이메일">
+      <button class="btn" id="rqBtn">이대로 의뢰하고 미션 열기</button><div id="rqBox"></div></div>` : `<div class="note" style="margin-top:12px">질문에 답하면 의뢰할 수 있어요.</div>`}`;
+  if ($("#rqBtn")) $("#rqBtn").onclick = submitRequest;
+}
+async function submitRequest() {
+  const r = await fetch("/api/market/request", {method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({plan: PLAN, org: $("#rqOrg").value, email: $("#rqEmail").value, messages: CHAT})});
+  const j = await r.json();
+  if (!r.ok) { $("#rqBox").innerHTML = `<div class="note" style="color:var(--primary-dark)">${esc(j.detail)}</div>`; return; }
+  localStorage.setItem("dc_request", j.id); showRequest(j);
+}
+function showRequest(j) {
+  $("#rqBox").innerHTML = `<div class="card" style="background:var(--bg)"><b>의뢰 ${esc(j.id)} · 미션이 앱에 열렸어요</b>
+    ${j.missions.map(m => `<div class="note" style="margin-top:6px">${esc(m.title)} — ${hrs(m.collected_hours)} / ${hrs(m.target_hours)} · 녹화 ${m.recordings}편</div>`).join("")}
+    <div class="note" style="margin-top:6px">조건에 맞는 사람에게만 보여요. 모이는 대로 카탈로그에 올라가고, 계약 뒤 주문으로 받을 수 있어요.</div></div>`;
+  setTimeout(async () => { const r = await fetch(`/api/market/request/${encodeURIComponent(j.id)}`); if (r.ok && $("#rqBox")) showRequest(await r.json()); }, 8000);
+}
 load();
 </script>
 </body>

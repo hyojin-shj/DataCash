@@ -28,6 +28,9 @@
   <h1><img src="/static/icon.png" alt="">주문 관리</h1>
   <p class="meta">계약·결제를 확인한 뒤 승인하면 묶음(LeRobot)이 만들어지고 구매자 화면에 내려받기 주소가 나타납니다.</p>
   <div id="list">불러오는 중…</div>
+  <h2>말로 받은 의뢰</h2>
+  <p class="meta">채팅 의뢰로 열린 미션. 목표 시간을 채웠거나 계약이 끝나면 닫아 주세요 — 닫으면 앱에서 사라집니다.</p>
+  <div id="requests">불러오는 중…</div>
   <h2>이의 신청</h2>
   <p class="meta">자동 확인으로 끝나지 않은 신청만 결정이 필요합니다. '가려야 할 게 보여요'는 신청 즉시 판매에서 빠지고, 인정하지 않으면 다시 판매됩니다.</p>
   <div id="appeals">불러오는 중…</div>
@@ -66,7 +69,19 @@ async function decide(id, accept) {
     {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({accept, extra_reward: extra, note})});
   loadAppeals();
 }
+async function loadRequests() {
+  const r = await fetch("/api/admin/requests?token=" + encodeURIComponent(token));
+  if (!r.ok) return;
+  const rs = (await r.json()).requests;
+  document.getElementById("requests").innerHTML = rs.length ? rs.map(q => `<div class="o"><div class="top"><b>${esc(q.title)} · ${esc(q.org)}</b>
+    <span class="st ${q.status === "collecting" ? "ready" : ""}">${q.status === "collecting" ? "모으는 중" : "닫힘"}</span></div>
+    <div class="meta">${esc(q.email)} · ${won(q.quote.total)} · ${q.quote.hours}시간 · ${(q.quote.sensors_ko || []).map(esc).join(", ")}
+    <br>${q.missions.map(m => `${esc(m.title)} ${m.collected_hours}/${m.target_hours}시간`).join(" · ")}</div>
+    ${q.status === "collecting" ? `<button class="no" onclick="closeReq('${esc(q.id)}')">의뢰 닫기</button>` : ""}</div>`).join("") : "의뢰가 없습니다";
+}
+async function closeReq(id) { await fetch(`/api/admin/requests/${encodeURIComponent(id)}/close?token=${encodeURIComponent(token)}`, {method: "POST"}); loadRequests(); }
 load();
+loadRequests();
 loadAppeals();
 </script>
 </body>

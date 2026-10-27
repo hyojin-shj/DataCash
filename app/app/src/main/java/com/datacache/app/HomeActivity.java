@@ -95,11 +95,13 @@ public class HomeActivity extends Activity {
                     if (m.optBoolean("today")) t = m.getString("id");
                 }
                 String today = t;
+                boolean fresh = Uploader.changed;
                 runOnUiThread(() -> {
+                    boolean same = scarce.equals(b) && (today == null || today.equals(todayId)) && !fresh;
                     scarce.clear();
                     scarce.putAll(b);
                     if (today != null) todayId = today;
-                    render();
+                    if (!same) render();          // 의뢰 미션이 새로 열렸거나 보너스가 바뀌었을 때만 다시 그린다
                 });
             } catch (Exception ignored) {   // 서버가 없으면 폰 안의 미션 목록만으로
             }
@@ -371,7 +373,8 @@ public class HomeActivity extends Activity {
         TextView t = Ui.text(this, m.getString("title"), 21, Ui.INK, true);
         t.setPadding(0, Ui.dp(this, 14), 0, Ui.dp(this, 6));
         c.addView(t);
-        TextView p = Ui.text(this, "의뢰 · " + m.getString("purpose"), 13, Ui.SUB, false);
+        String sponsor = m.optString("sponsor");
+        TextView p = Ui.text(this, (sponsor.isEmpty() ? "의뢰 · " : "의뢰 · " + sponsor + " · ") + m.getString("purpose"), 13, Ui.SUB, false);
         p.setMaxLines(2);
         p.setMinLines(2);
         c.addView(p);

@@ -48,7 +48,8 @@ public class MissionActivity extends Activity {
         LinearLayout words = new LinearLayout(this);
         words.setOrientation(LinearLayout.VERTICAL);
         words.addView(Ui.text(this, m.getString("title"), 20, Ui.INK, true));
-        TextView purpose = Ui.text(this, "의뢰 목적 · " + m.getString("purpose"), 13, Ui.SUB, false);
+        String sponsor = m.optString("sponsor");
+        TextView purpose = Ui.text(this, (sponsor.isEmpty() ? "" : "의뢰 기업 · " + sponsor + "\n") + "의뢰 목적 · " + m.getString("purpose"), 13, Ui.SUB, false);
         purpose.setPadding(0, Ui.dp(this, 5), 0, 0);
         words.addView(purpose);
         head.addView(words, Ui.weight());

@@ -19,9 +19,10 @@ from .meta.client import BudgetExceeded
 from .pipeline import FINGERTIPS, process
 
 
-def _mission(meta: dict, missions_path: Optional[Path] = None) -> dict:
+def _mission(meta: dict, missions_path: Optional[Path] = None, extra: Optional[list] = None) -> dict:
+    """녹화의 미션 정의 (기본 미션 + 구매 기업 의뢰로 열린 미션)."""
     p = missions_path or Path(__file__).with_name("missions.json")
-    ms = {m["id"]: m for m in json.loads(p.read_text())["missions"]}
+    ms = {m["id"]: m for m in json.loads(p.read_text())["missions"] + list(extra or [])}
     mid = (meta.get("mission") or {}).get("id")
     return ms.get(mid, {"id": mid or "unknown", "title": (meta.get("mission") or {}).get("title", "task"),
                         "title_en": "manipulation task", "objects": []})
@@ -90,7 +91,7 @@ def run_calibration(sd: Path, out: Path, store: Path) -> dict:
 
 
 def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str] = None, log=print,
-                calibration_store: Optional[Path] = None, people=None) -> dict:
+                calibration_store: Optional[Path] = None, people=None, extra_missions: Optional[list] = None) -> dict:
     """people: 사람 알아보기 (people.People). 이 폰에 등록된 본인 얼굴이 참여자를, 동의한 가족이 가리지 않을 사람을 정한다."""
     sd, out = Path(session_dir), Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -98,7 +99,7 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
     store = Path(calibration_store or out.parent.parent / "grip_calibration")
     if (meta.get("mission") or {}).get("id") == "grip_calibration":
         return run_calibration(sd, out, store)
-    mission = _mission(meta)
+    mission = _mission(meta, extra=extra_missions)
     report = {"session_id": meta.get("session_id", sd.name), "mission": mission["id"], "skipped": []}
     video = sd / "video.mp4"
     synthetic = bool(meta.get("synthetic"))

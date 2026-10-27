@@ -73,17 +73,45 @@ final class Store {
         }
     }
 
+    /** 미션 목록: 서버에서 받은 것(구매 기업 의뢰 미션 포함, 내 조건에 맞는 것만)이 있으면 그것, 없으면 앱에 든 기본 미션. */
     static JSONArray missions(Context c) throws Exception {
-        return new JSONObject(asset(c, "missions.json")).getJSONArray("missions");
+        return catalog(c).getJSONArray("missions");
     }
 
     static JSONObject primitivesKo(Context c) throws Exception {
-        return new JSONObject(asset(c, "missions.json")).getJSONObject("primitives_ko");
+        JSONObject k = catalog(c).optJSONObject("primitives_ko");
+        return k != null && k.length() > 0 ? k : new JSONObject(asset(c, "missions.json")).getJSONObject("primitives_ko");
     }
 
-    /** 오늘의 보너스 미션: 한국 날짜로 하루에 하나, 목록을 차례로 (서버 pricing.today_mission 과 같은 식). */
+    private static File cacheFile(Context c) { return new File(c.getFilesDir(), "missions_cache.json"); }
+
+    static JSONObject catalog(Context c) throws Exception {
+        File f = cacheFile(c);
+        if (f.exists()) {
+            try { return new JSONObject(Files.read(f)); } catch (Exception ignored) {}
+        }
+        return new JSONObject(asset(c, "missions.json"));
+    }
+
+    /** 서버 미션 목록을 저장. 바뀌었으면 true. */
+    static boolean saveCatalog(Context c, JSONObject j) {
+        try {
+            String s = j.toString();
+            File f = cacheFile(c);
+            if (f.exists() && Files.read(f).equals(s)) return false;
+            Files.write(f, s);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    static String gender(Context c) { return p(c).getString("gender", ""); }
+    static void setGender(Context c, String g) { p(c).edit().putString("gender", g).apply(); }
+
+    /** 오늘의 보너스 미션: 한국 날짜로 하루에 하나, 기본 미션을 차례로 (서버 pricing.today_mission 과 같은 식). */
     static String todayMission(Context c) throws Exception {
-        JSONArray ms = missions(c);
+        JSONArray ms = new JSONObject(asset(c, "missions.json")).getJSONArray("missions");
         long ordinal = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Seoul")).toEpochDay() + 719163L;
         return ms.getJSONObject((int) (ordinal % ms.length())).getString("id");
     }

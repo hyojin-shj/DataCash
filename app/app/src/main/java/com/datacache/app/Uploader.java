@@ -63,9 +63,17 @@ final class Uploader {
         try { return i >= 0 ? new JSONObject(m.substring(i)).optString("detail", m) : m; } catch (Exception x) { return m; }
     }
 
+    /** 서버 미션 목록 (내 연령대·성별에 맞는 의뢰 미션 포함) → 폰에 저장. 바뀌었으면 changed=true. */
     static JSONArray missions(Context c) throws Exception {
-        return json(open(c, "GET", "/api/missions")).getJSONArray("missions");
+        HttpURLConnection h = open(c, "GET", "/api/missions");
+        h.setRequestProperty("X-DC-Age", java.net.URLEncoder.encode(Store.ageBand(c), "UTF-8"));
+        if (!Store.gender(c).isEmpty()) h.setRequestProperty("X-DC-Gender", Store.gender(c));
+        JSONObject j = json(h);
+        changed = Store.saveCatalog(c, j);
+        return j.getJSONArray("missions");
     }
+
+    static volatile boolean changed;
 
     static void upload(Context c, File dir, Progress p) throws Exception {
         long total = 0, done = 0;

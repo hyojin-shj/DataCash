@@ -17,6 +17,11 @@
     POST /api/sessions/{sid}/appeal          이의 신청 {reason, detail} → 바로 자동 확인
     GET  /api/appeals                        내 이의 신청 (단계 기록)
     GET  /api/sessions/{sid}/preview/{k}     가상 얼굴 미리보기: 판매용(가리고 바꾼) 영상의 k번째(0~5) 고른 장면 JPEG (내 녹화만)
+    GET  /api/missions 머리글 X-DC-Age·X-DC-Gender — 의뢰 미션은 참여 조건에 맞는 사람에게만
+  구매 기업 의뢰 (자연어 → 미션)
+    POST /api/market/request/chat            채팅 {messages} → Muse Spark 가 의뢰를 미션·참여 조건·센서·견적으로
+    POST /api/market/request                 의뢰 확정 {plan, org, email, messages} → 미션을 앱에 연다
+    GET  /api/market/request/{rid}           의뢰 진행 (미션별 모은 시간 / 목표)
     GET  /api/payout/account                 받은 보상 합계 · 계좌 연결 기다리는 보상 · 계좌 표시
     POST /api/payout/account                 받을 계좌 표시 {label: "KB국민 ****1234"} → 기다리던 보상을 보냄 (시험 입금)
   구매 기업 (공개 읽기)
@@ -60,6 +65,7 @@ from pydantic import BaseModel, Field
 from .. import config, pricing
 from ..appeals import Appeals
 from ..payout import Payouts
+from ..requests import Requests, eligible
 from ..people import People, embed_jpeg
 
 FILES = {"meta.json", "video.mp4", "video_frames.csv", "audio.wav", "audio.json", "phone_imu.csv", "beacon.csv",
@@ -82,6 +88,7 @@ class Store:
         self.people = People(root / "people")
         self.appeals = Appeals(root / "appeals")
         self.payouts = Payouts(root / "payout")
+        self.requests = Requests(root / "requests")
         threading.Thread(target=self._worker, daemon=True).start()
 
     # ---- 상태 ----
@@ -109,7 +116,8 @@ class Store:
             self.set_status(sid, state="processing")
             try:
                 rep = run_session(self.root / "sessions" / sid, self.root / "out" / sid, use_api=self.use_api,
-                                  calibration_store=self.root / "grip_calibration", people=self.people)
+                                  calibration_store=self.root / "grip_calibration", people=self.people,
+                                  extra_missions=self.requests.live_missions())
                 fin = self.set_status(sid, state="done" if "error" not in rep else "rejected", **rep)
             except Exception as e:
                 fin = self.set_status(sid, state="failed", error=f"{type(e).__name__}: {str(e)[:300]}")
@@ -150,8 +158,15 @@ class Store:
                          "synthetic": "synthetic" in json.dumps(c.get("devices"))})
         return rows
 
+    def base_missions(self) -> List[dict]:
+        return json.loads((Path(__file__).parents[1] / "missions.json").read_text())["missions"]
+
+    def all_missions(self) -> List[dict]:
+        """기본 미션 + 구매 기업 의뢰로 열린 미션."""
+        return self.base_missions() + self.requests.live_missions()
+
     def catalog(self) -> dict:
-        ms = json.loads((Path(__file__).parents[1] / "missions.json").read_text())["missions"]
+        ms = self.all_missions()
         rows = self.accepted()
         out = []
         for m in ms:
@@ -159,6 +174,7 @@ class Store:
             hours = {lv: round(sum(r["minutes"] for r in mine if pricing.LEVELS.index(r["level"]) >= pricing.LEVELS.index(lv)) / 60, 3)
                      for lv in pricing.LEVELS}
             out.append({**{k: m[k] for k in ("id", "title", "title_en", "guide", "purpose", "objects", "primitives")},
+                        "sponsor": m.get("sponsor", ""),
                         "recordings": len(mine), "hours": hours, "episodes": sum(r["episodes"] for r in mine),
                         "verified_steps": sum(r["verified_steps"] for r in mine), "steps": sum(r["steps"] for r in mine),
                         "samples": [r["sid"] for r in sorted(mine, key=lambda r: (-pricing.LEVELS.index(r["level"]), -r["steps"], r["synthetic"]))][:4],
@@ -260,6 +276,22 @@ class BioIn(BaseModel):
     bio: bool
 
 
+class ChatMsg(BaseModel):
+    role: str = Field(pattern="^(user|assistant)$")
+    content: str = Field(max_length=4000)
+
+
+class ChatIn(BaseModel):
+    messages: List[ChatMsg] = Field(min_length=1, max_length=24)
+
+
+class RequestIn(BaseModel):
+    plan: dict
+    org: str = Field(max_length=120)
+    email: str = Field(max_length=200)
+    messages: List[ChatMsg] = Field(default_factory=list, max_length=24)
+
+
 class AccountIn(BaseModel):
     label: str = Field(max_length=40)
 
@@ -294,18 +326,27 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
 
     # ---- 앱 ----
     @app.get("/api/missions")
-    def missions(x_dc_token: Optional[str] = Header(None)):
+    def missions(x_dc_token: Optional[str] = Header(None), x_dc_age: Optional[str] = Header(None),
+                 x_dc_gender: Optional[str] = Header(None)):
         auth(x_dc_token)
-        ms = json.loads((Path(__file__).parents[1] / "missions.json").read_text())["missions"]
+        import urllib.parse
+
+        age = urllib.parse.unquote(x_dc_age or "")
+        base = st.base_missions()
+        ms = base + [m for m in st.requests.live_missions() if eligible(m, age, x_dc_gender)]
         cat = {m["id"]: m for m in st.catalog()["missions"]}
-        today = pricing.today_mission([m["id"] for m in ms])
+        today = pricing.today_mission([m["id"] for m in base])
         for m in ms:
             m["today"] = m["id"] == today
             have = cat.get(m["id"], {}).get("recordings", 0)
             m["reward_per_minute"] = {lv: round(pricing.REWARD_PER_HOUR[lv] / 60) for lv in pricing.LEVELS}
             m["scarce"] = have < 3          # 아직 적게 모인 미션 → 보너스
             m["bonus_pct"] = int(pricing.BONUS_SCARCE * 100) if m["scarce"] else 0
-        return {"missions": ms}
+            if m.get("request"):           # 의뢰 미션: 목표 시간 대비 모은 시간, 보너스 대신 의뢰 보상
+                m["collected_hours"] = round(cat.get(m["id"], {}).get("hours", {}).get("basic", 0), 3)
+                m["scarce"], m["bonus_pct"] = False, 0
+        prims = json.loads((Path(__file__).parents[1] / "missions.json").read_text()).get("primitives_ko", {})
+        return {"missions": ms, "primitives_ko": prims}
 
     @app.put("/api/sessions/{sid}/files/{name}")
     async def upload(sid: str, name: str, request: Request, x_dc_token: Optional[str] = Header(None)):
@@ -642,7 +683,55 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
                 return FileResponse(o["file"], filename=Path(o["file"]).name, media_type="application/zip")
         raise HTTPException(404)
 
+    @app.post("/api/market/request/chat")
+    def request_chat(b: ChatIn):
+        if not st.use_api:
+            raise HTTPException(503, "Meta API 가 꺼진 서버예요")
+        from ..requests import chat
+
+        try:
+            return chat([m.model_dump() for m in b.messages])
+        except Exception as e:
+            raise HTTPException(502, f"의뢰를 이해하지 못했어요: {type(e).__name__}")
+
+    @app.post("/api/market/request")
+    def request_submit(b: RequestIn):
+        if not b.org.strip() or not EMAIL.match(b.email):
+            raise HTTPException(400, "기관 이름과 이메일을 확인해 주세요")
+        try:
+            r = st.requests.submit(b.plan, b.org, b.email, [m.model_dump() for m in b.messages])
+        except ValueError as e:
+            raise HTTPException(400, str(e))
+        return request_view(r)
+
+    def request_view(r: dict) -> dict:
+        cat = {m["id"]: m for m in st.catalog()["missions"]}
+        return {"id": r["id"], "title": r["title"], "status": r["status"], "quote": r["quote"], "eligibility": r["plan"]["eligibility"],
+                "missions": [{"id": m["id"], "title": m["title"], "target_hours": m["target_hours"],
+                              "collected_hours": cat.get(m["id"], {}).get("hours", {}).get("basic", 0),
+                              "recordings": cat.get(m["id"], {}).get("recordings", 0)} for m in r["missions"]]}
+
+    @app.get("/api/market/request/{rid}")
+    def request_status(rid: str):
+        try:
+            return request_view(st.requests.get(rid))
+        except KeyError:
+            raise HTTPException(404)
+
     # ---- 운영자 ----
+    @app.get("/api/admin/requests")
+    def admin_requests(token: str = Query("")):
+        auth(token)
+        return {"requests": [request_view(r) | {"org": r["org"], "email": r["email"]} for r in st.requests.all()]}
+
+    @app.post("/api/admin/requests/{rid}/close")
+    def admin_request_close(rid: str, token: str = Query("")):
+        auth(token)
+        try:
+            return request_view(st.requests.close(rid))
+        except KeyError:
+            raise HTTPException(404)
+
     @app.get("/api/admin/orders")
     def admin_orders(token: str = Query("")):
         auth(token)
