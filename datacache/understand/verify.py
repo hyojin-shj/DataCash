@@ -5,6 +5,7 @@
   contact  쥐기·들기·당기기·옮기기·놓기류 단계면 그 구간에 영상 접촉(닿음·잡고 있음) 또는 쥐는 힘이 있다
   sound    놓기·찢기·닦기·끼우기·누르기류면 그 구간 둘레에 접촉음이 있다
   boundary 단계 시작이 접촉 단계 변화·소리 사건과 0.5초 안에 맞는다
+  glimmer  이 맥에서 돈 Muse Glimmer(오픈 웨이트)가 그 단계 가운데 장면을 보고 같은 동작이라고 했다 (물어본 단계만)
 verified = 쓸 수 있는 증거 중 절반 이상이 맞고, 최소 하나는 맞음 (증거가 하나도 없으면 'unverifiable').
 실수 후보: 참여자가 누른 '실수했어요'와 2초 안이면 confirmed_by_participant.
 """
@@ -40,6 +41,8 @@ def verify_steps(steps: List[dict], t_s: np.ndarray, motion: Optional[np.ndarray
         marks = list(contact_change_t_s or []) + list(sound_t_s or [])
         if marks:
             ev["boundary"] = any(abs(st["start_s"] - t) <= 0.5 for t in marks)
+        if isinstance(st.get("glimmer"), dict):
+            ev["glimmer"] = bool(st["glimmer"].get("agree"))
         n_ok = sum(ev.values())
         verified = "unverifiable" if not ev else (n_ok >= 1 and n_ok * 2 >= len(ev))
         out.append({**st, "evidence": ev, "verified": verified})

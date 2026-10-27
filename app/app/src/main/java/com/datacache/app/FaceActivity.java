@@ -35,6 +35,11 @@ public class FaceActivity extends Activity implements TextureView.SurfaceTexture
     private CameraRecorder camera;
     private TextView step, prompt, msg;
     private boolean front = true, busy;
+    private RecordActivity.FaceOval oval;
+    private int streak;
+    private boolean looping;
+    private final android.os.Handler ui = new android.os.Handler(android.os.Looper.getMainLooper());
+    private final java.util.concurrent.ExecutorService faceWorker = java.util.concurrent.Executors.newSingleThreadExecutor();
 
     @Override
     protected void onCreate(Bundle state) {
@@ -47,7 +52,8 @@ public class FaceActivity extends Activity implements TextureView.SurfaceTexture
         preview.setSurfaceTextureListener(this);
         Ui.fitPreview(this, preview);
         root.addView(preview, new FrameLayout.LayoutParams(-1, -1));
-        root.addView(new RecordActivity.FaceOval(this), new FrameLayout.LayoutParams(-1, -1));
+        oval = new RecordActivity.FaceOval(this);
+        root.addView(oval, new FrameLayout.LayoutParams(-1, -1));
 
         LinearLayout top = new LinearLayout(this);
         top.setOrientation(LinearLayout.VERTICAL);
@@ -106,7 +112,7 @@ public class FaceActivity extends Activity implements TextureView.SurfaceTexture
         int k = Math.min(shots.size(), PROMPTS.length - 1);
         step.setText(Math.min(shots.size() + 1, 3) + " / 3");
         prompt.setText(PROMPTS[k]);
-        msg.setText("얼굴이 동그라미 안에 오게" + (front ? "" : "\n(뒤 카메라 · 가족 얼굴을 찍어 주세요)"));
+        paintHint();
     }
 
     @Override
@@ -123,14 +129,57 @@ public class FaceActivity extends Activity implements TextureView.SurfaceTexture
         if (camera != null || checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) return;
         camera = new CameraRecorder(this);
         camera.open(st, new CameraRecorder.Ready() {
-            @Override public void ok() { runOnUiThread(() -> Ui.applyFit(FaceActivity.this, preview)); }
+            @Override public void ok() { runOnUiThread(() -> { Ui.applyFit(FaceActivity.this, preview); startLoop(); }); }
             @Override public void fail(String why) { runOnUiThread(() -> msg.setText("카메라: " + why)); }
         }, front);
+    }
+
+    /** 0.2초마다 동그라미 안 얼굴을 찾아, 1초 이어서 보이면 초록 테두리 → 저절로 찍고 다음 안내로. */
+    private void startLoop() {
+        if (looping) return;
+        looping = true;
+        ui.post(this::faceLoop);
+    }
+
+    private void faceLoop() {
+        if (isFinishing() || busy || camera == null) { looping = false; return; }
+        int w = 480, h = preview.getWidth() > 0 ? Math.round(480f * preview.getHeight() / preview.getWidth()) : 640;
+        Bitmap bm = preview.getBitmap(w, h & ~1);
+        if (bm == null) { ui.postDelayed(this::faceLoop, 200); return; }
+        android.graphics.RectF ov = oval.ovalIn(w, h);
+        faceWorker.execute(() -> {
+            boolean ok = RecordActivity.frontalIn(bm, ov);
+            bm.recycle();
+            ui.postDelayed(() -> onFace(ok), 200);
+        });
+    }
+
+    private void onFace(boolean ok) {
+        if (isFinishing() || busy) { looping = false; return; }
+        streak = ok ? streak + 1 : 0;
+        oval.setOk(ok);
+        if (ok) msg.setText(streak >= 3 ? "좋아요, 그대로 잠깐만요" : "얼굴이 보여요");
+        else paintHint();
+        if (streak >= 5) {
+            streak = 0;
+            capture();
+            if (shots.size() > 0 && shots.size() < PROMPTS.length) {
+                prompt.setText("✓ 좋아요 · 다음: " + PROMPTS[shots.size()]);
+                ui.postDelayed(() -> { oval.setOk(false); paint(); faceLoop(); }, 1200);
+                return;
+            }
+        }
+        faceLoop();
+    }
+
+    private void paintHint() {
+        msg.setText("얼굴이 동그라미 안에 오게" + (front ? "" : "\n(뒤 카메라 · 가족 얼굴을 찍어 주세요)"));
     }
 
     private void reopen() {
         if (camera != null) camera.close();
         camera = null;
+        looping = false;
         if (preview.isAvailable()) open(preview.getSurfaceTexture());
     }
 
@@ -160,6 +209,7 @@ public class FaceActivity extends Activity implements TextureView.SurfaceTexture
                 shots.clear();       // 폰에도 남기지 않는다
                 runOnUiThread(() -> {
                     busy = false;
+                    oval.setOk(false);
                     if ("enrolled".equals(r.optString("face"))) {
                         Toast.makeText(this, "얼굴을 등록했어요", Toast.LENGTH_SHORT).show();
                         setResult(RESULT_OK);
@@ -168,6 +218,7 @@ public class FaceActivity extends Activity implements TextureView.SurfaceTexture
                         paint();
                         prompt.setText(r.optString("face_error", "다시 찍어 주세요"));
                         msg.setText("정면부터 다시 세 장을 찍어 주세요");
+                        startLoop();
                     }
                 });
             } catch (Exception e) {
@@ -175,6 +226,7 @@ public class FaceActivity extends Activity implements TextureView.SurfaceTexture
                     busy = false;
                     prompt.setText("올리지 못했어요 · " + Uploader.reason(e));
                     msg.setText("찍기 버튼을 누르면 다시 올려요");
+                    looping = false;
                 });
             }
         }).start();
@@ -182,6 +234,8 @@ public class FaceActivity extends Activity implements TextureView.SurfaceTexture
 
     @Override
     protected void onDestroy() {
+        ui.removeCallbacksAndMessages(null);
+        faceWorker.shutdownNow();
         if (camera != null) camera.close();
         super.onDestroy();
     }

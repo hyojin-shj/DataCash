@@ -75,3 +75,18 @@ def test_missions_use_known_primitives():
     assert set(srv["primitives_ko"]) == set(PRIMITIVES)
     for m in srv["missions"]:
         assert m["primitives"][0] == "reach" and m["primitives"][-1] == "release" and set(m["primitives"]) <= set(PRIMITIVES)
+
+
+def test_glimmer_answer_counts_as_evidence():
+    """이 맥의 Muse Glimmer 대답이 단계 검증의 증거 하나가 된다 (서버 없이, 대답만 흉내)."""
+    import numpy as np
+
+    from datacache.understand.verify import verify_steps
+
+    t = np.arange(0, 10, 0.1)
+    steps = [{"start_s": 1, "end_s": 3, "action": "other", "glimmer": {"agree": True}},
+             {"start_s": 4, "end_s": 6, "action": "other", "glimmer": {"agree": False}},
+             {"start_s": 7, "end_s": 9, "action": "other"}]
+    v = verify_steps(steps, t)
+    assert v[0]["evidence"] == {"glimmer": True} and v[0]["verified"] is True
+    assert v[1]["verified"] is False and v[2]["verified"] == "unverifiable"

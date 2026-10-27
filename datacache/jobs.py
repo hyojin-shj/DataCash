@@ -187,6 +187,14 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
             for m_ in u["mistakes"]:
                 m_["t_s"] += t0
             steps, mistakes = u["steps"], u["mistakes"]
+            from .understand import glimmer
+
+            if steps and glimmer.available():     # 이 맥의 Muse Glimmer 로 단계를 장면으로 다시 확인 (API 비용 없음)
+                checks = glimmer.check_steps(src, steps, log=log)
+                for st_, ck in zip(steps, checks):
+                    if ck is not None:
+                        st_["glimmer"] = ck
+                report["glimmer_checked"] = sum(c is not None for c in checks)
             scene = {"task": u["task"], "completed": u["completed"], "environment": u["environment"], "model": u["model"]}
             clip.unlink()
         except BudgetExceeded as e:

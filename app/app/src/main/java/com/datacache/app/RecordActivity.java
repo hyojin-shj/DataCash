@@ -476,7 +476,7 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
     }
 
     /** Android 기본 얼굴 찾기(두 눈 기준 — 정면에 가까운 얼굴만 찾힌다): 동그라미 안, 너무 작지 않게. */
-    private static boolean frontalIn(Bitmap src, RectF oval) {
+    static boolean frontalIn(Bitmap src, RectF oval) {
         Bitmap b = src.copy(Bitmap.Config.RGB_565, false);
         try {
             FaceDetector.Face[] faces = new FaceDetector.Face[3];

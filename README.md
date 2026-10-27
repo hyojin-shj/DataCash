@@ -29,6 +29,10 @@ Meta Global AI Developer Hackathon (Indie Developer · Push the Frontier) 출품
 
 Muse Wonder 는 한국에서 쓸 수 없어 영상 이해는 Spark 1.3 으로 한다. API 호출마다 비용을 `data/api_ledger.jsonl` 에 적고 한도를 넘으면 그 단계만 건너뛴다.
 
+**오픈 웨이트:** Muse Glimmer 30B(Q4_K_M, 17GB)를 이 맥(Apple M5·32GB)에서 llama.cpp 로 돌린다 — API 비용 없음.
+Spark 가 붙인 단계마다 가운데 장면을 보고 같은 동작인지 다시 확인해, 감각 증거와 함께 단계 검증에 쓴다 (`datacache/understand/glimmer.py`).
+`llama-server -m data/glimmer/Muse-Glimmer-30B-KQuant-17GB-Q4_K_M.gguf --mmproj data/glimmer/mmproj-Muse-Glimmer-30B-Q4_K_M.gguf --port 8090 -ngl 99 --jinja`
+
 ## 핵심 기술
 
 1. **가치 보존 개인정보 처리** — 블러 대신: SAM 3.1 로 동의 안 한 것만 가리고, 참여자 얼굴은 실사 가상 인물로 치환
