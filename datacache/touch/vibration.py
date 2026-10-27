@@ -1,4 +1,5 @@
-"""워치 능동 진동 감지 — 펄스마다 손목 반응(울림 크기·사라지는 속도·에너지)을 재고, 저울 보정으로 쥐는 힘을 낸다.
+"""워치 능동 진동 펄스 — 펄스마다 손목 반응(시작 시각·울림 크기·사라지는 속도·에너지)을 잰다.
+시작 시각은 모터 지연을 재고 폰·워치 시계를 맞추는 사건으로 쓴다. 쥐는 세기는 gripsense.py (GripSense 방식 창 특징).
 
 입력: 워치 IMU (워치 시계), 진동 펄스 명령 시각(워치 시계).
 펄스마다:
@@ -70,63 +71,4 @@ def pulse_responses(imu_ns: np.ndarray, acc: np.ndarray, cmd_ns: np.ndarray) -> 
         decay_ms = float((below[0] if len(below) else len(tail)) / rate * 1000)
         energy = float(np.sum(seg[k0:] ** 2) / rate)
         out.append(PulseResponse(int(c), onset, amp, decay_ms, energy, True))
-    return out
-
-
-@dataclass
-class GripCalibration:
-    """반응 특징 → 쥐는 힘(N). 사람·워치마다 기기 등록 때 저울을 세 단계로 눌러 맞춘다."""
-    coef: np.ndarray            # [amp, decay_ms, 1] 의 계수
-    rest: np.ndarray            # 아무것도 안 쥘 때 특징 평균 (amp, decay_ms)
-    resid_n: float
-    n: int
-
-    def force(self, r: PulseResponse) -> Optional[float]:
-        if not r.valid:
-            return None
-        return float(max(0.0, np.dot(self.coef, [r.amp, r.decay_ms, 1.0])))
-
-    def to_dict(self) -> dict:
-        return {"coef": [round(float(v), 5) for v in self.coef], "rest": [round(float(v), 5) for v in self.rest],
-                "resid_n": round(self.resid_n, 3), "n_pulses": self.n}
-
-
-def calibrate(responses: List[PulseResponse], presses: list) -> Optional[GripCalibration]:
-    """presses: [{"start_ns","end_ns","force_n"}] (워치 시계). 누르지 않은 펄스는 0N 으로 같이 맞춘다."""
-    X, y, rest = [], [], []
-    p_spans = [(p["start_ns"], p["end_ns"], p["force_n"]) for p in presses]
-    last_end = max((b for _, b, _ in p_spans), default=None)
-    for r in responses:
-        if not r.valid:
-            continue
-        t = r.onset_ns or r.cmd_ns
-        f = next((n for a, b, n in p_spans if a <= t and t + PULSE_S * 1e9 <= b), None)
-        overlaps = any(t < b and t + PULSE_S * 1e9 > a for a, b, _ in p_spans)
-        if f is None:
-            if last_end is not None and t < last_end and not overlaps:  # 누르기와 일부만 겹친 펄스는 버린다
-                rest.append((r.amp, r.decay_ms))
-                X.append([r.amp, r.decay_ms, 1.0])
-                y.append(0.0)
-            continue
-        X.append([r.amp, r.decay_ms, 1.0])
-        y.append(f)
-    if len(X) < 3 or len(set(y)) < 2:
-        return None
-    X, y = np.array(X), np.array(y)
-    coef, *_ = np.linalg.lstsq(X, y, rcond=None)
-    resid = float(np.sqrt(np.mean((X @ coef - y) ** 2)))
-    return GripCalibration(coef, np.mean(rest, axis=0) if rest else np.zeros(2), resid, len(y))
-
-
-def calibration_from_dict(d: dict) -> "GripCalibration":
-    return GripCalibration(np.array(d["coef"], float), np.array(d.get("rest", [0, 0]), float), float(d.get("resid_n", 0)),
-                           int(d.get("n_pulses", 0)))
-
-
-def presses_to_watch(presses: list, phone_to_watch) -> list:
-    """폰 시계로 적은 누르기 구간(보정 화면의 버튼) → 워치 시계."""
-    out = []
-    for p in presses:
-        a, b = phone_to_watch(np.array([p["start_ns"], p["end_ns"]]))
-        out.append({"start_ns": int(a), "end_ns": int(b), "force_n": float(p["force_n"])})
     return out

@@ -15,7 +15,7 @@ import java.net.URL;
 
 /**
  * 스마트 기기 연결: 데이터 서버(주소·토큰, 저장하고 연결 확인) + 워치(갤럭시 워치에 데이터캐시 워치 앱을 켜 두면
- * 폰 녹화에 자동으로 합류 — 폰과 워치는 서버를 거쳐 시계를 맞춘다) + 쥐는 힘 맞추기.
+ * 폰 녹화에 자동으로 합류 — 폰과 워치는 서버를 거쳐 시계를 맞춘다) + 쥐는 세기 맞추기.
  */
 public class DevicesActivity extends Activity {
     private TextView status;
@@ -47,12 +47,12 @@ public class DevicesActivity extends Activity {
         Ui.add(this, body, srv);
 
         LinearLayout watch = Ui.card(this);
-        watch.addView(Ui.row(this, Icon.WATCH, Ui.ACCENT_INK, Ui.ACCENT_SOFT, "갤럭시 워치", "손목 움직임 · 능동 진동 촉각 · 심박", null, null),
+        watch.addView(Ui.row(this, Icon.WATCH, Ui.ACCENT_INK, Ui.ACCENT_SOFT, "갤럭시 워치", "손목 움직임 · 능동 진동 촉각(GripSense 방식) · 심박", null, null),
                 Ui.margins(this, -1, -2, 0, -12, -12, -12, 8));
         watch.addView(Ui.text(this, "1. 워치에 데이터캐시 워치 앱을 깔고 켜 두세요 (같은 서버 주소)\n"
                 + "2. 폰에서 녹화를 시작하면 워치 기록이 자동으로 같이 시작돼요\n"
                 + "3. 끝나면 워치가 알아서 올리고, 서버가 폰과 시계를 맞춰요 — 둘을 직접 이을 필요 없어요", 13, Ui.SUB, false));
-        watch.addView(Ui.button(this, "워치로 쥐는 힘 맞추기 (한 번만)", true, v -> startActivity(new Intent(this, CalibrationActivity.class))),
+        watch.addView(Ui.button(this, "워치로 쥐는 세기 맞추기 (한 번만)", true, v -> startActivity(new Intent(this, CalibrationActivity.class))),
                 Ui.margins(this, -1, -2, 0, 0, 16, 0, 0));
         Ui.add(this, body, watch);
 

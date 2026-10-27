@@ -27,7 +27,7 @@ import java.util.Set;
  *   모은 보상        크게 + 사물에 빗댄 한 줄 ("치킨 한 마리 값을 벌었어요!"), 다음 목표는 '미션 몇 개'로
  *   오늘의 보너스 미션 하루에 하나 +50% (서버와 같은 식으로 고름). 진행 고리 가운데 빨간 버튼 → 아직 안 찍은 다음 상황 촬영
  *   기업 의뢰 미션    옆으로 넘기는 카드: 보상 · 의뢰 목적 · 찍은 상황 수 · 상황 골라서 찍기
- *   더 많은 기능      보상 받을 계좌 · 스마트 기기 연결 · 쥐는 힘 맞추기 · 내 녹화 기록 · 동의 다시 보기
+ *   더 많은 기능      보상 받을 계좌 · 스마트 기기 연결 · 쥐는 세기 맞추기 · 내 녹화 기록 · 동의 다시 보기
  * 처음이면 동의 화면부터.
  */
 public class HomeActivity extends Activity {
@@ -146,8 +146,8 @@ public class HomeActivity extends Activity {
                 null, v -> open(PayoutActivity.class)));
         menu.addView(Ui.row(this, Icon.WATCH, Ui.PRIMARY, Ui.PRIMARY_SOFT, "스마트 기기 연결",
                 "워치를 이으면 촉각·생체까지 담겨 고품질 등급", null, v -> open(DevicesActivity.class)));
-        menu.addView(Ui.row(this, Icon.HAND, Ui.PRIMARY, Ui.PRIMARY_SOFT, "쥐는 힘 맞추기",
-                "저울을 세 번 누르면 워치가 내 쥐는 힘을 재요 (한 번만)", null, v -> open(CalibrationActivity.class)));
+        menu.addView(Ui.row(this, Icon.HAND, Ui.PRIMARY, Ui.PRIMARY_SOFT, "쥐는 세기 맞추기",
+                "물병을 가볍게·평소처럼·꽉 쥐면 워치가 내 쥐는 세기를 배워요 (한 번만)", null, v -> open(CalibrationActivity.class)));
         menu.addView(Ui.row(this, Icon.PERSON, Ui.OK, Ui.OK_SOFT, "개인정보 동의 인원",
                 "함께 찍히는 가족, 동의 받고 추가", null, v -> open(PeopleActivity.class)));
         menu.addView(Ui.row(this, Icon.FILM, Ui.ACCENT_INK, Ui.ACCENT_SOFT, "내 녹화 기록",

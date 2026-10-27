@@ -27,7 +27,8 @@ from .session import load_session
 from .sync import align_session
 from .touch.contact import contact_phases, phase_events
 from .touch.sounds import audio_onsets, confirmed_contacts, wrist_impacts
-from .touch.vibration import calibrate, pulse_responses
+from .touch.gripsense import LEVELS, GripModel, labels_for, train, window_features
+from .touch.vibration import pulse_responses
 
 FINGERTIPS = [4, 8, 12, 16, 20]
 
@@ -37,6 +38,19 @@ def _fingertips(labels) -> List[Optional[np.ndarray]]:
     for f in labels or []:
         pts = [np.asarray(h)[FINGERTIPS, :2] for h in f.hands if h is not None]
         out.append(np.concatenate(pts) if pts else None)
+    return out
+
+
+def grip_segments_to_watch(meta: dict, m) -> list:
+    """보정 구간 (폰 시계로 적은 '가볍게·평소처럼·꽉·손 놓기') → 워치 시계. 시계를 못 맞췄으면 빈 목록."""
+    cal = meta.get("calibration") or {}
+    if cal.get("method") != "gripsense" or not cal.get("segments") or m is None:
+        return []
+    inv = lambda p_ns: (m.w_ref + (np.asarray(p_ns, np.float64) - m.b) / m.a).astype(np.int64)  # noqa: E731
+    out = []
+    for g in cal["segments"]:
+        a, b = inv(np.array([g["start_ns"], g["end_ns"]])) if cal.get("clock", "phone") == "phone" else (g["start_ns"], g["end_ns"])
+        out.append({"start_ns": int(a), "end_ns": int(b), "level": int(g["level"])})
     return out
 
 
@@ -66,26 +80,22 @@ def process(session_dir, out_dir, level: str = "bio", fps: float = 30.0, masked_
     m = al.watch_to_phone
     wrist_ok = m is not None and al.ok.get("wrist", False)
 
-    # 2. 촉각
-    presses = (s.meta.get("calibration") or {}).get("presses", [])
-    if presses and (s.meta.get("calibration") or {}).get("clock") == "phone" and m is not None:
-        from .touch.vibration import presses_to_watch
-
-        inv = lambda p_ns: (m.w_ref + (np.asarray(p_ns, np.float64) - m.b) / m.a).astype(np.int64)  # noqa: E731
-        presses = presses_to_watch(presses, inv)
-    cal = calibrate(responses, presses) if responses and presses else None
-    if cal is None and grip_calibration:          # 이 사람·이 워치로 미리 해 둔 보정 (기기 등록 때 한 번)
-        from .touch.vibration import calibration_from_dict
-
-        cal = calibration_from_dict(grip_calibration)
+    # 2. 촉각 — GripSense 방식: 창(0.5초, 0.25초 간격)마다 자이로·가속도 특징 → 사람마다 학습한 결정 트리로 쥐는 세기 단계
+    win = window_features(s.watch_imu.t_ns, s.watch_imu.values, s.watch_vib.t_ns) if s.watch_vib is not None and s.watch_imu is not None else None
+    model = None
+    segs = grip_segments_to_watch(s.meta, m)
+    if win is not None and segs:              # 이 녹화 안에 보정 구간이 있으면 (보정 세션·합성) 바로 학습
+        model = train(win, labels_for(win, segs))
+    if model is None and grip_calibration and grip_calibration.get("method") == "gripsense":
+        model = GripModel.from_dict(grip_calibration)        # 이 사람·이 워치로 미리 해 둔 보정
     grip, vib = [], []
-    if wrist_ok:
-        for r in responses:
-            if r.valid and r.onset_ns:
-                t = int(m(np.array([r.onset_ns]))[0])
-                vib.append((t, r.amp, r.decay_ms, r.energy))
-                if cal is not None:
-                    grip.append((t, cal.force(r)))
+    if wrist_ok and win is not None and len(win.t_ns):
+        tp = m(win.t_ns)
+        ok = win.x[:, 8] > 0.5
+        if model is not None:
+            lv, score = model.predict(win.x)
+            grip = [(int(t), int(l), float(sc)) for t, l, sc, o in zip(tp, lv, score, ok) if o]
+        vib = [(int(t), *[float(v) for v in x[:6]]) for t, x, o in zip(tp, win.x, ok) if o]      # 보내는 특징 6개
     if labels is None and extract and video is not None:
         from .labels import extract_labels
 
@@ -179,7 +189,7 @@ def process(session_dir, out_dir, level: str = "bio", fps: float = 30.0, masked_
             "outcome": {**(s.meta.get("outcome") or {}),
                         "self_marks_s": [round(float((t - grid[0]) / 1e9), 2) for t in marks if grid[0] <= t <= grid[-1]]},
             "sync": al.to_dict(),
-            "touch": {"calibration": cal.to_dict() if cal else None,
+            "touch": {"grip_model": model.to_dict() if model else None, "grip_levels": LEVELS,
                       "contact_events": phase_events(cframes, (frame_ns - frame_ns[0]) / 1e9 - t0) if cframes else [],
                       "confirmed_sounds": [round((e["t_ns"] - grid[0]) / 1e9, 3) for e in confirmed if grid[0] <= e["t_ns"] <= grid[-1]]},
             "human_state": {"physio": phys["summary"], "self_report": s.meta.get("self_report")} if phys else None,
@@ -198,7 +208,7 @@ def process(session_dir, out_dir, level: str = "bio", fps: float = 30.0, masked_
                     "features": sorted(k for k in info["features"] if k not in ("timestamp", "frame_index", "episode_index", "index", "task_index"))},
         "sync": al.to_dict(),
         "touch": {"pulses": len(responses), "pulses_valid": sum(r.valid for r in responses),
-                  "calibration": cal.to_dict() if cal else None,
+                  "grip_model": {"method": "gripsense", "accuracy_cv": round(model.accuracy_cv, 3), "n_windows": model.n} if model else None,
                   "contact_events": eps[0].info["touch"]["contact_events"] if eps else [],
                   "confirmed_sounds": eps[0].info["touch"]["confirmed_sounds"] if eps else []},
         "human_state": eps[0].info["human_state"] if eps else None,

@@ -42,15 +42,18 @@ Spark 가 붙인 단계마다 가운데 장면을 보고 같은 동작인지 다
    이의 신청은 자동 확인 → 검토자 → 결과, 개인정보 신고는 즉시 판매 중지 (`datacache/appeals.py`)
 2. **4감 자동 동기화** — 사용자 동작 없이: 폰↔워치 시계 왕복, 18~20kHz 음향 비콘(폰 마이크·워치 마이크가 같이 들음),
    워치 진동 펄스(촉각 펄스가 동기 신호를 겸함), 영상 움직임↔손목 상관으로 검증 (`datacache/sync/`)
-3. **주변 기기로 만드는 촉각** — 워치 능동 진동 감지(울림 크기·사그라드는 속도 → 저울 보정 쥐는 힘), 영상 접촉 단계,
-   접촉음 + 손목 충격 (`datacache/touch/`)
+3. **주변 기기로 만드는 촉각 (GripSense 방식)** — Goel·Wobbrock·Patel, *GripSense*, UIST 2012 를 워치 손목에 옮겼다.
+   워치가 0.5초마다 진동하면, 세게 쥘수록 손이 떨림을 흡수해 자이로·가속도 고주파가 줄고(90번째 백분위수),
+   손가락이 버티는 4~12Hz 떨림은 커진다(분산). 0.5초 창을 0.25초마다 보고, 사람마다 '손 놓기·가볍게·평소처럼·꽉'
+   (저울 없이 스스로 구분한 세기)으로 학습한 결정 트리가 쥐는 세기 단계(0~3)와 연속 점수를 낸다. 팔이 움직이면
+   모터 흡수 특징만 쓰는 트리로. 영상 접촉 단계, 접촉음 + 손목 충격도 함께 (`datacache/touch/`)
 4. **장면 이해와 검증된 라벨** — Muse Spark 라벨을 감각으로 확인, 지어낸 단계는 걸러진다
 5. **스스로 좋아지는 수집** — 부족한 미션 보너스, 구매자 의뢰 → 미션, (진행 중) Glimmer 증류
 
 ## 판매 데이터 (LeRobot v3.0)
 
 `observation.images.ego` (가린·치환 영상) · `observation.hands` · `observation.body` · `observation.body_world` ·
-`observation.imu.phone` · `observation.imu.wrist` · `observation.audio` · **`observation.touch`** (접촉·쥐는 힘 N·접촉 단계·물체) ·
+`observation.imu.phone` · `observation.imu.wrist` · `observation.audio` · **`observation.touch`** (접촉·쥐는 세기 단계 0~3·점수·접촉 단계·물체) ·
 `observation.touch.vibration` · **`observation.physio`** (심박·HRR·피부온도 변화, 생체 동의만) · `observation.objects` ·
 `annotation.events` · `annotation.step` · `annotation.primitive` (reach·grasp·pull…release) · `sync.error_ms` + 에피소드 정보(단계·실수·장면·성공·동기화·촉각 보정) + 품질 인증서.
 실제 `lerobot` 0.6.1 로 읽힌다 (`scripts/validate_lerobot.py`).

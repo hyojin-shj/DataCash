@@ -59,28 +59,32 @@ def calibration_key(meta: dict) -> Optional[str]:
 
 
 def run_calibration(sd: Path, out: Path, store: Path) -> dict:
-    """쥐는 힘 보정 세션: 폰 화면 버튼으로 적은 저울 누르기(폰 시계) + 워치 진동 반응 → 이 사람·이 워치의 보정 저장."""
+    """쥐는 세기 보정 세션 (GripSense 방식): 폰 화면이 '손 놓기 · 가볍게 · 평소처럼 · 꽉' 쥐기를 차례로 안내하고 구간을
+    폰 시계로 적는다 → 워치 시계로 옮겨, 그 구간의 창 특징으로 이 사람·이 워치의 결정 트리를 학습해 저장한다.
+    저울 같은 기준 기구 없이 사람이 스스로 구분한 세기로 배운다 (논문도 그렇게 학습)."""
+    from .pipeline import grip_segments_to_watch
     from .session import load_session
     from .sync import align_session
-    from .touch.vibration import calibrate, presses_to_watch, pulse_responses
+    from .touch.gripsense import labels_for, train, window_features
+    from .touch.vibration import pulse_responses
 
     s = load_session(sd)
     if not s.has_watch or s.watch_vib is None:
         return {"error": "워치 기록이 없음 (워치 앱을 켜 두고 다시)"}
-    rs = pulse_responses(s.watch_imu.t_ns, s.watch_imu.values, s.watch_vib.t_ns)
-    al = align_session(s, rs)
-    m = al.watch_to_phone
-    if m is None:
+    al = align_session(s, pulse_responses(s.watch_imu.t_ns, s.watch_imu.values, s.watch_vib.t_ns))
+    if al.watch_to_phone is None:
         return {"error": "폰↔워치 시계를 맞추지 못함"}
-    inv = lambda p_ns: (m.w_ref + (np.asarray(p_ns, np.float64) - m.b) / m.a).astype(np.int64)  # noqa: E731
-    cal = calibrate(rs, presses_to_watch((s.meta.get("calibration") or {}).get("presses", []), inv))
-    if cal is None:
-        return {"error": "누르기 구간에 진동 반응이 부족함 (각 단계를 2초 이상 눌러 주세요)"}
+    segs = grip_segments_to_watch(s.meta, al.watch_to_phone)
+    win = window_features(s.watch_imu.t_ns, s.watch_imu.values, s.watch_vib.t_ns)
+    model = train(win, labels_for(win, segs)) if segs else None
+    if model is None:
+        return {"error": "단계마다 쥔 구간이 부족해요 (각 단계를 몇 초씩 이어서 쥐어 주세요)"}
     key = calibration_key(s.meta) or sd.name
     store.mkdir(parents=True, exist_ok=True)
-    (store / f"{key}.json").write_text(json.dumps({**cal.to_dict(), "session": sd.name, "sync": al.to_dict()["chosen"]}, indent=2))
-    rep = {"session_id": sd.name, "mission": "grip_calibration", "calibration": cal.to_dict(), "key": key, "reward": 0,
-           "level": "calibration", "minutes": 0, "sync": al.to_dict()["chosen"]}
+    (store / f"{key}.json").write_text(json.dumps({**model.to_dict(), "session": sd.name, "sync": al.to_dict()["chosen"]}))
+    rep = {"session_id": sd.name, "mission": "grip_calibration", "key": key, "reward": 0, "level": "calibration", "minutes": 0,
+           "calibration": {"method": "gripsense", "accuracy_cv": round(model.accuracy_cv, 3), "n_windows": model.n},
+           "sync": al.to_dict()["chosen"]}
     (out / "job.json").write_text(json.dumps(rep, indent=2, ensure_ascii=False))
     return rep
 

@@ -8,8 +8,9 @@
   observation.imu.phone          6  폰 가속(m/s²)·자이로(rad/s)
   observation.imu.wrist          6  손목 가속·자이로 (워치 → 폰 시계로 옮김)
   observation.audio              3  소리 세기(dBFS) · 소리 사건 시작 · 확인된 접촉음(손목 충격과 겹침)
-  observation.touch              5  접촉(0~1) · 쥐는 힘(N) · 쥐는 힘 있음 · 접촉 단계(0~5) · 물체 칸
-  observation.touch.vibration    4  능동 진동 반응: 울림 크기 · 사그라드는 시간(ms) · 에너지 · 있음
+  observation.touch              6  접촉(0~1) · 쥐는 세기 단계(0 안 쥠·1 가볍게·2 평소처럼·3 꽉, -1 모름) · 쥐는 세기 점수(0~3 연속)
+                                    · 쥐는 세기 있음 · 접촉 단계(0~5) · 물체 칸   — GripSense 방식 (UIST 2012), 사람마다 학습
+  observation.touch.vibration    7  GripSense 특징: 자이로·가속도 고주파 90%값 · 울림/쉼 비율 · 4~12Hz 떨림 분산 · 있음
   observation.physio             6  심박(bpm) · 있음 · HRR(%) · 있음 · 피부온도 변화(°C) · 있음
   observation.objects           20  물체 4칸 × (x1, y1, x2, y2 비율, 있음)  — SAM 3.1
   annotation.events              4  '실수했어요' · 확인된 접촉 · 단계 경계 · 라벨 검증됨
@@ -46,8 +47,8 @@ NAMES: Dict[str, List[str]] = {
     "observation.imu.phone": ["ax", "ay", "az", "gx", "gy", "gz"],
     "observation.imu.wrist": ["ax", "ay", "az", "gx", "gy", "gz"],
     "observation.audio": ["level_dbfs", "onset", "contact_sound"],
-    "observation.touch": ["contact", "grip_force_n", "grip_valid", "phase", "object_slot"],
-    "observation.touch.vibration": ["amp", "decay_ms", "energy", "valid"],
+    "observation.touch": ["contact", "grip_level", "grip_score", "grip_valid", "phase", "object_slot"],
+    "observation.touch.vibration": ["hf_p90_gyro", "hf_p90_acc", "hf_ratio_gyro", "hf_ratio_acc", "lf_var_gyro", "lf_var_acc", "valid"],
     "observation.physio": ["hr_bpm", "hr_valid", "hrr_pct", "hrr_valid", "skin_delta_c", "skin_valid"],
     "observation.objects": [f"obj{k}_{c}" for k in range(N_OBJ) for c in ("x1", "y1", "x2", "y2", "present")],
     "annotation.events": ["self_mark", "contact_confirmed", "step_boundary", "label_verified"],
@@ -142,28 +143,32 @@ def object_rows(objects, src, size) -> np.ndarray:
 
 
 def touch_rows(contact_frames, src, grid, grip_events, vib_events) -> tuple:
-    """grip_events: [(폰 ns, 힘 N)] 펄스마다. 0.6초 안에 펄스가 있었을 때만 쥐는 힘 있음."""
-    T = np.zeros((len(src), 5), np.float32)
-    V = np.zeros((len(src), 4), np.float32)
-    T[:, 4] = -1
+    """grip_events: [(폰 ns, 단계 0~3, 점수)] 창(0.25초)마다. 0.5초 안에 창이 있었을 때만 쥐는 세기 있음.
+    vib_events: [(폰 ns, GripSense 특징 6개)]."""
+    T = np.zeros((len(src), 6), np.float32)
+    V = np.zeros((len(src), 7), np.float32)
+    T[:, 1] = -1
+    T[:, 5] = -1
     for r, i in enumerate(src):
         if contact_frames is not None and i < len(contact_frames):
             cf = contact_frames[i]
-            T[r, 0], T[r, 3], T[r, 4] = cf.contact, cf.phase, cf.object
+            T[r, 0], T[r, 4], T[r, 5] = cf.contact, cf.phase, cf.object
     if grip_events:
         gt = np.array([g[0] for g in grip_events], np.int64)
-        gv = np.array([g[1] for g in grip_events], np.float32)
-        j = np.searchsorted(gt, grid, side="right") - 1
-        ok = (j >= 0) & ((grid - gt[np.clip(j, 0, None)]) <= 0.6e9)
-        T[ok, 1] = gv[j[ok]]
-        T[ok, 2] = 1.0
+        gl = np.array([g[1] for g in grip_events], np.float32)
+        gs = np.array([g[2] for g in grip_events], np.float32)
+        j = np.clip(np.searchsorted(gt, grid), 1, len(gt) - 1)
+        near = np.where(np.abs(grid - gt[j - 1]) <= np.abs(gt[j] - grid), j - 1, j)
+        ok = np.abs(grid - gt[near]) <= 0.5e9
+        T[ok, 1], T[ok, 2], T[ok, 3] = gl[near[ok]], gs[near[ok]], 1.0
     if vib_events:
         vt = np.array([v[0] for v in vib_events], np.int64)
         vv = np.array([v[1:] for v in vib_events], np.float32)
-        j = np.searchsorted(vt, grid, side="right") - 1
-        ok = (j >= 0) & ((grid - vt[np.clip(j, 0, None)]) <= 0.6e9)
-        V[ok, :3] = vv[j[ok]]
-        V[ok, 3] = 1.0
+        j = np.clip(np.searchsorted(vt, grid), 1, len(vt) - 1)
+        near = np.where(np.abs(grid - vt[j - 1]) <= np.abs(vt[j] - grid), j - 1, j)
+        ok = np.abs(grid - vt[near]) <= 0.5e9
+        V[ok, :6] = vv[near[ok]]
+        V[ok, 6] = 1.0
     return T, V
 
 

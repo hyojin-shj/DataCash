@@ -138,7 +138,7 @@
       <ul class="steps" id="stepList"></ul></div>
     <div class="card" style="padding:14px"><canvas id="chart" width="900" height="360"></canvas>
       <div class="legend">
-        <span><i style="background:var(--touch)"></i>쥐는 힘 (N)</span><span><i style="background:var(--hr)"></i>심박 (bpm)</span>
+        <span><i style="background:var(--touch)"></i>쥐는 세기 (0 안 쥠 ~ 3 꽉)</span><span><i style="background:var(--hr)"></i>심박 (bpm)</span>
         <span><i style="background:var(--sound)"></i>소리 세기</span><span><i style="background:var(--contact)"></i>접촉 단계</span>
         <span>▲ 확인된 접촉음 · ◆ '실수했어요'</span></div>
       <div class="note" id="syncNote" style="margin-top:8px"></div></div>
@@ -247,8 +247,7 @@ function draw(cur = +$("#scrub").value) {
     if (!arr) return; const [y0, y1] = lane; g.strokeStyle = color; g.lineWidth = 2; g.beginPath();
     arr.forEach((v, i) => { const y = y1 - (Math.min(hi, Math.max(lo, v)) - lo) / (hi - lo) * (y1 - y0); i ? g.lineTo(x(i), y) : g.moveTo(x(i), y); });
     g.stroke(); }
-  const gmax = Math.max(5, ...(TL.grip_n || [0]));
-  line(TL.grip_n, lanes[0], "#FF5F5F", 0, gmax * 1.1);
+  line((TL.grip_score || []).map(v => Math.max(0, v)), lanes[0], "#FF5F5F", 0, 3.2);
   const hrv = (TL.hr || []).filter(v => v > 0);
   if (hrv.length) line(TL.hr.map(v => v || Math.min(...hrv)), lanes[1], "#8E5CF7", Math.min(...hrv) - 5, Math.max(...hrv) + 5);
   line(TL.audio_db, lanes[2], "#2E9BF0", -70, 0);
@@ -257,7 +256,7 @@ function draw(cur = +$("#scrub").value) {
   g.fillStyle = "#2E9BF0"; (TL.contact_sound || []).forEach((v, i) => { if (v > 0) { g.beginPath(); g.moveTo(x(i), lanes[2][0] - 2); g.lineTo(x(i) - 6, lanes[2][0] - 12); g.lineTo(x(i) + 6, lanes[2][0] - 12); g.fill(); } });
   g.fillStyle = "#333"; (TL.self_mark || []).forEach((v, i) => { if (v > 0) { g.save(); g.translate(x(i), 8); g.rotate(Math.PI / 4); g.fillRect(-5, -5, 10, 10); g.restore(); } });
   g.strokeStyle = "#333"; g.lineWidth = 1; g.beginPath(); g.moveTo(x(cur), 0); g.lineTo(x(cur), H); g.stroke();
-  g.fillStyle = "#333"; g.fillText(`${(TL.t[cur] || 0).toFixed(2)}s · 힘 ${(TL.grip_n?.[cur] ?? 0).toFixed(1)}N` + (TL.hr ? ` · 심박 ${TL.hr[cur] ?? "-"}` : ""), Math.min(W - 220, x(cur) + 6), H - 4);
+  g.fillStyle = "#333"; g.fillText(`${(TL.t[cur] || 0).toFixed(2)}s · 쥐는 세기 ${["안 쥠", "가볍게", "평소처럼", "꽉"][TL.grip_level?.[cur]] ?? "-"}` + (TL.hr ? ` · 심박 ${TL.hr[cur] ?? "-"}` : ""), Math.min(W - 220, x(cur) + 6), H - 4);
 }
 $("#chart").onclick = e => { if (!TL) return; const r = e.target.getBoundingClientRect(); const fx = (e.clientX - r.left) / r.width * e.target.width;
   const i = Math.round((fx - 40) / (e.target.width - 60) * (TL.t.length - 1)); $("#scrub").value = Math.max(0, Math.min(TL.t.length - 1, i)); setFrame(+$("#scrub").value); };

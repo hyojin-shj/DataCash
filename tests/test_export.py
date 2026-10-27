@@ -31,13 +31,13 @@ def test_bio_dataset_has_all_senses(synth_session, synth_tracks, tmp_path):
     ts = np.array(t.column("timestamp").to_pylist())
     ep = np.array(t.column("episode_index").to_pylist())
     held = (ep == 0) & (ts > 2.0) & (ts < 5.0)                      # 에피소드 0 은 4.5초부터 → 6.5~9.5초
-    assert np.median(touch[held, 1]) > 7.0 and touch[held, 2].all()  # 쥐는 힘 8N 근처, 있음
+    assert np.median(touch[held, 1]) == 2 and touch[held, 3].all()   # 8N 쥐기 → '평소처럼'(2), 있음 (GripSense 단계)
     phys = np.array(t.column("observation.physio").to_pylist())
     assert phys[:, 1].all() and phys[:, 0].max() >= 90
     infos = read_episode_info(ds)
     assert infos[0]["steps"][0]["instruction"] == "Carry the cup" and infos[1]["steps"] is None
     assert infos[0]["sync"]["chosen"] == "beacon"
-    assert c["touch"]["calibration"]["resid_n"] < 1.0
+    assert c["touch"]["grip_model"]["method"] == "gripsense" and c["touch"]["grip_model"]["accuracy_cv"] > 0.7
     assert (tmp_path / "bio" / "certificate.md").read_text().count("4감 동기화") == 1
     import cv2
 

@@ -76,6 +76,14 @@ public class ResultActivity extends Activity {
         bar.setProgress(s.equals("done") ? 100 : s.equals("processing") ? 60 : s.equals("queued") ? 40 : bar.getProgress());
         StringBuilder b = new StringBuilder();
         if (s.equals("processing") || s.equals("queued")) b.append("가리기 · 라벨 · 4감 동기화 중이에요. 앱을 닫아도 서버가 계속해요.");
+        if (s.equals("done") && st.optJSONObject("calibration") != null) {      // 쥐는 세기 맞추기
+            JSONObject cal = st.optJSONObject("calibration");
+            state.setText("쥐는 세기를 배웠어요");
+            detail.setText(String.format(Locale.KOREA, "가볍게·평소처럼·꽉·손 놓기를 %d개 구간에서 배웠어요 · 맞춘 비율 %.0f%%\n다음 녹화부터 쥐는 세기가 같이 담겨요",
+                    cal.optInt("n_windows"), cal.optDouble("accuracy_cv", 0) * 100));
+            bar.setProgress(100);
+            return;
+        }
         if (s.equals("done")) {
             int r = st.optInt("reward");
             state.setText(String.format(Locale.KOREA, "+%,d원 적립", r));

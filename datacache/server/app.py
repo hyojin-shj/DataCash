@@ -565,8 +565,8 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
             return (a if k is None else a[:, k]).round(3).tolist()
 
         info = read_episode_info(ds)[episode]
-        return {"t": col("timestamp"), "grip_n": col("observation.touch", 1), "contact": col("observation.touch", 0),
-                "phase": col("observation.touch", 3), "hr": col("observation.physio", 0), "hrr": col("observation.physio", 2),
+        return {"t": col("timestamp"), "grip_score": col("observation.touch", 2), "grip_level": col("observation.touch", 1),
+                "contact": col("observation.touch", 0), "phase": col("observation.touch", 4), "hr": col("observation.physio", 0), "hrr": col("observation.physio", 2),
                 "audio_db": col("observation.audio", 0), "contact_sound": col("observation.audio", 2),
                 "self_mark": col("annotation.events", 0), "step": col("annotation.step"),
                 "steps": info.get("steps"), "sync": info.get("sync"), "outcome": info.get("outcome"),

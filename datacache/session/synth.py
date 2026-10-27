@@ -44,12 +44,16 @@ def generate(out, duration: float = 20.0, fps: float = 30.0, drift_ppm: float = 
 
     # ---- 장면 대본 (폰 경과 초) ----
     grasp0, grasp1, mark = 6.0, 10.0, 8.0
-    presses = [(1.0, 1.8, 2.0), (2.0, 2.8, 5.0), (3.0, 3.8, 10.0)]   # 저울 누르기 (시작, 끝, N)
+    # GripSense 식 보정: 사람이 스스로 구분한 세기로 컵을 쥔다 (가볍게·평소처럼·꽉) + 손을 놓은 구간. 힘은 사람마다 다르다.
+    person = 0.8 + 0.4 * rng.random()
+    level_n = {1: 3.0 * person, 2: 7.0 * person, 3: 12.0 * person}
+    calib = [(0.4, 1.9, 1), (1.9, 3.4, 2), (3.4, 4.9, 3), (11.0, min(duration - 0.5, 16.0), 0)]   # 손이 움직이기(5초) 전
 
     def force_at(tau):
         f = np.zeros_like(np.asarray(tau, float))
-        for a, b, n in presses:
-            f = np.where((tau >= a) & (tau < b), n, f)
+        for a, b, lv in calib:
+            if lv:
+                f = np.where((tau >= a) & (tau < b), level_n[lv], f)
         return np.where((tau >= grasp0) & (tau < grasp1), grip_n, f)
 
     W, H = size
@@ -153,6 +157,20 @@ def generate(out, duration: float = 20.0, fps: float = 30.0, drift_ppm: float = 
     if i_put + 8 <= n_w:
         acc[i_put:i_put + 8, 1] += np.linspace(3.0, 0.0, 8)    # 내려놓는 충격
     gyro = rng.normal(0, 0.01, (n_w, 3))
+    # 자이로도 모터 떨림을 받는다 (쥘수록 덜). 쥐는 동안 엄지·손가락이 버티며 생기는 8~10Hz 떨림은 쥘수록 크다 (GripSense)
+    f_w = force_at(w_tau)
+    for tau in np.arange(0.25, duration - 0.1, 0.5):
+        f = float(force_at(np.array([tau + 0.03]))[0])
+        i0 = int(round((tau + motor_lat) * watch_imu_rate))
+        k = np.arange(int(0.09 * watch_imu_rate))
+        sig = 0.35 * (1.0 - 0.05 * f) * np.where(k / watch_imu_rate < 0.05, 1.0, 0.3) * np.sin(2 * np.pi * fv * k / watch_imu_rate + 0.7)
+        j = min(n_w, i0 + len(k))
+        gyro[i0:j, 0] += sig[: j - i0]
+        gyro[i0:j, 2] += 0.5 * sig[: j - i0]
+    trem_f = 8.5 + 0.8 * np.sin(2 * np.pi * 0.3 * w_tau)
+    trem = np.sin(2 * np.pi * np.cumsum(trem_f) / watch_imu_rate) * (1 + 0.3 * rng.normal(0, 1, n_w).cumsum() / np.sqrt(np.arange(1, n_w + 1)))
+    gyro[:, 1] += 0.0035 * f_w * trem
+    acc[:, 0] += 0.005 * f_w * trem
     w_ns = to_watch(w_tau)
     (out / "watch_imu.csv").write_text("t_ns,ax,ay,az,gx,gy,gz\n" + "".join(
         f"{t},{a[0]:.5f},{a[1]:.5f},{a[2]:.5f},{g[0]:.5f},{g[1]:.5f},{g[2]:.5f}\n" for t, a, g in zip(w_ns, acc, gyro)))
@@ -211,8 +229,8 @@ def generate(out, duration: float = 20.0, fps: float = 30.0, drift_ppm: float = 
         "participant": {"consent": {"video": True, "bio": physio}, "age_band": "30대"},
         "self_marks_ns": [int(P0 + mark * NS)],
         "outcome": {"outcome": "success", "retries": 1},
-        "calibration": {"kind": "scale_press", "presses": [
-            {"start_ns": int(to_watch(a)), "end_ns": int(to_watch(b)), "force_n": n} for a, b, n in presses]},
+        "calibration": {"method": "gripsense", "clock": "phone", "segments": [
+            {"start_ns": int(P0 + a * NS), "end_ns": int(P0 + b * NS), "level": lv} for a, b, lv in calib]},
     }
     (out / "meta.json").write_text(json.dumps(meta, indent=2, ensure_ascii=False))
     tracks = [{"t_s": round(float(t), 4), "hand": [round(float(v), 2) for v in hand_xy(t)],
@@ -221,7 +239,7 @@ def generate(out, duration: float = 20.0, fps: float = 30.0, drift_ppm: float = 
     (out / "tracks.json").write_text(json.dumps(tracks))
     truth = {"P0": P0, "W0": W0, "drift": drift, "speaker_latency_s": spk_lat, "motor_latency_s": motor_lat,
              "grasp": [grasp0, grasp1], "putdown_s": grasp1, "mark_s": mark, "grip_force_n": grip_n,
-             "presses": presses, "fps": fps, "duration": duration}
+             "calib": calib, "level_n": level_n, "fps": fps, "duration": duration}
     (out / "truth.json").write_text(json.dumps(truth, indent=2))
     return truth
 

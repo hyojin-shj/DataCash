@@ -17,7 +17,7 @@ import numpy as np
 import pyarrow.parquet as pq
 
 WINDOW_S, HORIZON_S = 3.0, 3.0
-FEATURES = ["grip_mean_n", "hold_frac", "wrist_motion", "hrr_now", "bias"]
+FEATURES = ["grip_mean_score", "hold_frac", "wrist_motion", "hrr_now", "bias"]
 
 
 def episode_arrays(dataset: Path):
@@ -40,8 +40,8 @@ def windows(fps, touch, phys, motion, step_s=0.5):
     for i in range(w, len(touch) - hz, max(1, int(step_s * fps))):
         if not (phys[i, 3] and phys[i + hz, 3]):
             continue
-        g = touch[i - w:i, 1] * touch[i - w:i, 2]
-        X.append([g.mean(), float(np.mean(touch[i - w:i, 3] == 3)), motion[i - w:i].mean(), phys[i, 2], 1.0])
+        g = touch[i - w:i, 2] * touch[i - w:i, 3]     # 쥐는 세기 점수(0~3) × 있음
+        X.append([g.mean(), float(np.mean(touch[i - w:i, 4] == 3)), motion[i - w:i].mean(), phys[i, 2], 1.0])
         y.append(phys[i + hz, 2] - phys[i, 2])
         idx.append(i)
     return np.array(X), np.array(y), idx
