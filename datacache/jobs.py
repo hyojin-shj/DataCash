@@ -113,6 +113,23 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
         labels = extract_labels(video)
         log(f"[{sd.name}] 관절 {len(labels)}장면")
 
+        # 1-1. 공짜 검수 먼저 — 쓸 수 없는 녹화는 SAM·Spark 값을 쓰기 전에 반려
+        from .pipeline import face_check_end_s
+        from .precheck import precheck
+
+        t_act = 0.0
+        if (sd / "video_frames.csv").exists():
+            ft = np.loadtxt(sd / "video_frames.csv", delimiter=",", skiprows=1, ndmin=2)[:, 1]
+            t_act = face_check_end_s(meta, int(ft[0])) if len(ft) else 0.0
+        pc = precheck(video, labels, t_act)
+        report["precheck"] = pc
+        if not pc["ok"]:
+            report["error"] = " · ".join(pc["reasons"])
+            report["reward"] = 0
+            (out / "job.json").write_text(json.dumps(report, indent=2, ensure_ascii=False))
+            log(f"[{sd.name}] 반려 (API 쓰기 전): {report['error']}")
+            return report
+
     # 2. SAM 3.1 가리기 + 조작 물체 영역
     masked, objects, privacy = None, None, None
     if use_api and not synthetic:
@@ -125,7 +142,14 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
             from .people import matcher_from
 
             match = people.matcher(dev, fc_emb) if people is not None else matcher_from(None, fc_emb)
-            r = mask_video(video, out / "masked.mp4", manipulated=mission.get("objects", [])[:3], hand_pts=pts, match=match)
+            from .privacy.mask import CHILD, PEOPLE, SENSITIVE
+            from .privacy.scan import sam_plan, scan
+
+            manip = mission.get("objects", [])[:3]
+            found = scan(video)                  # 이 맥에서 훑어보고 SAM 에 물을 것만 (혼자면 사람은 안 묻는다)
+            plan = sam_plan(found, PEOPLE, CHILD, SENSITIVE, manip)
+            report["scan"] = found
+            r = mask_video(video, out / "masked.mp4", manipulated=manip, hand_pts=pts, match=match, plan=plan)
             masked, objects, privacy = r.masked_video, r.objects, r.report
             log(f"[{sd.name}] 가리기: {json.dumps(r.report, ensure_ascii=False)[:300]}")
         except BudgetExceeded as e:

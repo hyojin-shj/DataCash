@@ -157,33 +157,48 @@ def _choose_participant(people: Dict[int, List[SamObject]], hand_pts: Optional[S
 def mask_video(video, out_path, manipulated: Sequence[str] = (), participant: Optional[str] = None,
                hand_pts: Optional[Sequence] = None, sam: Optional[Sam] = None, dilate_px: int = 6,
                concepts_people=PEOPLE, concepts_child=CHILD, concepts_sensitive=SENSITIVE, match=None,
-               sam_fps: float = SAM_FPS) -> PrivacyResult:
+               sam_fps: float = SAM_FPS, plan: Optional[Dict[str, float]] = None) -> PrivacyResult:
     """match: 등록된 본인·동의 가족 알아보기 (people.People.matcher). 본인과 맞는 추적이 참여자, 동의 가족은 가리지 않는다.
-    sam_fps: SAM 에는 초당 이만큼만 보낸다 (값이 장면 수로 붙는다). 사이 장면은 가장 가까운 장면의 마스크를 더 넓혀 쓴다."""
+    sam_fps: SAM 에는 초당 이만큼만 보낸다 (값이 장면 수로 붙는다). 사이 장면은 가장 가까운 장면의 마스크를 더 넓혀 쓴다.
+    plan: 명사구마다 초당 장면 수 (scan.sam_plan — 0 이면 묻지 않음). 없으면 모두 sam_fps."""
     sam = sam or Sam()
     video = Path(video)
     cap = cv2.VideoCapture(str(video))
     fps0, n0 = cap.get(cv2.CAP_PROP_FPS) or 30.0, int(cap.get(7))
     cap.release()
-    step = max(1, int(round(fps0 / sam_fps))) if sam_fps else 1
-    sam_in = video
-    if step > 1:
-        from ..media import run
+    inputs: Dict[int, Path] = {1: video}
+    fids: Dict[int, str] = {}
 
-        sam_in = Path(out_path).with_name("sam_input.mp4")
-        Path(out_path).parent.mkdir(parents=True, exist_ok=True)
-        run(["-i", video, "-vf", f"select='not(mod(n\\,{step}))'", "-vsync", "0", "-an", "-c:v", "libx264",
-             "-preset", "veryfast", "-crf", "18", "-pix_fmt", "yuv420p", "-threads", "1", sam_in])
-        dilate_px += HOLD_EXTRA_PX
-    fid: Dict[str, str] = {}
-    upload = lambda: fid["id"] if "id" in fid else fid.setdefault("id", sam.c.upload(sam_in))
+    def sam_input(step: int) -> Path:
+        if step not in inputs:
+            from ..media import run
+
+            p = Path(out_path).with_name(f"sam_input_{step}.mp4")
+            p.parent.mkdir(parents=True, exist_ok=True)
+            run(["-i", video, "-vf", f"select='not(mod(n\\,{step}))'", "-vsync", "0", "-an", "-c:v", "libx264",
+                 "-preset", "veryfast", "-crf", "18", "-pix_fmt", "yuv420p", "-threads", "1", p])
+            inputs[step] = p
+        return inputs[step]
+
     tracks: Dict[str, Dict[int, List[SamObject]]] = {}
-    report = {"concepts": {}, "errors": [], "sam_every": step}
+    report = {"concepts": {}, "errors": [], "sam_plan": {}, "sam_frames": 0}
+    max_step = 1
     for c in (*concepts_people, *concepts_child, *concepts_sensitive, *manipulated):
+        f = plan.get(c, sam_fps) if plan is not None else sam_fps
+        if not f:
+            tracks[c] = {}
+            report["sam_plan"][c] = 0
+            continue
+        step = max(1, int(round(fps0 / f)))
+        report["sam_plan"][c] = round(fps0 / step, 2)
         try:
-            tracks[c] = sam.video(sam_in, c, file_id=upload)
+            src = sam_input(step)
+            tracks[c] = sam.video(src, c, file_id=lambda s=step, p=src: fids[s] if s in fids else fids.setdefault(s, sam.c.upload(p)))
+            report["sam_frames"] += max(50, -(-n0 // step))
             if step > 1:
                 tracks[c] = _spread(tracks[c], step, n0)
+                if c not in manipulated:
+                    max_step = max(max_step, step)
             ids = {o.object_id for objs in tracks[c].values() for o in objs}
             report["concepts"][c] = {"frames": len(tracks[c]), "objects": len(ids)}
         except BudgetExceeded as e:
@@ -192,6 +207,8 @@ def mask_video(video, out_path, manipulated: Sequence[str] = (), participant: Op
         except Exception as e:  # 한 명사구가 실패해도 나머지로 계속 (보고에 남긴다)
             report["errors"].append(f"{c}: {type(e).__name__}: {str(e)[:200]}")
             tracks[c] = {}
+    if max_step > 1:          # 빌려 쓴 마스크는 그 사이 움직임만큼 더 넓게 (초당 1장면이면 더)
+        dilate_px += HOLD_EXTRA_PX * (1 if max_step <= 3 else 2)
     people = {}
     for c in concepts_people:
         for fi, objs in tracks[c].items():

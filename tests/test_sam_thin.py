@@ -43,7 +43,7 @@ def test_thin_and_spread(tmp_path):
     _video(v)
     sam = FakeSam()
     r = mask_video(v, tmp_path / "m.mp4", sam=sam)
-    assert r.report["sam_every"] == 3
+    assert r.report["sam_plan"]["computer monitor"] == 10
     assert max(sam.frames) == 10                       # 30장면 중 10장면만 SAM 에
     cap = cv2.VideoCapture(str(tmp_path / "m.mp4"))
     for i in range(30):
@@ -71,3 +71,21 @@ def test_cache(tmp_path, monkeypatch):
     s.video(v, "person", file_id=lambda: s.c.upload(v))
     s.video(v, "person", file_id=lambda: s.c.upload(v))
     assert sent == ["up", "api"]
+
+
+def test_plan_skips_and_slows(tmp_path):
+    """혼자 찍은 영상: 사람은 SAM 에 묻지 않고, 화면은 초당 1장면."""
+    from datacache.privacy.scan import sam_frames, sam_plan
+
+    v = tmp_path / "v.mp4"
+    _video(v, n=60)
+    plan = sam_plan({"frames": 4, "max_people": 1, "seen": {"tv": 2}}, sensitive=("computer monitor", "mirror"),
+                    manipulated=("cup",))
+    assert plan["person"] == 0 and plan["child"] == 0 and plan["computer monitor"] == 1.0 and plan["cup"] == 2.0
+    sam = FakeSam()
+    r = mask_video(v, tmp_path / "m.mp4", sam=sam, plan=plan, concepts_sensitive=("computer monitor", "mirror"),
+                   manipulated=("cup",))
+    assert "person" not in sam.calls and r.report["sam_plan"]["person"] == 0
+    assert max(sam.frames) <= 4                        # 60장면(2초) 중 초당 1~2장면만
+    assert sam_frames(plan, 30.0, 3600) == 120 + 120 + 240  # 2분: 화면·거울 초당 1장면 + 컵 초당 2장면
+    assert sam_plan(None)["person"] == 10.0          # 훑지 못하면 예전처럼 다 묻는다
