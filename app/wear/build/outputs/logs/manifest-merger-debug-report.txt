@@ -4,6 +4,7 @@ ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.
 INJECTED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:2:1-31:12
 INJECTED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:2:1-31:12
 INJECTED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:2:1-31:12
+MERGED from [samsung-health-sensor-api-1.4.1.aar] /Users/simhyojin/.gradle/caches/transforms-4/036adc01f56f5d0becf9fd42c195c2d6/transformed/samsung-health-sensor-api-1.4.1/AndroidManifest.xml:2:1-14:12
 	package
 		INJECTED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml
 	android:versionName
@@ -42,10 +43,16 @@ ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.
 		ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:10:22-82
 queries
 ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:13:5-15:15
-package#com.samsung.android.service.health.tracking
-ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:14:9-79
+MERGED from [samsung-health-sensor-api-1.4.1.aar] /Users/simhyojin/.gradle/caches/transforms-4/036adc01f56f5d0becf9fd42c195c2d6/transformed/samsung-health-sensor-api-1.4.1/AndroidManifest.xml:7:5-9:15
+MERGED from [samsung-health-sensor-api-1.4.1.aar] /Users/simhyojin/.gradle/caches/transforms-4/036adc01f56f5d0becf9fd42c195c2d6/transformed/samsung-health-sensor-api-1.4.1/AndroidManifest.xml:7:5-9:15
+MERGED from [samsung-health-sensor-api-1.4.1.aar] /Users/simhyojin/.gradle/caches/transforms-4/036adc01f56f5d0becf9fd42c195c2d6/transformed/samsung-health-sensor-api-1.4.1/AndroidManifest.xml:10:5-12:15
+MERGED from [samsung-health-sensor-api-1.4.1.aar] /Users/simhyojin/.gradle/caches/transforms-4/036adc01f56f5d0becf9fd42c195c2d6/transformed/samsung-health-sensor-api-1.4.1/AndroidManifest.xml:10:5-12:15
+package#com.samsung.android.service.health
+ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:14:9-70
+MERGED from [samsung-health-sensor-api-1.4.1.aar] /Users/simhyojin/.gradle/caches/transforms-4/036adc01f56f5d0becf9fd42c195c2d6/transformed/samsung-health-sensor-api-1.4.1/AndroidManifest.xml:11:9-70
+MERGED from [samsung-health-sensor-api-1.4.1.aar] /Users/simhyojin/.gradle/caches/transforms-4/036adc01f56f5d0becf9fd42c195c2d6/transformed/samsung-health-sensor-api-1.4.1/AndroidManifest.xml:11:9-70
 	android:name
-		ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:14:18-76
+		ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:14:18-67
 application
 ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:17:5-30:19
 INJECTED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:17:5-30:19
@@ -91,7 +98,13 @@ uses-sdk
 INJECTED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml reason: use-sdk injection requested
 INJECTED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml
 INJECTED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml
+MERGED from [samsung-health-sensor-api-1.4.1.aar] /Users/simhyojin/.gradle/caches/transforms-4/036adc01f56f5d0becf9fd42c195c2d6/transformed/samsung-health-sensor-api-1.4.1/AndroidManifest.xml:5:5-44
+MERGED from [samsung-health-sensor-api-1.4.1.aar] /Users/simhyojin/.gradle/caches/transforms-4/036adc01f56f5d0becf9fd42c195c2d6/transformed/samsung-health-sensor-api-1.4.1/AndroidManifest.xml:5:5-44
 	android:targetSdkVersion
 		INJECTED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml
 	android:minSdkVersion
 		INJECTED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml
+package#com.sec.android.app.samsungapps
+ADDED from [samsung-health-sensor-api-1.4.1.aar] /Users/simhyojin/.gradle/caches/transforms-4/036adc01f56f5d0becf9fd42c195c2d6/transformed/samsung-health-sensor-api-1.4.1/AndroidManifest.xml:8:9-67
+	android:name
+		ADDED from [samsung-health-sensor-api-1.4.1.aar] /Users/simhyojin/.gradle/caches/transforms-4/036adc01f56f5d0becf9fd42c195c2d6/transformed/samsung-health-sensor-api-1.4.1/AndroidManifest.xml:8:18-64
