@@ -108,19 +108,6 @@ final class Store {
     static boolean ownerFace(Context c) { return p(c).getBoolean("owner_face", false); }
     static void setOwnerFace(Context c, boolean on) { p(c).edit().putBoolean("owner_face", on).apply(); }
 
-    /** 녹화 전 얼굴 확인: 10분 안에 확인했으면 다시 묻지 않는다. */
-    static boolean faceCheckedRecently(Context c) {
-        return System.currentTimeMillis() - p(c).getLong("face_checked_at", 0) < 10 * 60_000L;
-    }
-    static void setFaceChecked(Context c, double similarity) {
-        p(c).edit().putLong("face_checked_at", System.currentTimeMillis()).putFloat("face_sim", (float) similarity).apply();
-    }
-    static JSONObject faceCheckJson(Context c) throws Exception {
-        long at = p(c).getLong("face_checked_at", 0);
-        return new JSONObject().put("checked", faceCheckedRecently(c)).put("similarity", p(c).getFloat("face_sim", 0))
-                .put("at_ms", at);
-    }
-
     /** 이의 신청으로 인정된 추가 보상은 한 번만 적립. */
     static boolean creditOnce(Context c, String key, int won) {
         java.util.Set<String> s = new java.util.HashSet<>(p(c).getStringSet("credited", new java.util.HashSet<>()));

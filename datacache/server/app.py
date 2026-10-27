@@ -6,11 +6,14 @@
     POST /api/sessions/{sid}/process         처리 시작 (가리기 → 관절 → 이해 → 4감 내보내기)
     GET  /api/sessions/{sid}/status          상태·보상·인증서 요약
     (아래는 머리글 X-DC-Device: 폰 기기 id 도 함께)
-    POST /api/face/owner                     본인 얼굴 등록 (사진 JPEG 본문 → 특징값만 저장, 사진은 버림)
-    POST /api/face/check                     녹화 전 얼굴 확인 (본인과 같은 사람인지)
-    GET  /api/people                         동의 인원 목록
-    POST /api/people                         동의 인원 추가 {name, relation, consent_video, consent_sale, photo_b64}
+    POST /api/face/check                     녹화 1단계 얼굴 확인 (사진 JPEG 본문 → 등록한 본인인지)
+    GET  /api/people                         동의 인원 목록 (+ 고를 수 있는 가상 인물)
+    POST /api/people                         동의 인원 추가 {name, relation, adult, age_band, agreed, bio}
+    POST /api/people/{pid}/face              얼굴 등록 {photos_b64: [정면, 왼쪽, 오른쪽]} → 특징값만 저장, 사진은 버림
+    POST /api/people/{pid}/donor             가상 인물 고르기 {donor: "donor3" | "auto"}
+    POST /api/people/{pid}/consent           생체 신호 동의·철회 {bio} (본인만)
     DELETE /api/people/{pid}                 동의 철회 (특징값 삭제)
+    GET  /api/donors/{id}.png                가상 인물 사진 (실존하지 않는 사람)
     POST /api/sessions/{sid}/appeal          이의 신청 {reason, detail} → 바로 자동 확인
     GET  /api/appeals                        내 이의 신청 (단계 기록)
   구매 기업 (공개 읽기)
@@ -214,10 +217,23 @@ class LiveIn(BaseModel):
 
 class PersonIn(BaseModel):
     name: str = Field(min_length=1, max_length=20)
-    relation: str = Field("", max_length=10)
-    consent_video: bool
-    consent_sale: bool
-    photo_b64: str = Field(max_length=4_000_000)
+    relation: str = Field(max_length=10)
+    adult: bool
+    age_band: str = Field(max_length=10)
+    agreed: bool
+    bio: bool = False
+
+
+class FaceIn(BaseModel):
+    photos_b64: List[str] = Field(min_length=1, max_length=3)
+
+
+class DonorIn(BaseModel):
+    donor: str = Field(max_length=20)
+
+
+class BioIn(BaseModel):
+    bio: bool
 
 
 class AppealIn(BaseModel):
@@ -350,11 +366,6 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
             raise HTTPException(422, FACE_ERR.get(why, why))
         return emb
 
-    @app.post("/api/face/owner")
-    async def face_owner(request: Request, x_dc_token: Optional[str] = Header(None), x_dc_device: Optional[str] = Header(None)):
-        auth(x_dc_token)
-        return st.people.set_owner(device(x_dc_device), await face_of(request))
-
     @app.post("/api/face/check")
     async def face_check(request: Request, x_dc_token: Optional[str] = Header(None), x_dc_device: Optional[str] = Header(None)):
         auth(x_dc_token)
@@ -365,22 +376,52 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
         auth(x_dc_token)
         return st.people.listing(device(x_dc_device))
 
+    def person_call(fn):
+        try:
+            return fn()
+        except KeyError:
+            raise HTTPException(404, "없는 사람")
+        except ValueError as e:
+            raise HTTPException(400, str(e))
+
     @app.post("/api/people")
     def people_add(b: PersonIn, x_dc_token: Optional[str] = Header(None), x_dc_device: Optional[str] = Header(None)):
         auth(x_dc_token)
         dev = device(x_dc_device)
-        if not (b.consent_video and b.consent_sale):
-            raise HTTPException(400, "영상에 나오는 것과 판매 둘 다 동의해야 가리지 않아요")
+        return person_call(lambda: st.people.add(dev, b.name, b.relation, b.adult, b.age_band, b.agreed, b.bio))
+
+    @app.post("/api/people/{pid}/face")
+    def people_face(pid: str, b: FaceIn, x_dc_token: Optional[str] = Header(None), x_dc_device: Optional[str] = Header(None)):
+        auth(x_dc_token)
+        dev = device(x_dc_device)
         import base64
 
         try:
-            raw = base64.b64decode(b.photo_b64, validate=True)
+            photos = [base64.b64decode(x, validate=True) for x in b.photos_b64]
         except ValueError:
             raise HTTPException(400, "사진")
-        emb, why = embed_jpeg(raw)
-        if emb is None:
-            raise HTTPException(422, FACE_ERR.get(why, why))
-        return st.people.add(dev, b.name, b.relation, b.consent_video, b.consent_sale, emb)
+        if any(len(x) > 8 << 20 for x in photos):
+            raise HTTPException(413, "사진이 너무 큼")
+        return person_call(lambda: st.people.enroll(dev, pid, photos))
+
+    @app.post("/api/people/{pid}/donor")
+    def people_donor(pid: str, b: DonorIn, x_dc_token: Optional[str] = Header(None), x_dc_device: Optional[str] = Header(None)):
+        auth(x_dc_token)
+        dev = device(x_dc_device)
+        return person_call(lambda: st.people.set_donor(dev, pid, b.donor))
+
+    @app.post("/api/people/{pid}/consent")
+    def people_bio(pid: str, b: BioIn, x_dc_token: Optional[str] = Header(None), x_dc_device: Optional[str] = Header(None)):
+        auth(x_dc_token)
+        dev = device(x_dc_device)
+        return person_call(lambda: st.people.set_bio(dev, pid, b.bio))
+
+    @app.get("/api/donors/{name}")
+    def donor_image(name: str):
+        f = Path(__file__).parents[1] / "donors" / name
+        if not re.match(r"^donor\d+\.png$", name) or not f.exists():
+            raise HTTPException(404)
+        return FileResponse(f, media_type="image/png")
 
     @app.delete("/api/people/{pid}")
     def people_remove(pid: str, x_dc_token: Optional[str] = Header(None), x_dc_device: Optional[str] = Header(None)):

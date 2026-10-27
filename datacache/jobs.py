@@ -132,10 +132,14 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
             from .privacy.faceswap import rank_donors, swap_video
 
             donors = rank_donors(video)
+            dev = ((meta.get("devices") or {}).get("phone") or {}).get("id")
+            mine = people.donor_for(dev, "owner") if people is not None else None      # 본인이 고른 가상 인물
+            fam = {oid: people.donor_for(dev, pid) for oid, pid in getattr(r, "consented_who", {}).items()} if people is not None else {}
             if donors:
-                sr = swap_video(video, masked, out / "masked_swap.mp4", donors[0],
+                sr = swap_video(video, masked, out / "masked_swap.mp4", mine or donors[0],
                                 participant_boxes=getattr(r, "participant_boxes", None), log=log,
-                                consented_boxes=getattr(r, "consented_boxes", None), extra_donors=donors[1:])
+                                consented_boxes=getattr(r, "consented_boxes", None), extra_donors=donors[1:],
+                                family_donors={k: v for k, v in fam.items() if v})
                 masked = out / "masked_swap.mp4"
                 privacy = {**(privacy or {}), "face_swap": sr.to_dict()}
         except Exception as e:

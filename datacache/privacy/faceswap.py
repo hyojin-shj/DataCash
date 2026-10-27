@@ -249,9 +249,11 @@ def cover_small_faces(base, original, reid: "Reid", participant_box=None) -> int
 
 
 def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[dict] = None, reid_every: int = 3,
-               log=print, consented_boxes: Optional[dict] = None, extra_donors: Optional[list] = None) -> SwapReport:
+               log=print, consented_boxes: Optional[dict] = None, extra_donors: Optional[list] = None,
+               family_donors: Optional[dict] = None) -> SwapReport:
     """original: 원래 영상(얼굴·움직임 읽기용), base: 가린 영상(같은 장면 수) 위에 바꾼 얼굴을 붙인다.
-    participant_boxes: 장면 → 참여자 상자. consented_boxes: 장면 → [(추적 id, 상자)] 동의한 가족 (사람마다 다른 가상 인물)."""
+    participant_boxes: 장면 → 참여자 상자. consented_boxes: 장면 → [(추적 id, 상자)] 동의한 가족 (사람마다 다른 가상 인물).
+    family_donors: 추적 id → 그 사람이 직접 고른 가상 인물 사진 (없으면 덜 닮은 순서대로 자동)."""
     import time
 
     t0 = time.time()
@@ -261,9 +263,10 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
     states: dict = {}
 
     def person_state(key, k):
-        """사람(key)마다 가상 인물 하나: 참여자는 첫째, 가족은 다음 사람부터 차례로."""
+        """사람(key)마다 가상 인물 하나: 참여자는 첫째, 가족은 고른 사람 또는 다음 사람부터 차례로."""
         if key not in states:
-            img = cv2.imread(str(donors[min(k, len(donors) - 1)]))
+            chosen = (family_donors or {}).get(key.split(":", 1)[1]) if key.startswith("family:") else None
+            img = cv2.imread(str(chosen or donors[min(k, len(donors) - 1)]))
             dl = fl(img)
             if not dl:
                 raise RuntimeError("가상 인물 사진에서 얼굴을 못 찾음")

@@ -1,11 +1,14 @@
 package com.datacache.app;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.widget.CheckBox;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -72,7 +75,22 @@ public class ConsentActivity extends Activity {
                 return;
             }
             Store.setConsent(this, true, bio.isChecked(), age);
-            finish();
+            boolean wantBio = bio.isChecked();
+            new Thread(() -> {   // 본인을 동의 인원 명부에 올리고 바로 얼굴 등록으로 (서버가 없으면 나중에 '개인정보 동의 인원'에서)
+                try {
+                    JSONObject r = Uploader.callJson(this, "GET", "/api/people", null);
+                    boolean hasMe = false;
+                    org.json.JSONArray ps = r.optJSONArray("people");
+                    for (int i = 0; ps != null && i < ps.length(); i++) hasMe |= ps.optJSONObject(i).optString("relation").equals("본인");
+                    if (!hasMe) {
+                        JSONObject me = Uploader.callJson(this, "POST", "/api/people", new JSONObject().put("name", "나").put("relation", "본인")
+                                .put("adult", true).put("age_band", age).put("agreed", true).put("bio", wantBio));
+                        startActivity(new Intent(this, FaceActivity.class).putExtra("pid", me.optString("id")).putExtra("name", "나"));
+                    }
+                } catch (Exception ignored) {
+                }
+                runOnUiThread(this::finish);
+            }).start();
         }));
     }
 }

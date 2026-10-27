@@ -27,27 +27,43 @@ def client(tmp_path):
     return TestClient(create_app(tmp_path, "t", use_api=False)), tmp_path
 
 
-def test_owner_face_and_people(client):
+def b64(name: str) -> str:
+    return base64.b64encode(jpg(name)).decode()
+
+
+def test_people_consent_face_donor(client):
     c, root = client
     assert c.post("/api/face/check", content=jpg("donor0.png"), headers=DEV).json()["registered"] is False
-    assert c.post("/api/face/owner", content=jpg("donor0.png"), headers=DEV).json()["registered"]
+    me = {"name": "나", "relation": "본인", "adult": True, "age_band": "30대", "agreed": True, "bio": True}
+    assert c.post("/api/people", json={**me, "adult": False}, headers=DEV).status_code == 400        # 아이·미성년 불가
+    assert c.post("/api/people", json={**me, "agreed": False}, headers=DEV).status_code == 400
+    p_me = c.post("/api/people", json=me, headers=DEV).json()
+    assert p_me["face"] == "none" and p_me["bio_consent"]["agreed"]
+    assert c.post("/api/people", json=me, headers=DEV).status_code == 400                          # 본인은 하나
+    mom = {"name": "엄마", "relation": "가족", "adult": True, "age_band": "50대", "agreed": True, "bio": True}
+    assert c.post("/api/people", json=mom, headers=DEV).status_code == 400                         # 생체는 본인만
+    p_mom = c.post("/api/people", json={**mom, "bio": False}, headers=DEV).json()
+
+    blank = base64.b64encode(cv2.imencode(".jpg", np.full((300, 300, 3), 200, np.uint8))[1].tobytes()).decode()
+    bad = c.post(f"/api/people/{p_me['id']}/face", json={"photos_b64": [blank, blank, b64("donor0.png")]}, headers=DEV).json()
+    assert bad["face"] == "failed" and bad["face_error"]
+    ok = c.post(f"/api/people/{p_me['id']}/face", json={"photos_b64": [b64("donor0.png")] * 3}, headers=DEV).json()
+    assert ok["face"] == "enrolled"
     same = c.post("/api/face/check", content=jpg("donor0.png"), headers=DEV).json()
     other = c.post("/api/face/check", content=jpg("donor5.png"), headers=DEV).json()
     assert same["match"] and not other["match"]
-    blank = cv2.imencode(".jpg", np.full((300, 300, 3), 200, np.uint8))[1].tobytes()
-    assert c.post("/api/face/owner", content=blank, headers=DEV).status_code == 422
 
-    body = {"name": "엄마", "relation": "가족", "consent_video": True, "consent_sale": True,
-            "photo_b64": base64.b64encode(jpg("donor2.png")).decode()}
-    assert c.post("/api/people", json={**body, "consent_sale": False}, headers=DEV).status_code == 400
-    p = c.post("/api/people", json=body, headers=DEV).json()
+    assert c.post(f"/api/people/{p_mom['id']}/donor", json={"donor": "nope"}, headers=DEV).status_code == 400
+    assert c.post(f"/api/people/{p_mom['id']}/donor", json={"donor": "donor3"}, headers=DEV).json()["donor"] == "donor3"
+    assert c.post(f"/api/people/{p_me['id']}/consent", json={"bio": False}, headers=DEV).json()["bio_consent"]["agreed"] is False
     lst = c.get("/api/people", headers=DEV).json()
-    assert lst["owner_registered"] and [x["name"] for x in lst["people"]] == ["엄마"]
+    assert lst["owner_registered"] and [x["name"] for x in lst["people"]] == ["나", "엄마"] and len(lst["donors"]) == 6
     assert "embedding" not in json.dumps(lst)                      # 특징값은 밖으로 안 나간다
     assert not list(root.rglob("*.jpg")) and not list(root.rglob("*.png"))   # 사진은 저장하지 않는다
-    assert c.get("/api/people", headers={**DEV, "X-DC-Device": "phoneB2"}).json()["people"] == []   # 다른 폰은 못 본다
-    assert c.delete(f"/api/people/{p['id']}", headers=DEV).status_code == 200
-    assert c.get("/api/people", headers=DEV).json()["people"] == []
+    assert c.get("/api/people", headers={**DEV, "X-DC-Device": "phoneB2"}).json()["people"] == []
+    assert c.get("/api/donors/donor3.png").status_code == 200 and c.get("/api/donors/..%2Fx.png").status_code == 404
+    assert c.delete(f"/api/people/{p_mom['id']}", headers=DEV).status_code == 200
+    assert [x["name"] for x in c.get("/api/people", headers=DEV).json()["people"]] == ["나"]
 
 
 def test_tracks_identified_owner_family_stranger(tmp_path):
@@ -58,8 +74,11 @@ def test_tracks_identified_owner_family_stranger(tmp_path):
 
     ppl = People(tmp_path)
     face = {n: cv2.resize(cv2.imread(str(DONORS / f"donor{n}.png")), (240, 240)) for n in (0, 2, 5)}
-    ppl.set_owner("phoneA1", embed_image(face[0])[0])
-    ppl.add("phoneA1", "엄마", "가족", True, True, embed_image(face[2])[0])
+    jp = {n: cv2.imencode(".jpg", face[n])[1].tobytes() for n in face}
+    me = ppl.add("phoneA1", "나", "본인", True, "30대", True)
+    mom = ppl.add("phoneA1", "엄마", "가족", True, "50대", True)
+    ppl.enroll("phoneA1", me["id"], [jp[0]] * 3)
+    ppl.enroll("phoneA1", mom["id"], [jp[2]] * 3)
     video = tmp_path / "v.mp4"
     vw = cv2.VideoWriter(str(video), cv2.VideoWriter_fourcc(*"mp4v"), 10, (960, 540))
     tracks = {}
@@ -76,7 +95,7 @@ def test_tracks_identified_owner_family_stranger(tmp_path):
         vw.write(f)
     vw.release()
     got = identify_tracks(video, tracks, ppl.matcher("phoneA1"))
-    assert got["0"][0] == "owner" and got["1"][0] == "consented" and "2" not in got
+    assert got["0"][0] == "owner" and got["1"][0] == "consented" and got["1"][2] == mom["id"] and "2" not in got
 
 
 def _session(root, sid, device, status):

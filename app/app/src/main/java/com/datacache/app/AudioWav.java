@@ -17,6 +17,8 @@ import java.io.RandomAccessFile;
  * (음향 비콘 18~20kHz 를 들으려면 48kHz 가 필요하다).
  */
 final class AudioWav {
+    /** 최근 소리 크기 (16bit 최대 32767). 녹화 화면이 '소리가 안 들려요' 경고에 쓴다. */
+    volatile float peak;
     static final int RATE = 48000;
     private AudioRecord rec;
     private Thread thread;
@@ -36,6 +38,7 @@ final class AudioWav {
         }
         out = new File(dir, "audio.wav");
         running = true;
+        peak = 0;
         rec.startRecording();
         thread = new Thread(() -> {
             byte[] buf = new byte[RATE / 50 * 2];
@@ -47,6 +50,9 @@ final class AudioWav {
                     if (n > 0) {
                         f.write(buf, 0, n);
                         frames += n / 2;
+                        int pk = 0;
+                        for (int i = 0; i + 1 < n; i += 2) pk = Math.max(pk, Math.abs((short) ((buf[i] & 0xFF) | (buf[i + 1] << 8))));
+                        peak = Math.max(peak * 0.9f, pk);     // 최근 크기 (조용함 경고용)
                     }
                     if (startNs < 0 && rec.getTimestamp(ts, AudioTimestamp.TIMEBASE_BOOTTIME) == AudioRecord.SUCCESS) {
                         startNs = ts.nanoTime - ts.framePosition * 1_000_000_000L / RATE;   // 0번 샘플의 시각

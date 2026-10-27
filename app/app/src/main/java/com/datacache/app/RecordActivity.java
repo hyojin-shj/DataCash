@@ -380,6 +380,12 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
 
     @SuppressWarnings("deprecation")
     private void start() {
+        android.media.AudioManager am = (android.media.AudioManager) getSystemService(AUDIO_SERVICE);
+        if (am != null && (am.getMode() == android.media.AudioManager.MODE_IN_CALL
+                || am.getMode() == android.media.AudioManager.MODE_IN_COMMUNICATION)) {
+            Toast.makeText(this, "통화 중에는 소리가 녹음되지 않아요. 통화를 끝내고 다시 눌러 주세요", Toast.LENGTH_LONG).show();
+            return;
+        }
         busy = true;
         String sid = Clock.sessionId();
         dir = new File(Store.sessionsDir(this), sid);
@@ -422,7 +428,9 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
     private void tick() {
         if (!recording) return;
         long s = (Clock.now() - startNs) / 1_000_000_000L;
-        status.setText(String.format(Locale.KOREA, "● 녹화 %d:%02d · 상황 · %s", s / 60, s % 60, situation));
+        boolean quiet = s >= 4 && audio != null && audio.peak < 30;     // 마이크가 막혔거나 다른 앱이 쓰는 중
+        status.setText(String.format(Locale.KOREA, "● 녹화 %d:%02d · 상황 · %s", s / 60, s % 60, situation)
+                + (quiet ? "\n⚠ 소리가 거의 안 들려요 — 마이크를 가리지 않았는지 봐 주세요" : ""));
         ui.postDelayed(this::tick, 500);
     }
 
@@ -586,6 +594,14 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
                 ui.post(() -> { busy = false; Toast.makeText(this, "저장 실패: " + e.getMessage(), Toast.LENGTH_LONG).show(); });
             }
         }).start();
+    }
+
+    /** 녹화 중 화면을 떠나면 (홈 버튼·다른 앱) 거기까지 저장하고 멈춘다. */
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (recording && !busy && !isChangingConfigurations()) stop();
+        if (countdownLeft > 0) cancelCountdown();
     }
 
     @Override
