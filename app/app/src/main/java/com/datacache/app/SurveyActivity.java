@@ -14,70 +14,43 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 미션 후 질문 — 본인이 답한 것만 라벨로 쓴다 (영상으로 추정하지 않는다).
- * 모두에게: 미션 결과(끝까지·일부만·못 함), 실수·다시 한 횟수.
- * 생체 동의자에게: 기분·피로·힘듦 1~5 (끝 낱말 표시), 지금 몸 상태 여러 개 고르기(기타는 글로). 뒤로 가기는 건너뛰기.
- * meta.json 의 outcome · self_report 에 넣고 결과 화면(업로드)으로.
+ * 미션 후 질문 — 한 화면에서 1~2번 누르면 끝난다 (고르면 바로 저장·올리기). 본인이 답한 것만 라벨로 쓴다.
+ * 모두에게: 미션 결과 하나 (한 번에 끝냄 · 다시 하고 끝냄 · 못 끝냄) → outcome·retries.
+ * 생체 동의자에게만: 얼마나 힘들었는지 1~5 (심박·체온의 정답 라벨). 기분·피로·몸 상태는 뺐다 (점심 녹화에서 너무 많다는 의견).
+ * 녹화 중 '실수 표시'는 따로 기록된다. 뒤로 가기는 건너뛰기.
  */
 public class SurveyActivity extends Activity {
     private String outcome, retries;
-    private int effort, fatigue, mood;
-    private final java.util.Set<String> feelings = new java.util.LinkedHashSet<>();
-    private android.widget.EditText other;
-    private boolean sent;
+    private int effort;
+    private boolean sent, bio;
     private File dir;
+    private final android.os.Handler ui = new android.os.Handler(android.os.Looper.getMainLooper());
 
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
         dir = new File(getIntent().getStringExtra("dir"));
+        bio = Store.bioConsent(this);
         LinearLayout body = Ui.page(this, "미션 후 한마디", false);
         LinearLayout c = Ui.card(this);
-        c.addView(Ui.text(this, "로봇은 실수하고 다시 하는 장면에서도 배워요. 있는 그대로 골라 주세요. 건너뛰어도 보상은 같아요.", 14, Ui.SUB, false));
-        pick(c, "미션은 어떻게 됐어요?", new String[][]{{"success", "끝까지 해냈어요"}, {"partial", "일부만 했어요"}, {"failed", "못 했어요"}}, v -> outcome = v);
-        pick(c, "실수하거나 다시 한 적 있어요?", new String[][]{{"0", "없어요"}, {"1", "1번"}, {"2", "2번 이상"}}, v -> retries = v);
-        Ui.add(this, body, c);
-        if (Store.bioConsent(this)) {
-            LinearLayout b = Ui.card(this);
-            b.addView(Ui.text(this, "몸은 어땠어요? (심박·체온 데이터의 정답이 돼요)", 14, Ui.SUB, false));
-            pick(b, "지금 기분은 어때요?", scale(), v -> mood = Integer.parseInt(v));
-            ends(b, "매우 나쁨", "매우 좋음");
-            pick(b, "얼마나 피곤해요?", scale(), v -> fatigue = Integer.parseInt(v));
-            ends(b, "전혀", "매우 피곤");
-            pick(b, "이번 미션은 얼마나 힘들었어요?", scale(), v -> effort = Integer.parseInt(v));
-            ends(b, "아주 쉬움", "아주 힘듦");
-            TextView q = Ui.text(this, "지금 몸은 어때요? (여러 개 골라도 돼요)", 16, Ui.INK, true);
-            q.setPadding(0, Ui.dp(this, 14), 0, Ui.dp(this, 8));
-            b.addView(q);
-            other = Ui.input(this, "기타 (적어 주세요)", "", 0);
-            other.setVisibility(android.view.View.GONE);
-            LinearLayout grid = new LinearLayout(this);
-            grid.setOrientation(LinearLayout.VERTICAL);
-            String[] opts = {"숨이 차요", "땀이 나요", "손이 차가워요", "근육이 뻐근해요", "기타"};
-            LinearLayout line = null;
-            for (int i = 0; i < opts.length; i++) {
-                if (i % 3 == 0) { line = new LinearLayout(this); grid.addView(line, Ui.margins(this, -1, -2, 0, 0, 0, 0, 6)); }
-                String o = opts[i];
-                TextView ch = Ui.text(this, o, 14, Ui.SUB, true);
-                ch.setGravity(Gravity.CENTER);
-                ch.setPadding(0, Ui.dp(this, 11), 0, Ui.dp(this, 11));
-                ch.setBackground(Ui.round(Ui.FIELD, Ui.dp(this, 12)));
-                ch.setOnClickListener(v -> {
-                    boolean on = !feelings.remove(o);
-                    if (on) feelings.add(o);
-                    ch.setTextColor(on ? android.graphics.Color.WHITE : Ui.SUB);
-                    ch.setBackground(Ui.round(on ? Ui.PRIMARY : Ui.FIELD, Ui.dp(this, 12)));
-                    if (o.equals("기타")) other.setVisibility(on ? android.view.View.VISIBLE : android.view.View.GONE);
-                });
-                line.addView(ch, Ui.margins(this, 0, -2, 1f, 0, 0, 6, 0));
-            }
-            if (line != null) for (int k = opts.length % 3; k > 0 && k < 3; k++) line.addView(new android.view.View(this), Ui.margins(this, 0, 1, 1f, 0, 0, 6, 0));
-            b.addView(grid);
-            b.addView(other, Ui.margins(this, -1, -2, 0, 0, 6, 0, 0));
-            Ui.add(this, body, b);
+        c.addView(Ui.text(this, bio ? "두 번만 누르면 끝나요. 건너뛰어도 보상은 같아요." : "한 번만 누르면 끝나요. 건너뛰어도 보상은 같아요.", 14, Ui.SUB, false));
+        pick(c, "미션은 어땠어요?", new String[][]{{"success:0", "한 번에\n끝냈어요"}, {"success:1", "다시 하고\n끝냈어요"}, {"failed:", "끝내지\n못했어요"}}, v -> {
+            String[] p = v.split(":", -1);
+            outcome = p[0];
+            retries = p[1].isEmpty() ? null : p[1];
+            maybeDone();
+        });
+        if (bio) {
+            pick(c, "얼마나 힘들었어요?", scale(), v -> { effort = Integer.parseInt(v); maybeDone(); });
+            ends(c, "아주 쉬움", "아주 힘듦");
         }
-        Ui.add(this, body, Ui.button(this, "보내기", true, v -> done(false)));
+        Ui.add(this, body, c);
         Ui.add(this, body, Ui.button(this, "건너뛰기", false, v -> done(true)));
+    }
+
+    /** 다 고르면 잠깐(고른 것이 보이게) 뒤 저장. */
+    private void maybeDone() {
+        if (outcome != null && (!bio || effort > 0)) ui.postDelayed(() -> done(false), 350);
     }
 
     private void ends(LinearLayout parent, String lo, String hi) {
@@ -136,13 +109,9 @@ public class SurveyActivity extends Activity {
             JSONObject meta = new JSONObject(Files.read(mf));
             meta.put("outcome", new JSONObject().put("outcome", skipped || outcome == null ? JSONObject.NULL : outcome)
                     .put("retries", skipped || retries == null ? JSONObject.NULL : Integer.parseInt(retries)).put("skipped", skipped));
-            if (Store.bioConsent(this)) {
-                org.json.JSONArray feel = new org.json.JSONArray();
-                for (String x : feelings) feel.put(x.equals("기타") && other != null ? "기타: " + other.getText().toString().trim() : x);
+            if (bio) {
                 meta.put("self_report", new JSONObject().put("effort", skipped || effort == 0 ? JSONObject.NULL : effort)
-                        .put("fatigue", skipped || fatigue == 0 ? JSONObject.NULL : fatigue)
-                        .put("mood", skipped || mood == 0 ? JSONObject.NULL : mood)
-                        .put("body", skipped ? new org.json.JSONArray() : feel).put("version", "survey-v0.2"));
+                        .put("version", "survey-v0.3"));
             }
             Files.write(mf, meta.toString(2));
         } catch (Exception ignored) {
