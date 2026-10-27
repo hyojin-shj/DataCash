@@ -23,6 +23,7 @@ from .. import config
 
 LP_ROOT = Path(os.environ.get("LP_ROOT", Path.home() / "home-data-mission" / "models" / "liveportrait"))
 REID_MAX = 0.30            # SFace 같은 사람 기준 0.363 에 여유
+EXP_RAMP = 0.1             # 표정을 줄인 뒤 장면마다 이만큼씩 되돌린다 (30fps 에서 약 0.3초에 원래대로)
 CROP = 512
 EYE_L, EYE_R, CHIN, MOUTH = (33, 133), (362, 263), 152, (13, 14)
 FACE_OVAL = [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176, 149,
@@ -34,7 +35,9 @@ class SwapReport:
     frames: int = 0
     swapped: int = 0
     no_face: int = 0
-    reid_blocked: int = 0
+    reid_blocked: int = 0           # 표정을 줄여도 알아봐져 모자이크한 장면 (마지막 수단 — 영상이 끊겨 보인다)
+    damped: int = 0                 # 표정을 줄여 다시 만들어 통과한 장면 (모자이크 대신 — 영상이 이어진다)
+    held: int = 0                   # 표정을 다 빼도 닮아 바로 앞 얼굴을 다시 쓴 장면
     small_face_swapped: int = 0     # 작은 얼굴: YuNet 으로 찾고 그 둘레를 키워 478점을 찾아 치환한 장면
     small_face_covered: int = 0     # 그래도 478점을 못 찾은 작은 얼굴 → 모자이크로 가림 (원래 얼굴이 남지 않게)
     family: int = 0                 # 동의한 가족 수 (사람마다 다른 가상 인물)
@@ -145,8 +148,9 @@ class LivePortraitSwap:
     def use(self, st: tuple) -> None:
         self.s_info, self.s_feat, self.s_kp, self.s_R, self.d0 = st
 
-    def drive(self, drive_crop_bgr) -> np.ndarray:
-        """원래 얼굴 crop → 가상 인물이 같은 움직임을 한 512 얼굴 (BGR)."""
+    def drive(self, drive_crop_bgr, exp_scale: float = 1.0) -> np.ndarray:
+        """원래 얼굴 crop → 가상 인물이 같은 움직임을 한 512 얼굴 (BGR).
+        exp_scale: 표정을 얼마나 옮길지 (1 = 그대로, 0 = 고개 움직임만). 표정이 원래 사람을 닮게 만드는 장면에서 줄인다."""
         t = self.torch
         x = self.w.prepare_source(cv2.cvtColor(drive_crop_bgr, cv2.COLOR_BGR2RGB))
         d = self.w.get_kp_info(x)
@@ -156,7 +160,7 @@ class LivePortraitSwap:
         d0, R_d0 = self.d0
         s = self.s_info
         R_new = (R_d @ R_d0.permute(0, 2, 1)) @ self.s_R
-        exp_new = s["exp"] + (d["exp"] - d0["exp"])
+        exp_new = s["exp"] + exp_scale * (d["exp"] - d0["exp"])
         scale_new = s["scale"] * (d["scale"] / d0["scale"])
         t_new = s["t"] + (d["t"] - d0["t"])
         t_new[..., 2] = 0
@@ -259,7 +263,7 @@ def cover_small_faces(base, original, reid: "Reid", participant_box=None) -> int
     return n
 
 
-def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[dict] = None, reid_every: int = 3,
+def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[dict] = None,
                log=print, consented_boxes: Optional[dict] = None, extra_donors: Optional[list] = None,
                family_donors: Optional[dict] = None) -> SwapReport:
     """original: 원래 영상(얼굴·움직임 읽기용), base: 가린 영상(같은 장면 수) 위에 바꾼 얼굴을 붙인다.
@@ -292,7 +296,7 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
     out_path = Path(out_path)
     raw = out_path.with_suffix(".raw.mp4")
     vw = cv2.VideoWriter(str(raw), cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))
-    sims, ok_by_key, i = [], {}, 0
+    sims, scales, last_gen, i = [], {}, {}, 0
     family_order: list = []
     while True:
         ok1, fo = co.read()
@@ -325,20 +329,36 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
                     continue
                 lmk, small = found[0], True
             any_face = True
-            lp.use(person_state(key, 0 if key == "participant" else 1 + family_order.index(key.split(":", 1)[1])))
             M = crop_matrix(lmk)
-            gen = lp.drive(warp_in(fo, M))
-            states[key] = lp.state()                       # 움직임 기준(d0)을 사람마다 이어 간다
-            gl = fl(gen)
-            out = lp.paste(res, gen, M, gl[0] if gl else None)
-            if i % reid_every == 0 or key not in ok_by_key:   # 재식별 검사: 바꾼 얼굴 ↔ 원래 얼굴
-                c = lmk.mean(0)
-                e0, e1 = reid.embed(fo, c), reid.embed(out, c)
-                if e0 is not None and e1 is not None:
-                    sv = reid.sim(e0, e1)
+            crop = warp_in(fo, M)
+            c = lmk.mean(0)
+            e0 = reid.embed(fo, c)
+            # 재식별 검사를 장면마다: 바꾼 얼굴이 원래 사람과 닮으면 모자이크(영상이 끊긴다) 대신 표정을 줄여 다시 만든다
+            start = min(1.0, scales.get(key, 1.0) + EXP_RAMP)       # 줄였던 표정은 조금씩 되돌린다 (깜빡이지 않게)
+            out, ok, used_scale = None, False, start
+            for es in dict.fromkeys((start, start * 0.5, 0.0)):
+                lp.use(person_state(key, 0 if key == "participant" else 1 + family_order.index(key.split(":", 1)[1])))
+                gen = lp.drive(crop, es)
+                gl = fl(gen)
+                out, used_scale = lp.paste(res, gen, M, gl[0] if gl else None), es
+                e1 = reid.embed(out, c) if e0 is not None else None
+                sv = reid.sim(e0, e1) if e1 is not None else None
+                if sv is not None:
                     sims.append(sv)
-                    ok_by_key[key] = sv < REID_MAX
-            if not ok_by_key.get(key, True):               # 알아봐지면 (옆얼굴 등) 원래 얼굴 둘레를 굵은 모자이크로
+                if sv is None or sv < REID_MAX:
+                    ok = True
+                    break
+            states[key] = lp.state()                       # 움직임 기준(d0)을 사람마다 이어 간다
+            scales[key] = used_scale
+            if ok:
+                last_gen[key] = gen
+            elif key in last_gen:                          # 그래도 닮으면 바로 앞 통과한 얼굴을 지금 자리에 (한 장면 멈춤은 티가 안 난다)
+                held = lp.paste(res, last_gen[key], M, None)
+                e1 = reid.embed(held, c) if e0 is not None else None
+                if e1 is None or reid.sim(e0, e1) < REID_MAX:
+                    out, ok = held, True
+                    rep.held += 1
+            if not ok:                                     # 그래도 알아봐지면 — 그때만 모자이크
                 x0, y0 = lmk.min(0)
                 x1, y1 = lmk.max(0)
                 pad = 0.25 * max(x1 - x0, y1 - y0)
@@ -347,6 +367,7 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
                 rep.reid_blocked += 1
             else:
                 rep.swapped += 1
+                rep.damped += used_scale < 1.0
                 rep.small_face_swapped += small
             res = out
         if not any_face:
