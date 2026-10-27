@@ -179,7 +179,14 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
             mine = people.donor_for(dev, "owner") if people is not None else None      # 본인이 고른 가상 인물
             fam = {oid: people.donor_for(dev, pid) for oid, pid in getattr(r, "consented_who", {}).items()} if people is not None else {}
             if donors:
-                sr = swap_video(video, masked, out / "masked_swap.mp4", mine or donors[0],
+                first = mine
+                if first is None:                      # 본인이 고르지 않았으면: 닮은 순서대로 시험해 너무 닮게 나오지 않는 사람
+                    from .privacy.faceswap import pick_donor
+
+                    first, tried = pick_donor(video, donors, log=log)
+                    report["donor_trial"] = tried
+                    donors = [first] + [d for d in donors if d != first]
+                sr = swap_video(video, masked, out / "masked_swap.mp4", first,
                                 participant_boxes=getattr(r, "participant_boxes", None), log=log,
                                 consented_boxes=getattr(r, "consented_boxes", None), extra_donors=donors[1:],
                                 family_donors={k: v for k, v in fam.items() if v})

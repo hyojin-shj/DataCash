@@ -399,6 +399,73 @@ def _age_num(band: Optional[str]) -> Optional[int]:
     return 20 if band.startswith("19") else int(digits[:2]) if digits else None
 
 
+OVER_LIMIT = 0.5          # 시험 장면 가운데 같은 사람 기준을 넘는 비율이 이보다 크면 다음으로 닮은 사람
+TRIAL_FRAMES = 20
+TRIAL_DONORS = 4
+
+
+def over_rate(original_video, donor: Path, frames: int = TRIAL_FRAMES, lp: Optional["LivePortraitSwap"] = None,
+              fl: Optional["FaceLandmarks"] = None, reid: Optional["Reid"] = None) -> Optional[float]:
+    """영상 곳곳 몇 장면을 이 가상 인물로 실제처럼(표정 그대로 → 반 → 고개만) 바꿔 보고, 셋 다 같은 사람 기준을 넘는 장면 비율."""
+    fl, reid, lp = fl or FaceLandmarks(), reid or Reid(), lp or LivePortraitSwap()
+    img = cv2.imread(str(donor))
+    dl = fl(img) if img is not None else []
+    if not dl:
+        return None
+    cap = cv2.VideoCapture(str(original_video))
+    n = int(cap.get(7))
+    over = seen = 0
+    st = None
+    for i in np.linspace(0, max(0, n - 10), frames).astype(int):
+        cap.set(cv2.CAP_PROP_POS_FRAMES, int(i))
+        ok, f = cap.read()
+        found = fl(f) if ok else []
+        if not found:
+            continue
+        lmk = max(found, key=lambda a: np.ptp(a[:, 0]) * np.ptp(a[:, 1]))
+        c = lmk.mean(0)
+        e0 = reid.embed(f, c)
+        if e0 is None:
+            continue
+        M = crop_matrix(lmk)
+        crop = warp_in(f, M)
+        if st is None:                       # 실제 치환처럼 첫 장면을 움직임 기준으로 이어 간다
+            lp.source(img, dl[0])
+        else:
+            lp.use(st)
+        best = None
+        for es in (1.0, 0.5, 0.0):
+            g = lp.drive(crop, es)
+            gl = fl(g)
+            e1 = reid.embed(lp.paste(f, g, M, gl[0] if gl else None), c)
+            sv = reid.sim(e0, e1) if e1 is not None else 0.0
+            best = sv if best is None else min(best, sv)
+            if st is None:
+                st = lp.state()
+            if sv < REID_MAX:
+                break
+        seen += 1
+        over += best >= REID_MAX
+    cap.release()
+    return over / seen if seen else None
+
+
+def pick_donor(original_video, ranked: List[Path], log=print) -> tuple:
+    """닮은 순서(rank_donors)대로 시험해, 같은 사람 기준을 넘는 장면이 OVER_LIMIT 이하인 첫 사람.
+    (가장 닮은 사람이 어떤 영상에서는 거의 본인처럼 나왔다 — 점심 녹화 티슈 ②, 87% 장면이 기준을 넘음.)
+    모두 넘으면 시험한 가운데 가장 덜 넘은 사람. (고른 사람, {이름: 넘은 비율})"""
+    fl, reid, lp = FaceLandmarks(), Reid(), LivePortraitSwap()
+    tried = {}
+    for d in ranked[:TRIAL_DONORS]:
+        r = over_rate(original_video, d, lp=lp, fl=fl, reid=reid)
+        tried[d.stem] = None if r is None else round(r, 2)
+        log(f"가상 인물 시험 {d.stem}: 기준 넘음 {tried[d.stem]}")
+        if r is not None and r <= OVER_LIMIT:
+            return d, tried
+    ok = [d for d in ranked[:TRIAL_DONORS] if tried.get(d.stem) is not None]
+    return (min(ok, key=lambda d: tried[d.stem]) if ok else ranked[0]), tried
+
+
 def rank_donors(original_video, donors_dir=None, gender: Optional[str] = None, age_band: Optional[str] = None) -> List[Path]:
     """가상 인물 순서 (첫째는 참여자, 다음은 동의한 가족에게).
     같은 성별 · 나이 차 AGE_SPAN 안에서 사진이 가장 닮은 사람부터 — 닮을수록 치환이 자연스럽다 (점심 녹화 의견:

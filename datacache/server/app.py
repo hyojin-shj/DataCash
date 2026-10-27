@@ -80,7 +80,6 @@ WEB = config.ROOT / "web"
 class Store:
     def __init__(self, root: Path, token: str, use_api: bool = True):
         self.root, self.token, self.use_api = root, token, use_api
-        self.purge = os.environ.get("DATACACHE_KEEP_ORIGINALS") != "1"     # 원본은 처리하는 동안만 (끄려면 1)
         for d in ("sessions", "out", "status", "orders", "bundles"):
             (root / d).mkdir(parents=True, exist_ok=True)
         self.q: Queue = Queue()
@@ -120,11 +119,12 @@ class Store:
                                   calibration_store=self.root / "grip_calibration", people=self.people,
                                   extra_missions=self.requests.live_missions())
                 fin = self.set_status(sid, state="done" if "error" not in rep else "rejected", **rep)
-                if self.purge:                   # 처리가 끝나면(승인·반려) 원본은 바로 지운다. 서버 오류(failed)면 다시 처리하도록 둔다
-                    from ..jobs import purge_originals
-
-                    fin = self.set_status(sid, originals_deleted=purge_originals(self.root / "sessions" / sid, self.root / "out" / sid),
-                                          originals_deleted_at=datetime.now(timezone.utc).isoformat(timespec="seconds"))
+                # 실제 서비스: 처리가 끝나면(승인·반려) 원본은 바로 지운다. 서버 오류(failed)면 다시 처리하도록 둔다.
+                # 해커톤 시연에서는 원본 ↔ 치환 비교를 보여 줘야 해서 지우지 않는다 — 서비스에서는 아래 주석을 푼다.
+                # from ..jobs import purge_originals
+                #
+                # fin = self.set_status(sid, originals_deleted=purge_originals(self.root / "sessions" / sid, self.root / "out" / sid),
+                #                       originals_deleted_at=datetime.now(timezone.utc).isoformat(timespec="seconds"))
             except Exception as e:
                 fin = self.set_status(sid, state="failed", error=f"{type(e).__name__}: {str(e)[:300]}")
             self.appeals.reprocessed(sid, fin)
