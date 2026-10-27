@@ -75,6 +75,14 @@
   .checks { display: flex; flex-wrap: wrap; gap: 8px; }
   .checks label { border: 1px solid var(--line); border-radius: 99px; padding: 6px 12px; font-size: 13px; cursor: pointer; background: #fff; }
   .checks input { display: none; }
+  .sens { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .sens label { display: block; border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; cursor: pointer; background: #fff; }
+  .sens label.on { border-color: var(--primary); background: #FFF6F6; }
+  .sens label.fixed { cursor: default; opacity: .9; }
+  .sens input { display: none; }
+  .sens b { display: block; font-size: 14px; } .sens .p { float: right; font-weight: 700; color: var(--primary-dark); font-size: 13px; }
+  .sens .d { font-size: 12px; color: var(--sub); margin-top: 4px; line-height: 1.45; }
+  @media (max-width: 960px) { .sens { grid-template-columns: 1fr; } }
   .checks label.on { background: var(--primary-soft); border-color: var(--primary); color: var(--primary-dark); font-weight: 700; }
   .note { font-size: 12px; color: var(--sub); }
   .steps { margin: 12px 0 0; padding: 0; list-style: none; font-size: 13px; }
@@ -156,8 +164,13 @@
 
 <section id="buy" style="background:#fff;border-top:1px solid var(--line)"><div class="wrap">
   <h2>등급과 가격</h2>
-  <p class="lead">받아들인(검수 통과) 시간 기준. 라벨 붙은 1인칭 데이터 시장가(시간당 $30~60)를 기준으로 잡았습니다.</p>
+  <p class="lead">받아들인(검수 통과) 시간 기준. 라벨 붙은 1인칭 데이터 시장가(시간당 $30~60)를 기준으로 잡았습니다.
+    등급은 미리 맞춘 센서 조합이고, 아래에서 센서 묶음을 하나씩 골라 살 수도 있어요.</p>
   <div class="levels" id="levels"></div>
+  <div class="card" style="margin-top:20px">
+    <h3 style="margin-top:0">센서 묶음 고르기 <span class="note" id="sensSum"></span></h3>
+    <div class="sens" id="sensors"></div>
+  </div>
   <div class="quote" style="margin-top:28px">
     <div class="card">
       <h3 style="margin-top:0">견적</h3>
@@ -205,7 +218,16 @@ async function load() {
   $("#levels").innerHTML = CAT.levels.map(l => `<div class="card level ${l.id === LEVEL ? "sel" : ""}" data-l="${l.id}" style="cursor:pointer">
     <h3>${esc(l.name)}</h3><div class="price">${won(l.per_hour)}<small> / 시간</small></div>
     <div class="note">분당 ${won(l.per_hour / 60)} · 촬영자 보상 시간당 ${won(l.reward_per_hour)}</div><p>${esc(l.desc)}</p></div>`).join("");
-  document.querySelectorAll(".level").forEach(e => e.onclick = () => { LEVEL = e.dataset.l; load_levels(); quote(); });
+  document.querySelectorAll(".level").forEach(e => e.onclick = () => { LEVEL = e.dataset.l; SENS = null; load_levels(); quote(); });
+  $("#sensors").innerHTML = CAT.sensors.map(x => `<label data-s="${esc(x.id)}" class="${x.id === "video" ? "fixed" : ""}"><input type="checkbox" value="${esc(x.id)}">
+    <b>${esc(x.name)}<span class="p">+${won(x.per_hour)}/시간</span></b><div class="d">${esc(x.desc)}</div></label>`).join("");
+  document.querySelectorAll("#sensors label").forEach(l => l.onclick = e => {
+    e.preventDefault();
+    if (l.dataset.s === "video") return;
+    const cur = new Set(sensorsNow()); cur.has(l.dataset.s) ? cur.delete(l.dataset.s) : cur.add(l.dataset.s);
+    SENS = [...cur]; load_levels(); quote();
+  });
+  load_levels();
   $("#mChecks").innerHTML = CAT.missions.map(m => `<label><input type="checkbox" value="${esc(m.id)}">${esc(m.title)}</label>`).join("");
   document.querySelectorAll("#mChecks label").forEach(l => l.onclick = e => { setTimeout(() => { l.classList.toggle("on", l.querySelector("input").checked); quote(); }, 0); });
   const samples = CAT.missions.flatMap(m => m.samples.map(s => ({s, m})));
@@ -214,7 +236,14 @@ async function load() {
   if (samples.length) loadSample(samples[0].s);
   quote();
 }
-function load_levels() { document.querySelectorAll(".level").forEach(e => e.classList.toggle("sel", e.dataset.l === LEVEL)); }
+let SENS = null;   // 직접 고른 센서 묶음 (null 이면 등급의 조합)
+function sensorsNow() { return SENS || (CAT.levels.find(l => l.id === LEVEL) || CAT.levels[0]).sensors; }
+function load_levels() {
+  const now = new Set(sensorsNow()), preset = CAT.levels.find(l => l.sensors.length === now.size && l.sensors.every(s => now.has(s)));
+  document.querySelectorAll(".level").forEach(e => e.classList.toggle("sel", !!preset && e.dataset.l === preset.id));
+  document.querySelectorAll("#sensors label").forEach(l => l.classList.toggle("on", now.has(l.dataset.s) || l.dataset.s === "video"));
+  $("#sensSum").textContent = preset ? `· ${preset.name} 등급 조합` : "· 맞춤 조합";
+}
 
 async function loadSample(sid) {
   SID = sid; $("#cert").hidden = true;
@@ -263,9 +292,10 @@ $("#chart").onclick = e => { if (!TL) return; const r = e.target.getBoundingClie
 
 function picked() { return [...document.querySelectorAll("#mChecks input:checked")].map(i => i.value); }
 async function quote() {
-  const body = {missions: picked(), level: LEVEL, hours: +$("#hours").value || 1, custom: $("#custom").checked, refine: $("#refine").checked};
+  const body = {missions: picked(), level: LEVEL, sensors: sensorsNow(), hours: +$("#hours").value || 1, custom: $("#custom").checked, refine: $("#refine").checked};
   const q = await (await fetch("/api/market/quote", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)})).json();
   $("#qLines").innerHTML = `<div><span>${esc(q.level_ko)} · ${q.hours}시간 × ${won(q.per_hour)}</span><span>${won(q.data)}</span></div>` +
+    `<div><span class="note">${(q.sensors_ko || []).map(esc).join(" · ")}</span><span></span></div>` +
     (q.discount_pct ? `<div><span>묶음 할인</span><span>${q.discount_pct}% 적용</span></div>` : "") +
     (q.setup ? `<div><span>맞춤 수집 착수비</span><span>${won(q.setup)}</span></div>` : "") +
     (q.refine ? `<div><span>정제 요청</span><span>${won(q.refine)}</span></div>` : "");
@@ -274,7 +304,7 @@ async function quote() {
 }
 ["#hours", "#custom", "#refine"].forEach(s => $(s).oninput = quote);
 $("#orderBtn").onclick = async () => {
-  const body = {missions: picked(), level: LEVEL, hours: +$("#hours").value || 1, custom: $("#custom").checked, refine: $("#refine").checked,
+  const body = {missions: picked(), level: LEVEL, sensors: sensorsNow(), hours: +$("#hours").value || 1, custom: $("#custom").checked, refine: $("#refine").checked,
                 org: $("#org").value, email: $("#email").value, note: $("#note").value};
   const r = await fetch("/api/market/orders", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
   const o = await r.json();

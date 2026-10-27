@@ -73,3 +73,23 @@ def test_face_check_segment_left_out(synth_session, synth_tracks, tmp_path):
     ts = t.column("timestamp").to_pylist()
     full = len(np.loadtxt(d2 / "video_frames.csv", delimiter=",", skiprows=1))
     assert ts[0] == 0.0 and abs(len(ts) - (full - 30 * 3.3)) <= 3      # 3.3초(얼굴 확인 + 여유) 뒤부터만
+
+
+def test_buy_by_sensor_pack(synth_session, synth_tracks, tmp_path):
+    """센서 묶음을 골라 산다: 영상(필수) + 관절 + 촉각 → 묶음에 그 채널만, 값은 묶음 합."""
+    import json
+
+    from datacache import pricing
+    from datacache.export.bundle import merge
+    from datacache.pipeline import process
+
+    d, _ = synth_session
+    hand, objs, _ = synth_tracks
+    process(d, tmp_path / "r1", hand_points=hand, objects=objs, extract=False)
+    q = pricing.quote(10, sensors=["pose", "touch"])
+    assert q["sensors"] == ["video", "pose", "touch"] and q["per_hour"] == 35_000 + 20_000 + 25_000 and q["level_ko"] == "맞춤 조합"
+    assert pricing.quote(1, "premium")["per_hour"] == pricing.PER_HOUR["premium"]          # 등급 = 미리 맞춘 조합
+    ds = merge([tmp_path / "r1"], tmp_path / "b", sensors=["pose", "touch"])
+    f = set(json.loads((ds / "meta" / "info.json").read_text())["features"])
+    assert {"observation.hands", "observation.touch", "observation.touch.vibration", "annotation.primitive"} <= f
+    assert not f & {"observation.physio", "observation.audio", "observation.imu.wrist"}

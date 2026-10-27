@@ -172,8 +172,10 @@ class Store:
                         "steps": sum(r["steps"] for r in mine), "samples": [r["sid"] for r in mine][:4],
                         "synthetic_only": all(r["synthetic"] for r in mine)})
         return {"brand": config.BRAND, "levels": [{"id": lv, "name": pricing.LEVEL_KO[lv], "desc": pricing.LEVEL_DESC[lv],
-                                                   "per_hour": pricing.PER_HOUR[lv], "reward_per_hour": pricing.REWARD_PER_HOUR[lv]}
+                                                   "per_hour": pricing.PER_HOUR[lv], "reward_per_hour": pricing.REWARD_PER_HOUR[lv],
+                                                   "sensors": pricing.PRESETS[lv]}
                                                   for lv in pricing.LEVELS],
+                "sensors": [{"id": k, "name": v[0], "desc": v[1], "per_hour": v[2], "channels": v[3]} for k, v in pricing.SENSORS.items()],
                 "missions": out, "totals": {"recordings": len(rows), "hours": round(sum(r["minutes"] for r in rows) / 60, 3)},
                 "pricing": {"custom_mult": pricing.CUSTOM_MULT, "custom_min_hours": pricing.CUSTOM_MIN_HOURS,
                             "custom_setup": pricing.CUSTOM_SETUP, "discounts": pricing.DISCOUNTS}}
@@ -193,21 +195,27 @@ class Store:
     def save_order(self, o: dict) -> None:
         self._order_path(o["id"]).write_text(json.dumps(o, indent=2, ensure_ascii=False))
 
-    def sources(self, missions: List[str], level: str) -> List[Path]:
-        lv = pricing.LEVELS.index(level)
+    def sources(self, missions: List[str], level: str, sensors: Optional[list] = None) -> List[Path]:
+        """미션 · 고른 센서 묶음의 채널이 다 들어 있는 녹화."""
+        need = pricing.required_channels(pricing.sensors_for(level if level in pricing.LEVELS else None, sensors))
         return [self.root / "out" / r["sid"] for r in self.accepted()
-                if (not missions or r["mission"] in missions) and pricing.LEVELS.index(r["level"]) >= lv]
+                if (not missions or r["mission"] in missions) and need <= set(r["features"])]
+
+    def available_hours(self, missions: List[str], level: str, sensors: Optional[list] = None) -> float:
+        need = pricing.required_channels(pricing.sensors_for(level if level in pricing.LEVELS else None, sensors))
+        return round(sum(r["minutes"] for r in self.accepted()
+                         if (not missions or r["mission"] in missions) and need <= set(r["features"])) / 60, 3)
 
     def build_bundle(self, oid: str) -> None:
         from ..export.bundle import merge
 
         o = self.order(oid)
         try:
-            srcs = self.sources(o["missions"], o["level"])
+            srcs = self.sources(o["missions"], o["level"], o.get("sensors"))
             if not srcs:
                 raise RuntimeError("조건에 맞는 녹화가 없음")
             work = self.root / "bundles" / oid
-            ds = merge(srcs, work / "dataset", o["level"])
+            ds = merge(srcs, work / "dataset", o["level"], o.get("sensors"))
             zp = shutil.make_archive(str(work / f"datacache_{oid}"), "zip", ds)
             shutil.rmtree(ds)
             o.update(status="ready", file=zp, size_mb=round(os.path.getsize(zp) / 1e6, 2), key=secrets.token_urlsafe(24),
@@ -221,6 +229,7 @@ class Store:
 class QuoteIn(BaseModel):
     missions: List[str] = Field(default_factory=list)
     level: str = "basic"
+    sensors: Optional[List[str]] = None       # 센서 묶음을 골라 사기 (없으면 등급의 조합)
     hours: float = 1.0
     custom: bool = False
     refine: bool = False
@@ -594,21 +603,21 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
     @app.post("/api/market/quote")
     def quote(q: QuoteIn):
         try:
-            r = pricing.quote(q.hours, q.level, q.custom, q.refine)
+            r = pricing.quote(q.hours, q.level, q.custom, q.refine, q.sensors)
         except ValueError as e:
             raise HTTPException(400, str(e))
-        avail = round(sum(r_["minutes"] for r_ in st.accepted()
-                          if (not q.missions or r_["mission"] in q.missions)
-                          and pricing.LEVELS.index(r_["level"]) >= pricing.LEVELS.index(q.level)) / 60, 3)
-        return {**r, "available_hours": avail, "missions": q.missions}
+        return {**r, "available_hours": st.available_hours(q.missions, q.level, q.sensors), "missions": q.missions}
 
     @app.post("/api/market/orders")
     def order(o: OrderIn):
         if not o.org.strip() or not EMAIL.match(o.email):
             raise HTTPException(400, "기관 이름과 이메일을 확인해 주세요")
-        q = pricing.quote(o.hours, o.level, o.custom, o.refine)
+        try:
+            q = pricing.quote(o.hours, o.level, o.custom, o.refine, o.sensors)
+        except ValueError as e:
+            raise HTTPException(400, str(e))
         rec = {"id": secrets.token_urlsafe(12), "org": o.org.strip()[:120], "email": o.email.strip()[:200],
-               "note": o.note[:1000], "missions": o.missions, "level": o.level, "quote": q, "status": "pending",
+               "note": o.note[:1000], "missions": o.missions, "level": q["level"], "sensors": q["sensors"], "quote": q, "status": "pending",
                "created": datetime.now(timezone.utc).isoformat(timespec="seconds")}
         st.save_order(rec)
         return {k: rec[k] for k in ("id", "status", "quote")}

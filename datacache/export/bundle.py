@@ -1,4 +1,4 @@
-"""구매 묶음 — 여러 녹화의 LeRobot 데이터셋을 하나로 합치고, 산 등급에 없는 채널을 뺀다.
+"""구매 묶음 — 여러 녹화의 LeRobot 데이터셋을 하나로 합치고, 산 센서 묶음(또는 등급)에 없는 채널을 뺀다.
 
 영상은 다시 압축하지 않고 이어 붙인다 (크기가 다르면 첫 데이터셋 크기로 맞춰 다시 압축). 에피소드 번호·index 를 새로 매기고,
 녹화별 품질 인증서를 certificates/ 에 함께 넣는다.
@@ -9,27 +9,28 @@ from __future__ import annotations
 import json
 import shutil
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
 
 from ..media import run
-from .channels import LEVEL_DROP
+from .. import pricing
 from .lerobot import VIDEO_KEY, _stats
 
 META_COLS = ("timestamp", "frame_index", "episode_index", "index", "task_index")
 
 
-def merge(sources: List[Path], out_dir, level: str) -> Path:
-    """sources: 녹화별 out 폴더 (안에 lerobot/·certificate.*)."""
+def merge(sources: List[Path], out_dir, level: str = "basic", sensors: Optional[list] = None) -> Path:
+    """sources: 녹화별 out 폴더 (안에 lerobot/·certificate.*). sensors: 산 센서 묶음 (없으면 등급의 조합)."""
     out = Path(out_dir)
     if out.exists():
         shutil.rmtree(out)
-    drop = LEVEL_DROP[level]
+    sel = pricing.sensors_for(level if level in pricing.LEVELS else None, sensors)
+    keep_ch = pricing.channels_for(sel) | {VIDEO_KEY}
     infos = [json.loads((Path(s) / "lerobot" / "meta" / "info.json").read_text()) for s in sources]
-    common = set.intersection(*[set(i["features"]) for i in infos]) - drop
+    common = set.intersection(*[set(i["features"]) for i in infos]) & (keep_ch | set(META_COLS))
     fps = infos[0]["fps"]
     tasks: List[str] = []
     data_tables, ep_rows, videos = [], [], []
@@ -56,7 +57,7 @@ def merge(sources: List[Path], out_dir, level: str) -> Path:
         data_tables.append(pa.table(cols))
         for k, e in enumerate(eps):
             r = {kk: v for kk, v in e.items() if not (kk.startswith("stats/") and kk.split("/")[1] not in common)}
-            if level != "bio":
+            if "physio" not in sel:
                 r["human_state"] = ""
             off = total - e["dataset_from_index"]
             r.update({"episode_index": ep_i + k, "dataset_from_index": e["dataset_from_index"] + off,
@@ -95,6 +96,8 @@ def merge(sources: List[Path], out_dir, level: str) -> Path:
     info = dict(infos[0])
     info["features"] = {k: v for k, v in infos[0]["features"].items() if k in common or k in META_COLS}
     info.update(total_episodes=ep_i, total_frames=total, total_tasks=len(tasks), splits={"train": f"0:{ep_i}"},
-                datacache={"level": level, "channels_dropped": sorted(drop), "sources": [Path(s).name for s in sources]})
+                datacache={"level": pricing.level_of(sel), "sensors": sel,
+                           "channels_dropped": sorted(set(infos[0]["features"]) - common - set(META_COLS)),
+                           "primitives": (infos[0].get("datacache") or {}).get("primitives"), "sources": [Path(s).name for s in sources]})
     (out / "meta" / "info.json").write_text(json.dumps(info, indent=2, ensure_ascii=False))
     return out
