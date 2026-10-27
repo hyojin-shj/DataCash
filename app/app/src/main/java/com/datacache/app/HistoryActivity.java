@@ -21,8 +21,10 @@ public class HistoryActivity extends Activity {
     private void poll() {
         if (!visible) return;
         new Thread(() -> {
+            String before = Uploader.signature(this);
             Uploader.refreshPending(this);
-            ui.post(() -> { if (visible) { render(); Payout.checkNew(this); ui.postDelayed(this::poll, 5000); } });
+            boolean changed = !before.equals(Uploader.signature(this));
+            ui.post(() -> { if (visible) { if (changed) render(); Payout.checkNew(this); ui.postDelayed(this::poll, 5000); } });
         }).start();
     }
 

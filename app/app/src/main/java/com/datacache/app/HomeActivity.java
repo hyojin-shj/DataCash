@@ -60,8 +60,15 @@ public class HomeActivity extends Activity {
     private void poll() {
         if (!visible) return;
         new Thread(() -> {
+            String before = Uploader.signature(this);
             Uploader.refreshPending(this);
-            ui.post(() -> { if (visible) { Payout.checkNew(this); ui.postDelayed(this::poll, 5000); } });
+            boolean changed = !before.equals(Uploader.signature(this));
+            ui.post(() -> {
+                if (!visible) return;
+                if (changed) render();          // 바뀐 게 있을 때만 다시 그린다 (스크롤이 튀지 않게)
+                Payout.checkNew(this);
+                ui.postDelayed(this::poll, 5000);
+            });
         }).start();
     }
 

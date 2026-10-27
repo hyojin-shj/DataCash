@@ -110,6 +110,18 @@ final class Uploader {
         }
     }
 
+    /** 내 녹화들의 상태 요약 (바뀌었는지 보는 데만 쓴다). */
+    static String signature(Context c) {
+        StringBuilder b = new StringBuilder();
+        for (File d : Store.sessions(c)) {
+            JSONObject st = localState(d);
+            JSONObject py = st.optJSONObject("payout");
+            b.append(d.getName()).append(st.optString("state")).append(st.optInt("reward")).append(st.optInt("appeal_extra"))
+                    .append(py == null ? "" : py.optString("status")).append(';');
+        }
+        return b.toString();
+    }
+
     static JSONObject localState(File dir) {
         try {
             File f = new File(dir, "upload.json");
