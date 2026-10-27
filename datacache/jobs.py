@@ -170,8 +170,7 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
                 sr = swap_video(video, masked, out / "masked_swap.mp4", mine or donors[0],
                                 participant_boxes=getattr(r, "participant_boxes", None), log=log,
                                 consented_boxes=getattr(r, "consented_boxes", None), extra_donors=donors[1:],
-                                family_donors={k: v for k, v in fam.items() if v},
-                                hand_pts=[[h[FINGERTIPS, :2] for h in f.hands if h is not None] for f in labels] if labels else None)
+                                family_donors={k: v for k, v in fam.items() if v})
                 masked = out / "masked_swap.mp4"
                 privacy = {**(privacy or {}), "face_swap": sr.to_dict()}
         except Exception as e:

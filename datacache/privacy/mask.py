@@ -27,6 +27,7 @@ PEOPLE = ("person",)
 CHILD = ("child",)
 SENSITIVE = ("television screen", "computer monitor", "mirror", "picture frame", "document")
 SAM_FPS = 10.0          # 30fps 영상이면 3장면에 하나 → SAM 값이 1/3
+CHILD_IS_PARTICIPANT = 0.6   # 'child' 마스크가 참여자 마스크와 이만큼 겹치면 같은 사람
 HOLD_EXTRA_PX = 10      # 빌려 쓴 마스크는 그 사이 움직임만큼 더 넓게 (1장면 ≈ 33ms)
 
 
@@ -236,6 +237,7 @@ def mask_video(video, out_path, manipulated: Sequence[str] = (), participant: Op
     pboxes: Dict[int, tuple] = {}
     cboxes: Dict[int, List[tuple]] = {}
     kept_parts = 0
+    child_was_participant = 0
     while True:
         ok, f = cap.read()
         if not ok:
@@ -262,8 +264,13 @@ def mask_video(video, out_path, manipulated: Sequence[str] = (), participant: Op
                 hide |= o.mask
         for c in (*concepts_child, *concepts_sensitive):
             for o in tracks[c].get(fi, []):
-                if o.mask is not None:
-                    hide |= o.mask
+                if o.mask is None:
+                    continue
+                if c in concepts_child and p_obj is not None and p_obj.mask is not None \
+                        and (o.mask & p_obj.mask).sum() > CHILD_IS_PARTICIPANT * max(1, o.mask.sum()):
+                    child_was_participant += 1      # SAM 이 어른 참여자를 'child' 로도 잡았다 (점심 녹화 70장면) → 가리지 않음
+                    continue
+                hide |= o.mask
         if hide.any():
             hide = cv2.dilate(hide.astype(np.uint8), kernel) > 0
             f[hide] = GRAY
