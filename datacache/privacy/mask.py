@@ -247,7 +247,7 @@ def mask_video(video, out_path, manipulated: Sequence[str] = (), participant: Op
         pb = tuple(float(v) for v in p_obj.box) if p_obj is not None else None
         for hp in mine:
             pb = _union(pb, _box_of(hp, 0.6))      # 손끝만 있으므로 손·손목까지 덮게 넉넉히
-        if pb is not None:
+        if pb is not None and p_obj is not None:   # 사람 추적이 없으면(혼자라 SAM 에 안 물음) 손만으로 참여자 상자를 만들지 않는다
             pboxes[fi] = (max(0.0, pb[0]), max(0.0, pb[1]), min(float(w), pb[2]), min(float(h), pb[3]))
         for c in concepts_people:
             for o in tracks[c].get(fi, []):

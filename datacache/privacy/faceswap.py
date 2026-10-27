@@ -20,6 +20,7 @@ import cv2
 import numpy as np
 
 from .. import config
+from .mask import GRAY
 
 LP_ROOT = Path(os.environ.get("LP_ROOT", Path.home() / "home-data-mission" / "models" / "liveportrait"))
 REID_MAX = 0.30            # SFace 같은 사람 기준 0.363 에 여유
@@ -37,6 +38,7 @@ class SwapReport:
     reid_blocked: int = 0
     small_face_swapped: int = 0     # 작은 얼굴: YuNet 으로 찾고 그 둘레를 키워 478점을 찾아 치환한 장면
     small_face_covered: int = 0     # 그래도 478점을 못 찾은 작은 얼굴 → 모자이크로 가림 (원래 얼굴이 남지 않게)
+    leak_covered: int = 0           # 마지막 지킴: 치환·가리기 뒤에도 원래 얼굴이 보인 장면 → 모자이크
     family: int = 0                 # 동의한 가족 수 (사람마다 다른 가상 인물)
     reid_max: float = 0.0
     reid_mean: float = 0.0
@@ -259,12 +261,53 @@ def cover_small_faces(base, original, reid: "Reid", participant_box=None) -> int
     return n
 
 
+GUARD_SURE = 0.9      # YuNet 이 이만큼 확실하면 바로 덮는다. 그 아래는 MediaPipe 가 얼굴로 확인해야 덮는다
+                      # (점심 녹화: 컵 쥔 손을 YuNet 이 0.78~0.83 으로 얼굴로 봤다 — 손을 덮으면 손 데이터가 망가진다)
+
+
+def _confirm_face(img, x, y, fw, fh, fl: "FaceLandmarks") -> bool:
+    h, w = img.shape[:2]
+    cx, cy, side = x + fw / 2, y + fh / 2, 2.2 * max(fw, fh)
+    x0, y0, x1, y1 = int(max(0, cx - side / 2)), int(max(0, cy - side / 2)), int(min(w, cx + side / 2)), int(min(h, cy + side / 2))
+    if x1 - x0 < 8 or y1 - y0 < 8:
+        return False
+    k = SMALL_TARGET / max(x1 - x0, y1 - y0)
+    return bool(fl(cv2.resize(img[y0:y1, x0:x1], None, fx=k, fy=k, interpolation=cv2.INTER_CUBIC)))
+
+
+def guard_faces(res, original, reid: "Reid", done_boxes, fl: Optional["FaceLandmarks"] = None, fingertips=None) -> int:
+    """원래 장면에서 찾은 얼굴 가운데, 바꾼 자리도 아니고 회색으로 가린 자리도 아닌 것 → 결과 장면에서 모자이크. 덮은 개수.
+    확실하지 않은 것(YuNet < GUARD_SURE)은 참여자 손끝이 2개 이상 들어 있으면 손으로 보고, 아니면 MediaPipe 확인을 거친다."""
+    tips = np.concatenate([np.asarray(t, np.float32).reshape(-1, 2) for t in fingertips]) if fingertips else np.zeros((0, 2), np.float32)
+    h, w = original.shape[:2]
+    reid.det.setInputSize((w, h))
+    _, faces = reid.det.detect(original)
+    n = 0
+    for f in faces if faces is not None else []:
+        x, y, fw, fh = (float(v) for v in f[:4])
+        cx, cy = x + fw / 2, y + fh / 2
+        if any(b[0] <= cx <= b[2] and b[1] <= cy <= b[3] for b in done_boxes):
+            continue
+        xi, yi = int(min(w - 1, max(0, cx))), int(min(h - 1, max(0, cy)))
+        if np.abs(res[yi, xi].astype(int) - np.array(GRAY)).max() <= 3:      # SAM 이 이미 회색으로 가린 사람
+            continue
+        if float(f[-1]) < GUARD_SURE:
+            inside = ((tips[:, 0] >= x) & (tips[:, 0] <= x + fw) & (tips[:, 1] >= y) & (tips[:, 1] <= y + fh)).sum()
+            if inside >= 2 or fl is None or not _confirm_face(original, x, y, fw, fh, fl):
+                continue
+        pad = 0.35 * max(fw, fh)
+        pixelate(res, int(x - pad), int(y - pad), int(x + fw + pad), int(y + fh + pad))
+        n += 1
+    return n
+
+
 def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[dict] = None, reid_every: int = 3,
                log=print, consented_boxes: Optional[dict] = None, extra_donors: Optional[list] = None,
-               family_donors: Optional[dict] = None) -> SwapReport:
+               family_donors: Optional[dict] = None, hand_pts: Optional[list] = None) -> SwapReport:
     """original: 원래 영상(얼굴·움직임 읽기용), base: 가린 영상(같은 장면 수) 위에 바꾼 얼굴을 붙인다.
     participant_boxes: 장면 → 참여자 상자. consented_boxes: 장면 → [(추적 id, 상자)] 동의한 가족 (사람마다 다른 가상 인물).
-    family_donors: 추적 id → 그 사람이 직접 고른 가상 인물 사진 (없으면 덜 닮은 순서대로 자동)."""
+    family_donors: 추적 id → 그 사람이 직접 고른 가상 인물 사진 (없으면 덜 닮은 순서대로 자동).
+    hand_pts: 장면 → [손별 손끝 (5,2)] — 마지막 지킴이 손을 얼굴로 잘못 보고 덮지 않게."""
     import time
 
     t0 = time.time()
@@ -309,6 +352,7 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
                 family_order.append(oid)
             targets.append((f"family:{oid}", box))
         res, any_face, used = fb, False, set()
+        done_boxes = []                                    # 이 장면에서 바꾸거나 덮은 얼굴 자리
         for key, box in targets:
             inside = [k for k, f in enumerate(faces) if k not in used and box is not None
                       and box[0] <= f[:, 0].mean() <= box[2] and box[1] <= f[:, 1].mean() <= box[3]]
@@ -325,6 +369,7 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
                     continue
                 lmk, small = found[0], True
             any_face = True
+            done_boxes.append((*lmk.min(0), *lmk.max(0)))
             lp.use(person_state(key, 0 if key == "participant" else 1 + family_order.index(key.split(":", 1)[1])))
             M = crop_matrix(lmk)
             gen = lp.drive(warp_in(fo, M))
@@ -349,6 +394,9 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
                 rep.swapped += 1
                 rep.small_face_swapped += small
             res = out
+        tips = hand_pts[i] if hand_pts is not None and i < len(hand_pts) else None
+        if guard_faces(res, fo, reid, done_boxes, fl, tips):          # 마지막 지킴 (참여자 상자가 빗나가도 원래 얼굴이 남지 않게)
+            rep.leak_covered += 1
         if not any_face:
             rep.no_face += 1
             covered = 0
