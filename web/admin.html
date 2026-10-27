@@ -3,86 +3,357 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>DataCash · 운영</title>
+<title>DataCash · 운영자</title>
 <link rel="icon" href="/static/favicon.png">
 <style>
-  :root { --primary: #FF5F5F; --primary-dark: #E84646; --ink: #333; --sub: #6E6E73; --line: #ECECEE; --bg: #FAFAFB; --ok: #16A36B; }
-  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif; background: var(--bg); color: var(--ink); }
-  .wrap { max-width: 980px; margin: 0 auto; padding: 28px; }
-  h1 { display: flex; align-items: center; gap: 10px; font-size: 22px; }
-  h1 img { width: 32px; }
-  .o { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 16px; margin-bottom: 12px; }
-  .top { display: flex; justify-content: space-between; gap: 10px; }
-  .st { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 99px; background: #F1F1F3; }
-  .st.ready { background: #E6F7EF; color: var(--ok); } .st.failed { background: #FFECEC; color: var(--primary-dark); }
-  .meta { color: var(--sub); font-size: 13px; margin-top: 6px; }
-  h2 { font-size: 18px; margin: 30px 0 6px; }
-  .steps { margin: 10px 0 0; padding-left: 18px; font-size: 13px; color: var(--sub); }
+  :root {
+    --primary: #FF5F5F; --primary-dark: #E84646; --primary-soft: #FFECEC;
+    --accent: #FFAF5F; --accent-ink: #D97F1F; --accent-soft: #FFF3E3;
+    --ink: #333333; --sub: #6E6E73; --line: #ECECEE; --bg: #FAFAFB; --card: #FFFFFF;
+    --ok: #16A36B; --ok-soft: #E6F7EF; --blue: #2E9BF0; --violet: #8E5CF7;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", sans-serif;
+         color: var(--ink); background: var(--bg); line-height: 1.5; }
+  a { color: var(--primary-dark); text-decoration: none; }
+  .app { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+  aside { background: #fff; border-right: 1px solid var(--line); padding: 20px 14px; position: sticky; top: 0; height: 100vh; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 18px; margin: 0 6px 22px; }
+  .brand img { width: 30px; height: 30px; }
+  .brand small { display: block; font-size: 12px; color: var(--sub); font-weight: 600; }
+  aside button { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 8px; border: 0; background: none;
+                 padding: 10px 12px; border-radius: 10px; font: inherit; font-weight: 600; color: var(--ink); cursor: pointer; text-align: left; }
+  aside button:hover { background: var(--bg); }
+  aside button.on { background: var(--primary-soft); color: var(--primary-dark); }
+  aside .badge { font-size: 11px; background: var(--primary); color: #fff; border-radius: 99px; padding: 1px 7px; }
+  aside .foot { position: absolute; bottom: 18px; left: 20px; right: 20px; font-size: 12px; color: var(--sub); }
+  main { padding: 28px 32px 60px; max-width: 1180px; min-width: 0; }
+  .scroll { overflow-x: auto; }
+  h1 { font-size: 24px; margin: 0 0 4px; letter-spacing: -0.3px; }
+  .lead { color: var(--sub); margin: 0 0 22px; font-size: 14px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 18px; margin-bottom: 12px; }
+  .grid { display: grid; gap: 12px; }
+  .g4 { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); } .g2 { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+  .g3 { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+  .kpi b { display: block; font-size: 26px; letter-spacing: -0.5px; }
+  .kpi span { color: var(--sub); font-size: 13px; }
+  .kpi em { font-style: normal; font-size: 12px; color: var(--sub); }
+  .top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .st { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 99px; background: #F1F1F3; white-space: nowrap; }
+  .st.ok { background: var(--ok-soft); color: var(--ok); } .st.bad { background: var(--primary-soft); color: var(--primary-dark); }
+  .st.wait { background: var(--accent-soft); color: var(--accent-ink); }
+  .meta { color: var(--sub); font-size: 13px; margin-top: 4px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: var(--sub); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  td { padding: 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  td.nw { white-space: nowrap; }
+  tr.click { cursor: pointer; } tr.click:hover td { background: #FCFCFD; }
+  .bar { height: 8px; background: #F1F1F3; border-radius: 99px; overflow: hidden; position: relative; }
+  .bar i { display: block; height: 100%; border-radius: 99px; background: var(--primary); }
+  .bar .mark { position: absolute; top: -3px; width: 2px; height: 14px; background: var(--ink); }
+  .stack { display: flex; height: 10px; border-radius: 99px; overflow: hidden; background: #F1F1F3; min-width: 120px; }
+  .stack i { display: block; height: 100%; }
+  .legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--sub); margin-top: 8px; }
+  .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
+  button.btn { border: 0; border-radius: 10px; padding: 9px 16px; font-weight: 700; background: var(--primary); color: #fff; cursor: pointer; font: inherit; font-weight: 700; }
+  button.btn.no { background: #F1F1F3; color: var(--ink); }
+  button.btn.small { padding: 6px 12px; font-size: 13px; }
+  input { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font: inherit; }
   .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
-  .row input { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font: inherit; }
-  button.no { background: #F1F1F3; color: var(--ink); }
-  button { border: 0; border-radius: 10px; padding: 9px 16px; font-weight: 700; background: var(--primary); color: #fff; cursor: pointer; margin-top: 10px; }
+  ol.steps { margin: 10px 0 0; padding-left: 18px; font-size: 13px; color: var(--sub); }
+  ol.steps li { margin: 3px 0; }
+  .pipe { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+  .pipe .s { border: 1px solid var(--line); border-radius: 14px; padding: 14px; background: #fff; }
+  .pipe .s b { display: block; font-size: 14px; margin-bottom: 4px; }
+  .pipe .s p { margin: 6px 0 0; font-size: 12px; color: var(--sub); }
+  .empty { color: var(--sub); font-size: 14px; padding: 10px 0; }
+  .modal { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; align-items: center; justify-content: center; z-index: 50; padding: 20px; }
+  .modal.on { display: flex; }
+  .modal .box { background: #fff; border-radius: 18px; padding: 20px; width: min(980px, 100%); max-height: 92vh; overflow: auto; }
+  .vids { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+  .vids div { text-align: center; font-size: 13px; color: var(--sub); }
+  .vids video { width: 100%; max-height: 60vh; background: #111; border-radius: 12px; }
+  .gate { max-width: 380px; margin: 18vh auto; text-align: center; }
+  code { background: #F4F4F6; padding: 1px 6px; border-radius: 6px; font-size: 12px; }
+  @media (max-width: 860px) { .app { grid-template-columns: 1fr; } aside { position: static; height: auto; } aside .foot { display: none; }
+    .g4, .g3, .g2, .pipe, .vids { grid-template-columns: 1fr; } main { padding: 20px 16px; } }
 </style>
 </head>
-<body><div class="wrap">
-  <h1><img src="/static/icon.png" alt="">주문 관리</h1>
-  <p class="meta">계약·결제를 확인한 뒤 승인하면 묶음(LeRobot)이 만들어지고 구매자 화면에 내려받기 주소가 나타납니다.</p>
-  <div id="list">불러오는 중…</div>
-  <h2>말로 받은 의뢰</h2>
-  <p class="meta">채팅 의뢰로 열린 미션. 목표 시간을 채웠거나 계약이 끝나면 닫아 주세요 — 닫으면 앱에서 사라집니다.</p>
-  <div id="requests">불러오는 중…</div>
-  <h2>이의 신청</h2>
-  <p class="meta">자동 확인으로 끝나지 않은 신청만 결정이 필요합니다. '가려야 할 게 보여요'는 신청 즉시 판매에서 빠지고, 인정하지 않으면 다시 판매됩니다.</p>
-  <div id="appeals">불러오는 중…</div>
+<body>
+<div id="gate" class="gate" hidden>
+  <img src="/static/icon.png" alt="" width="48">
+  <h1>DataCash 운영자</h1>
+  <p class="lead">서버 토큰을 넣어 주세요.</p>
+  <div class="row" style="justify-content:center"><input id="tok" type="password" placeholder="서버 토큰" style="width:220px">
+    <button class="btn" onclick="enter()">들어가기</button></div>
 </div>
+<div id="app" class="app" hidden>
+  <aside>
+    <div class="brand"><img src="/static/icon.png" alt=""><div>DataCash<small>운영자</small></div></div>
+    <button data-v="home" class="on">한눈에</button>
+    <button data-v="sessions">녹화</button>
+    <button data-v="appeals">이의 신청 <span class="badge" id="nb-appeals" hidden></span></button>
+    <button data-v="evolve">모델 진화</button>
+    <button data-v="orders">주문 <span class="badge" id="nb-orders" hidden></span></button>
+    <button data-v="requests">말로 받은 의뢰</button>
+    <button data-v="costs">API 비용</button>
+    <div class="foot"><a href="/">← 구매 기업 화면</a><br><span id="updated"></span></div>
+  </aside>
+  <main>
+    <section data-p="home">
+      <h1>한눈에</h1><p class="lead">녹화 처리, 이의 신청, 모델 진화, API 비용을 한 화면에서 봐요.</p>
+      <div class="grid g4" id="kpis"></div>
+      <div class="grid g2" style="margin-top:12px">
+        <div class="card"><div class="top"><b>최근 녹화</b><a href="#" onclick="go('sessions');return false">모두 보기</a></div><div id="home-sessions"></div></div>
+        <div class="card"><div class="top"><b>결정이 필요한 일</b></div><div id="home-todo"></div></div>
+      </div>
+    </section>
+
+    <section data-p="sessions" hidden>
+      <h1>녹화</h1><p class="lead">줄을 누르면 원본과 얼굴을 바꾼 판매용 영상을 나란히 볼 수 있어요. 원본은 시연 서버에만 남아 있어요.</p>
+      <div class="card scroll"><table><thead><tr><th>녹화</th><th>미션</th><th>상태</th><th>보상</th><th>가상 인물</th><th>'같은 사람' 기준 넘은 장면</th><th>처리 시간</th><th>라벨</th></tr></thead>
+        <tbody id="sessions"></tbody></table>
+        <div class="legend"><span><i style="background:#2E9BF0"></i>관절·검수</span><span><i style="background:#8E5CF7"></i>가리기(SAM)</span>
+          <span><i style="background:#FF5F5F"></i>얼굴 치환</span><span><i style="background:#FFAF5F"></i>라벨(Spark)</span><span><i style="background:#C7C7CC"></i>그 외</span></div></div>
+    </section>
+
+    <section data-p="appeals" hidden>
+      <h1>이의 신청</h1>
+      <p class="lead">'라벨이 틀렸어요'와 반려된 녹화는 더 높은 설정(Muse Spark 1.3 최대 추론 · 1280px)으로 먼저 다시 봐요.
+        바로잡은 라벨은 모델 진화의 정답이 돼요. 판단이 안 되면 여기서 결정해 주세요.</p>
+      <div id="appeals"></div>
+    </section>
+
+    <section data-p="evolve" hidden>
+      <h1>모델 진화 — Muse Glimmer</h1>
+      <p class="lead">검증된 라벨과 이의 신청에서 바로잡은 라벨로 Meta 오픈 웨이트 Glimmer 를 키워요. 준비되면 Spark 대신 Glimmer 가 라벨을 붙여요(API 비용 0).</p>
+      <div class="pipe" id="pipe"></div>
+      <div class="grid g2" style="margin-top:12px">
+        <div class="card"><b>실력 (평가용 단계 정확도)</b><p class="meta">녹화 단위로 떼어 둔 평가용 단계를 맞힌 비율. 회색 선 = 가장 많은 동작만 찍었을 때, 검은 선 = Spark 대신 쓰는 기준.</p><div id="evals"></div></div>
+        <div class="card scroll"><b>학습 데이터</b><p class="meta">처리가 끝날 때마다 자동으로 다시 만들어요. 단계마다 장면 3장 + 질문 → 정답 동작.</p><div id="datasets"></div></div>
+      </div>
+      <div class="card"><b>자주 헷갈리는 동작</b><p class="meta">가장 최근 평가에서 틀린 것 (정답 → Glimmer 답)</p><div id="confusions"></div></div>
+    </section>
+
+    <section data-p="orders" hidden>
+      <h1>주문</h1><p class="lead">계약·결제를 확인한 뒤 승인하면 묶음(LeRobot)이 만들어지고 구매자 화면에 내려받기 주소가 나타나요.</p>
+      <div id="orders"></div>
+    </section>
+
+    <section data-p="requests" hidden>
+      <h1>말로 받은 의뢰</h1><p class="lead">채팅 의뢰로 열린 미션이에요. 목표 시간을 채웠거나 계약이 끝나면 닫아 주세요 — 닫으면 앱에서 사라져요.</p>
+      <div id="requests"></div>
+    </section>
+
+    <section data-p="costs" hidden>
+      <h1>API 비용</h1><p class="lead">Meta Model API 호출마다 장부에 적어요. 한도를 넘으면 그 단계만 건너뛰어요.</p>
+      <div class="grid g3" id="cost-kpis"></div>
+      <div class="grid g2" style="margin-top:12px">
+        <div class="card"><b>모델별</b><div id="cost-models"></div></div>
+        <div class="card"><b>최근 호출</b><div id="cost-recent"></div></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="modal" id="modal" onclick="if(event.target===this)closeModal()"><div class="box" id="modal-box"></div></div>
+
 <script>
-const token = new URLSearchParams(location.search).get("token") || "";
+let token = new URLSearchParams(location.search).get("token") || "";
+try { token = token || sessionStorage.getItem("dc_admin_token") || ""; } catch (e) {}
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const won = n => (Math.round(n) || 0).toLocaleString("ko-KR") + "원";
-async function load() {
-  const r = await fetch("/api/admin/orders?token=" + encodeURIComponent(token));
-  if (!r.ok) { document.getElementById("list").textContent = "토큰이 맞지 않습니다"; return; }
-  const os = (await r.json()).orders;
-  document.getElementById("list").innerHTML = os.length ? os.map(o => `<div class="o"><div class="top"><b>${esc(o.org)} · ${esc(o.email)}</b>
-    <span class="st ${esc(o.status)}">${esc(o.status)}</span></div>
-    <div class="meta">${esc(o.created)} · ${o.missions.length ? esc(o.missions.join(", ")) : "전체 미션"} · ${esc(o.quote.level_ko)} · ${o.quote.hours}시간 · ${won(o.quote.total)}
-    ${o.size_mb ? ` · ${o.size_mb}MB · 녹화 ${o.recordings}편 · 받은 횟수 ${o.downloads}` : ""}${o.error ? `<br>오류: ${esc(o.error)}` : ""}${o.note ? `<br>요청: ${esc(o.note)}` : ""}</div>
-    ${o.status === "pending" || o.status === "failed" ? `<button onclick="approve('${esc(o.id)}')">승인하고 묶음 만들기</button>` : ""}</div>`).join("") : "아직 주문이 없습니다";
-  if (os.some(o => o.status === "building")) setTimeout(load, 3000);
+const usd = n => "$" + (+n || 0).toFixed(2);
+const pct = n => n == null ? "-" : Math.round(n * 100) + "%";
+const api = async (path, opt) => {
+  const r = await fetch(path + (path.includes("?") ? "&" : "?") + "token=" + encodeURIComponent(token), opt);
+  if (r.status === 401 || r.status === 403) throw new Error("token");
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+};
+const MISSION = {pull_tissue: "티슈 뽑기", pick_place_cup: "컵 집어 옮기기", pick_small_fruit: "작은 과일 따기"};
+const STATE = {done: ["승인", "ok"], rejected: ["반려", "bad"], failed: ["실패", "bad"], processing: ["처리 중", "wait"], queued: ["대기", "wait"], none: ["업로드 전", ""]};
+const ASTATE = {auto: ["자동 확인", ""], judging: ["다시 보는 중", "wait"], review: ["결정 필요", "bad"], reprocessing: ["다시 처리 중", "wait"], accepted: ["인정", "ok"], rejected: ["인정 안 함", ""]};
+const D = {};
+
+function go(v) {
+  document.querySelectorAll("aside button").forEach(b => b.classList.toggle("on", b.dataset.v === v));
+  document.querySelectorAll("main section").forEach(s => s.hidden = s.dataset.p !== v);
+  try { sessionStorage.setItem("dc_admin_view", v); } catch (e) {}
 }
-async function approve(id) { await fetch(`/api/admin/orders/${encodeURIComponent(id)}/approve?token=${encodeURIComponent(token)}`, {method: "POST"}); setTimeout(load, 600); }
-const STATE = {auto: "자동 확인", review: "검토 필요", reprocessing: "다시 처리 중", accepted: "인정", rejected: "인정 안 함"};
-async function loadAppeals() {
-  const r = await fetch("/api/admin/appeals?token=" + encodeURIComponent(token));
-  if (!r.ok) return;
-  const as = (await r.json()).appeals;
-  document.getElementById("appeals").innerHTML = as.length ? as.map(a => `<div class="o"><div class="top"><b>${esc(a.reason_ko)} · 녹화 ${esc(a.sid)}</b>
-    <span class="st ${a.state === "accepted" ? "ready" : a.state === "rejected" ? "failed" : ""}">${esc(STATE[a.state] || a.state)}</span></div>
-    <div class="meta">${esc(a.created)} · 기기 ${esc(a.device)}${a.detail ? `<br>내용: ${esc(a.detail)}` : ""}${a.extra_reward ? ` · 추가 보상 ${won(a.extra_reward)}` : ""}</div>
-    <ol class="steps">${a.steps.map(s => `<li>${esc(s.note)} <span style="opacity:.6">${esc(s.at)}</span></li>`).join("")}</ol>
+document.querySelectorAll("aside button").forEach(b => b.onclick = () => go(b.dataset.v));
+
+async function enter() {
+  token = document.getElementById("tok").value.trim();
+  try { sessionStorage.setItem("dc_admin_token", token); } catch (e) {}
+  start();
+}
+
+async function start() {
+  try { await api("/api/admin/costs"); }
+  catch (e) { document.getElementById("gate").hidden = false; document.getElementById("app").hidden = true; return; }
+  try { sessionStorage.setItem("dc_admin_token", token); } catch (e) {}
+  document.getElementById("gate").hidden = true; document.getElementById("app").hidden = false;
+  let v = "home"; try { v = sessionStorage.getItem("dc_admin_view") || "home"; } catch (e) {}
+  go(v);
+  refresh();
+  setInterval(refresh, 10000);
+}
+
+async function refresh() {
+  const [s, a, e, o, q, c] = await Promise.allSettled([api("/api/admin/sessions"), api("/api/admin/appeals"), api("/api/admin/evolve"),
+    api("/api/admin/orders"), api("/api/admin/requests"), api("/api/admin/costs")]);
+  const v = x => x.status === "fulfilled" ? x.value : null;
+  D.sessions = v(s)?.sessions || []; D.appeals = v(a)?.appeals || []; D.evolve = v(e) || {datasets: [], evals: []};
+  D.orders = v(o)?.orders || []; D.requests = v(q)?.requests || []; D.costs = v(c) || {};
+  renderHome(); renderSessions(); renderAppeals(); renderEvolve(); renderOrders(); renderRequests(); renderCosts();
+  const needA = D.appeals.filter(x => x.state === "review").length, needO = D.orders.filter(x => x.status === "pending").length;
+  badge("nb-appeals", needA); badge("nb-orders", needO);
+  document.getElementById("updated").textContent = "갱신 " + new Date().toLocaleTimeString("ko-KR");
+}
+function badge(id, n) { const b = document.getElementById(id); b.hidden = !n; b.textContent = n; }
+
+function renderHome() {
+  const S = D.sessions, done = S.filter(x => x.state === "done"), ev = (D.evolve.evals || []).slice(-1)[0];
+  const paid = done.reduce((t, x) => t + (x.reward || 0) + (x.appeal_extra || 0), 0);
+  document.getElementById("kpis").innerHTML = [
+    ["녹화", S.length, `승인 ${done.length} · 반려 ${S.filter(x => x.state === "rejected").length} · 처리 중 ${S.filter(x => ["processing", "queued"].includes(x.state)).length}`],
+    ["참여자 보상", won(paid), "승인된 녹화 + 이의 신청 추가 보상"],
+    ["Glimmer 실력", ev ? pct(ev.accuracy) : "-", ev ? `${esc(ev.model)} · 기준선 ${pct(ev.baseline_accuracy)}` : "아직 평가 전"],
+    ["API 비용", usd(D.costs.total), `한도 ${usd(D.costs.budget)} · 호출 ${D.costs.calls || 0}번`],
+  ].map(([k, b, e]) => `<div class="card kpi"><span>${k}</span><b>${b}</b><em>${e}</em></div>`).join("");
+  document.getElementById("home-sessions").innerHTML = S.slice(0, 5).map(x => `<div class="top" style="padding:8px 0;border-bottom:1px solid var(--line)">
+    <span>${esc(MISSION[x.mission] || x.mission || x.sid)} <span class="meta">${esc(x.sid)}</span></span>${stateChip(x.state)}</div>`).join("") || `<div class="empty">녹화가 없어요</div>`;
+  const todo = [
+    ...D.appeals.filter(x => x.state === "review").map(x => `이의 신청 · ${esc(x.reason_ko)} · ${esc(x.sid)}`),
+    ...D.orders.filter(x => x.status === "pending").map(x => `주문 승인 · ${esc(x.org)} · ${won(x.quote.total)}`),
+    ...D.sessions.filter(x => x.state === "failed").map(x => `처리 실패 · ${esc(x.sid)}`),
+  ];
+  document.getElementById("home-todo").innerHTML = todo.length ? todo.map(t => `<div style="padding:8px 0;border-bottom:1px solid var(--line)">${t}</div>`).join("")
+    : `<div class="empty">지금 결정할 일이 없어요 ✓</div>`;
+}
+function stateChip(s) { const [t, c] = STATE[s] || [s || "-", ""]; return `<span class="st ${c}">${esc(t)}</span>`; }
+
+function timeStack(sec) {
+  const parts = [["joints", "#2E9BF0"], ["precheck", "#2E9BF0"], ["mask", "#8E5CF7"], ["face_swap", "#FF5F5F"], ["understand", "#FFAF5F"]];
+  const total = Object.values(sec).reduce((a, b) => a + b, 0);
+  if (!total) return "-";
+  const known = parts.reduce((t, [k]) => t + (sec[k] || 0), 0);
+  const seg = parts.map(([k, c]) => sec[k] ? `<i style="width:${100 * sec[k] / total}%;background:${c}" title="${k} ${sec[k]}초"></i>` : "").join("")
+    + `<i style="width:${100 * (total - known) / total}%;background:#C7C7CC"></i>`;
+  return `<div style="display:flex;align-items:center;gap:8px"><div class="stack" style="flex:1">${seg}</div><span class="meta" style="margin:0">${Math.round(total)}초</span></div>`;
+}
+function renderSessions() {
+  document.getElementById("sessions").innerHTML = D.sessions.map((x, i) => `<tr class="click" onclick="openSession(${i})">
+    <td><b>${esc(x.sid)}</b><div class="meta">${esc((x.updated || "").replace("T", " ").slice(0, 16))}</div></td>
+    <td class="nw">${esc(MISSION[x.mission] || x.mission || "-")}</td><td class="nw">${stateChip(x.state)}${x.error ? `<div class="meta">${esc(x.error)}</div>` : ""}</td>
+    <td class="nw">${x.reward != null ? won((x.reward || 0) + (x.appeal_extra || 0)) : "-"}</td>
+    <td>${esc((x.donor || "-").replace(".png", ""))}${x.donor_trial ? `<div class="meta">시험 ${Object.entries(x.donor_trial).map(([k, v]) => `${esc(k)} ${pct(v)}`).join(" → ")}</div>` : ""}</td>
+    <td>${x.frames ? `${x.over_reid ?? 0} / ${x.frames} <span class="meta">(${pct((x.over_reid || 0) / x.frames)})</span>` : "-"}</td>
+    <td style="min-width:160px">${timeStack(x.seconds || {})}</td><td class="meta">${esc(x.labels_by || "-")}</td></tr>`).join("")
+    || `<tr><td colspan="8" class="empty">녹화가 없어요</td></tr>`;
+}
+function openSession(i) {
+  const x = D.sessions[i], v = k => `/api/admin/sessions/${encodeURIComponent(x.sid)}/video?kind=${k}&token=${encodeURIComponent(token)}`;
+  document.getElementById("modal-box").innerHTML = `<div class="top"><b>${esc(MISSION[x.mission] || x.mission)} · ${esc(x.sid)}</b>
+    <span>${stateChip(x.state)} <button class="btn small no" onclick="closeModal()">닫기</button></span></div>
+    <div class="meta">가상 인물 ${esc((x.donor || "-").replace(".png", ""))} · 치환 ${x.swapped ?? "-"}/${x.frames ?? "-"}장면 · '같은 사람' 기준 넘은 장면 ${x.over_reid ?? "-"}</div>
+    <div class="vids">
+      <div>${x.original ? `<video id="v-o" src="${v("original")}" muted playsinline controls></video>` : `<div class="empty">원본 없음 (처리 후 삭제됨)</div>`}원본 (운영자만)</div>
+      <div>${x.swap ? `<video id="v-s" src="${v("swap")}" muted playsinline controls></video>` : `<div class="empty">판매용 영상 없음</div>`}판매용 — 얼굴 치환·가림</div>
+    </div>
+    <div class="row"><button class="btn small" onclick="playBoth()">같이 재생</button><button class="btn small no" onclick="pauseBoth()">멈춤</button></div>`;
+  document.getElementById("modal").classList.add("on");
+}
+function vids() { return ["v-o", "v-s"].map(id => document.getElementById(id)).filter(Boolean); }
+function playBoth() { const vs = vids(); vs.forEach(v => { v.currentTime = vs[0].currentTime; v.play(); }); }
+function pauseBoth() { vids().forEach(v => v.pause()); }
+function closeModal() { pauseBoth(); document.getElementById("modal").classList.remove("on"); }
+
+function renderAppeals() {
+  document.getElementById("appeals").innerHTML = D.appeals.length ? D.appeals.map(a => {
+    const [t, c] = ASTATE[a.state] || [a.state, ""];
+    const fixes = a.corrections || [];
+    return `<div class="card"><div class="top"><b>${esc(a.reason_ko)} · 녹화 ${esc(a.sid)}</b><span class="st ${c}">${esc(t)}</span></div>
+    <div class="meta">${esc((a.created || "").replace("T", " ").slice(0, 16))} · 기기 ${esc(a.device)}${a.detail ? ` · "${esc(a.detail)}"` : ""}${a.extra_reward ? ` · 추가 보상 <b>${won(a.extra_reward)}</b>` : ""}</div>
+    <ol class="steps">${a.steps.map(s => `<li>${s.stage === "review_model" ? "🔎 " : ""}${esc(s.note)} <span style="opacity:.6">${esc((s.at || "").slice(11, 16))}</span></li>`).join("")}</ol>
+    ${fixes.length ? `<table style="margin-top:10px"><thead><tr><th>구간</th><th>원래 라벨</th><th>바로잡은 라벨</th><th>근거</th></tr></thead><tbody>
+      ${fixes.map(f => `<tr><td>${(+f.start_s).toFixed(1)}~${(+f.end_s).toFixed(1)}초</td><td>${esc(f.was)}</td><td><b>${esc(f.action)}</b></td><td class="meta">${esc(f.note || f.by || "")}</td></tr>`).join("")}
+      </tbody></table><div class="meta">→ Glimmer 학습 데이터의 정답 · Spark 프롬프트의 '지난 바로잡음' 예시로 쓰여요</div>` : ""}
     ${a.state === "review" ? `<div class="row"><input id="note-${esc(a.id)}" placeholder="결정 이유"><input id="won-${esc(a.id)}" type="number" min="0" step="10" placeholder="추가 보상(원)" style="width:130px">
-      <button onclick="decide('${esc(a.id)}', true)">인정</button><button class="no" onclick="decide('${esc(a.id)}', false)">인정 안 함</button></div>` : ""}</div>`).join("") : "이의 신청이 없습니다";
+      <button class="btn" onclick="decide('${esc(a.id)}', true)">인정</button><button class="btn no" onclick="decide('${esc(a.id)}', false)">인정 안 함</button></div>` : ""}</div>`;
+  }).join("") : `<div class="card empty">이의 신청이 없어요</div>`;
 }
 async function decide(id, accept) {
   const note = document.getElementById("note-" + id).value, extra = +document.getElementById("won-" + id).value || 0;
-  await fetch(`/api/admin/appeals/${encodeURIComponent(id)}?token=${encodeURIComponent(token)}`,
-    {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({accept, extra_reward: extra, note})});
-  loadAppeals();
+  await api(`/api/admin/appeals/${encodeURIComponent(id)}`, {method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({accept, extra_reward: extra, note})});
+  refresh();
 }
-async function loadRequests() {
-  const r = await fetch("/api/admin/requests?token=" + encodeURIComponent(token));
-  if (!r.ok) return;
-  const rs = (await r.json()).requests;
-  document.getElementById("requests").innerHTML = rs.length ? rs.map(q => `<div class="o"><div class="top"><b>${esc(q.title)} · ${esc(q.org)}</b>
-    <span class="st ${q.status === "collecting" ? "ready" : ""}">${q.status === "collecting" ? "모으는 중" : "닫힘"}</span></div>
-    <div class="meta">${esc(q.email)} · ${won(q.quote.total)} · ${q.quote.hours}시간 · ${(q.quote.sensors_ko || []).map(esc).join(", ")}
-    <br>${q.missions.map(m => `${esc(m.title)} ${m.collected_hours}/${m.target_hours}시간`).join(" · ")}</div>
-    ${q.status === "collecting" ? `<button class="no" onclick="closeReq('${esc(q.id)}')">의뢰 닫기</button>` : ""}</div>`).join("") : "의뢰가 없습니다";
+
+function renderEvolve() {
+  const E = D.evolve, ds = (E.datasets || []).slice(-1)[0], evs = E.evals || [], last = evs.slice(-1)[0];
+  const tuned = evs.filter(e => e.adapter), rule = E.ready_rule || {};
+  const steps = [
+    ["① 데이터 쌓기", "이 맥", ds ? `v${ds.version} · 학습 ${ds.train_steps} · 평가 ${ds.eval_steps}단계` : "아직 없음", ds ? "ok" : "", "검증된 라벨 + 이의 신청에서 바로잡은 라벨"],
+    ["② 실력 재기", "이 맥 · llama.cpp", last ? `${pct(last.accuracy)} (${esc(last.model)})` : "아직 평가 전", last ? "ok" : "", "평가용 단계를 녹화 단위로 떼어 둠"],
+    ["③ 학습 (QLoRA)", "클라우드 H100", tuned.length ? `어댑터 ${tuned.length}개` : "GPU 크레딧 기다리는 중", tuned.length ? "ok" : "wait", "scripts/train_glimmer.sh"],
+    ["④ Spark 대신 쓰기", "이 맥", E.in_use ? "사용 중" : `기준: 정확도 ${pct(rule.accuracy)} · 학습 ${rule.train_steps}단계`, E.in_use ? "ok" : "", "준비되면 새 녹화 라벨을 Glimmer 가 (API 0원)"],
+  ];
+  document.getElementById("pipe").innerHTML = steps.map(([h, w, s, c, p]) => `<div class="s"><b>${h}</b><span class="meta">${w}</span>
+    <div style="margin-top:8px"><span class="st ${c}">${s}</span></div><p>${p}</p></div>`).join("");
+  document.getElementById("evals").innerHTML = evs.length ? evs.map(e => `<div style="margin:12px 0">
+    <div class="top"><span><b>v${e.version}</b> ${esc(e.model)}</span><b>${pct(e.accuracy)}</b></div>
+    <div class="bar" style="margin-top:6px"><i style="width:${e.accuracy * 100}%"></i>
+      <span class="mark" style="left:${e.baseline_accuracy * 100}%;background:#AEAEB2"></span><span class="mark" style="left:${(rule.accuracy || .8) * 100}%"></span></div>
+    <div class="meta">평가 ${e.steps}단계 · 기준선 ${pct(e.baseline_accuracy)} · macro F1 ${e.macro_f1} · ${esc((e.at || "").slice(0, 16).replace("T", " "))}</div></div>`).join("")
+    : `<div class="empty">아직 평가 전 — <code>python scripts/evolve.py eval</code></div>`;
+  document.getElementById("datasets").innerHTML = (E.datasets || []).length ? `<table><thead><tr><th>버전</th><th>녹화</th><th>학습</th><th>평가</th><th>이의 신청</th><th>많은 동작</th></tr></thead><tbody>
+    ${E.datasets.slice().reverse().map(d => `<tr><td>v${d.version}</td><td>${d.recordings}</td><td>${d.train_steps}</td><td>${d.eval_steps}</td><td>${d.from_appeals}</td>
+      <td class="meta">${Object.entries(d.train_actions || {}).slice(0, 4).map(([k, n]) => `${esc(k)} ${n}`).join(" · ")}</td></tr>`).join("")}</tbody></table>`
+    : `<div class="empty">아직 없음 — 녹화가 처리되면 자동으로 만들어져요</div>`;
+  const conf = last?.confusions || [];
+  document.getElementById("confusions").innerHTML = conf.length ? `<div class="row" style="margin-top:6px">${conf.map(c => `<span class="st">${esc(c.truth)} → ${esc(c.said)}</span>`).join("")}</div>`
+    : `<div class="empty">없음</div>`;
 }
-async function closeReq(id) { await fetch(`/api/admin/requests/${encodeURIComponent(id)}/close?token=${encodeURIComponent(token)}`, {method: "POST"}); loadRequests(); }
-load();
-loadRequests();
-loadAppeals();
+
+function renderOrders() {
+  document.getElementById("orders").innerHTML = D.orders.length ? D.orders.map(o => `<div class="card"><div class="top"><b>${esc(o.org)} · ${esc(o.email)}</b>
+    <span class="st ${o.status === "ready" ? "ok" : o.status === "failed" ? "bad" : "wait"}">${esc(o.status)}</span></div>
+    <div class="meta">${esc(o.created)} · ${o.missions.length ? esc(o.missions.join(", ")) : "전체 미션"} · ${esc(o.quote.level_ko)} · ${o.quote.hours}시간 · ${won(o.quote.total)}
+    ${o.size_mb ? ` · ${o.size_mb}MB · 녹화 ${o.recordings}편 · 받은 횟수 ${o.downloads}` : ""}${o.error ? `<br>오류: ${esc(o.error)}` : ""}${o.note ? `<br>요청: ${esc(o.note)}` : ""}</div>
+    ${o.status === "pending" || o.status === "failed" ? `<button class="btn" style="margin-top:10px" onclick="approve('${esc(o.id)}')">승인하고 묶음 만들기</button>` : ""}</div>`).join("")
+    : `<div class="card empty">아직 주문이 없어요</div>`;
+}
+async function approve(id) { await api(`/api/admin/orders/${encodeURIComponent(id)}/approve`, {method: "POST"}); setTimeout(refresh, 600); }
+
+function renderRequests() {
+  document.getElementById("requests").innerHTML = D.requests.length ? D.requests.map(q => `<div class="card"><div class="top"><b>${esc(q.title)} · ${esc(q.org)}</b>
+    <span class="st ${q.status === "collecting" ? "ok" : ""}">${q.status === "collecting" ? "모으는 중" : "닫힘"}</span></div>
+    <div class="meta">${esc(q.email)} · ${won(q.quote.total)} · ${q.quote.hours}시간 · ${(q.quote.sensors_ko || []).map(esc).join(", ")}</div>
+    ${q.missions.map(m => `<div style="margin-top:8px"><div class="top"><span>${esc(m.title)}</span><span class="meta">${m.collected_hours}/${m.target_hours}시간</span></div>
+      <div class="bar"><i style="width:${Math.min(100, 100 * (m.collected_hours || 0) / (m.target_hours || 1))}%"></i></div></div>`).join("")}
+    ${q.status === "collecting" ? `<button class="btn no" style="margin-top:10px" onclick="closeReq('${esc(q.id)}')">의뢰 닫기</button>` : ""}</div>`).join("")
+    : `<div class="card empty">의뢰가 없어요</div>`;
+}
+async function closeReq(id) { await api(`/api/admin/requests/${encodeURIComponent(id)}/close`, {method: "POST"}); refresh(); }
+
+function renderCosts() {
+  const C = D.costs; if (!C.budget) return;
+  document.getElementById("cost-kpis").innerHTML = [
+    ["쓴 돈", usd(C.total), `한도 ${usd(C.budget)}`],
+    ["남은 돈", usd(C.budget - C.total), `${pct(1 - C.total / C.budget)} 남음`],
+    ["호출", (C.calls || 0) + "번", Object.keys(C.by_day || {}).length + "일 동안"],
+  ].map(([k, b, e]) => `<div class="card kpi"><span>${k}</span><b>${b}</b><em>${e}</em></div>`).join("")
+    + `<div class="card" style="grid-column:1/-1"><div class="bar"><i style="width:${Math.min(100, 100 * C.total / C.budget)}%"></i></div></div>`;
+  const max = Math.max(...Object.values(C.by_model || {0: 1}));
+  document.getElementById("cost-models").innerHTML = Object.entries(C.by_model || {}).map(([m, u]) => `<div style="margin:10px 0">
+    <div class="top"><span>${esc(m)}</span><b>${usd(u)}</b></div><div class="bar" style="margin-top:4px"><i style="width:${100 * u / max}%"></i></div></div>`).join("");
+  document.getElementById("cost-recent").innerHTML = `<table><tbody>${(C.recent || []).map(r => `<tr><td class="meta">${esc((r.t || "").slice(5, 16).replace("T", " "))}</td>
+    <td>${esc(r.model)}</td><td class="meta">${esc((r.what || "").slice(0, 40))}</td><td style="text-align:right">${"$" + (+r.usd || 0).toFixed(3)}</td></tr>`).join("")}</tbody></table>`;
+}
+
+if (token) start(); else document.getElementById("gate").hidden = false;
 </script>
 </body>
 </html>

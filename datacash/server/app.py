@@ -795,6 +795,55 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
         bg.add_task(st.build_bundle, oid)
         return {"id": oid, "status": "building"}
 
+    @app.get("/api/admin/sessions")
+    def admin_sessions(token: str = Query("")):
+        """녹화 목록: 상태 · 미션 · 보상 · 단계별 처리 시간 · 얼굴 치환(가상 인물·기준 넘은 장면) · 라벨을 붙인 모델."""
+        auth(token)
+        rows = []
+        for p in sorted((root / "status").glob("*.json"), reverse=True):
+            s = json.loads(p.read_text())
+            sid = p.stem
+            cert = root / "out" / sid / "certificate.json"
+            fs = {}
+            if cert.exists():
+                fs = ((json.loads(cert.read_text()).get("privacy") or {}).get("face_swap") or {})
+            rows.append({"sid": sid, "state": s.get("state"), "mission": s.get("mission"), "level": s.get("level"),
+                         "minutes": s.get("minutes"), "reward": s.get("reward"), "appeal_extra": s.get("appeal_extra", 0),
+                         "error": s.get("error"), "updated": s.get("updated"), "seconds": s.get("seconds") or {},
+                         "labels_by": s.get("labels_by") or ("muse-spark-1.3" if s.get("state") == "done" else None),
+                         "donor": fs.get("donor"), "frames": fs.get("frames"), "swapped": fs.get("swapped"),
+                         "over_reid": fs.get("over_reid"), "donor_trial": s.get("donor_trial"),
+                         "original": (root / "sessions" / sid / "video.mp4").exists(),
+                         "swap": (root / "out" / sid / "masked_swap.mp4").exists()})
+        return {"sessions": rows}
+
+    @app.get("/api/admin/sessions/{sid}/video")
+    def admin_video(sid: str, kind: str = Query("swap"), token: str = Query("")):
+        """운영자 비교용 영상: swap(판매용, 얼굴 치환·가림) · original(원본 — 시연 서버에만 남아 있다)."""
+        auth(token)
+        if not SID.match(sid) or kind not in ("swap", "original"):
+            raise HTTPException(404)
+        p = root / "out" / sid / "masked_swap.mp4" if kind == "swap" else root / "sessions" / sid / "video.mp4"
+        if not p.exists():
+            raise HTTPException(404, "영상이 없음 (원본은 처리 후 지워졌을 수 있음)")
+        return FileResponse(p, media_type="video/mp4")
+
+    @app.get("/api/admin/costs")
+    def admin_costs(token: str = Query("")):
+        """Meta API 사용액: 합계·한도·모델별·날짜별·최근 호출."""
+        auth(token)
+        from ..meta.client import _ledger_rows
+
+        rows = _ledger_rows()
+        by_model, by_day = {}, {}
+        for r in rows:
+            by_model[r["model"]] = round(by_model.get(r["model"], 0) + r.get("usd", 0), 4)
+            d = str(r.get("t", ""))[:10]
+            by_day[d] = round(by_day.get(d, 0) + r.get("usd", 0), 4)
+        return {"total": round(sum(r.get("usd", 0) for r in rows), 4), "budget": config.API_BUDGET_USD, "calls": len(rows),
+                "by_model": dict(sorted(by_model.items(), key=lambda kv: -kv[1])), "by_day": by_day,
+                "recent": [{k: r.get(k) for k in ("t", "model", "usd", "what")} for r in rows[-12:]][::-1]}
+
     @app.get("/api/admin/evolve")
     def admin_evolve(token: str = Query("")):
         """모델 진화: Glimmer 학습 데이터 버전 · 평가 기록(학습 전·어댑터별 정확도) · Spark 대신 쓰는 어댑터."""
