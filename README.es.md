@@ -1,0 +1,111 @@
+[English](README.md) · [한국어](README.ko.md) · **Español** · [中文](README.zh-CN.md) · [日本語](README.ja.md)
+
+# DataCache
+
+**Datos de manos humanas para robots, grabados por personas comunes con el teléfono y el reloj que ya tienen.**
+
+Las personas graban en casa misiones cortas de habilidades para robots (sacar un pañuelo, mover una taza, girar una tapa — 12 en total) con su teléfono y su reloj inteligente, y reciben un pago.
+Las empresas de humanoides e IA física compran el resultado: video, sonido, movimiento de muñeca, fuerza de agarre y frecuencia cardíaca sin datos personales, sincronizados en un mismo reloj
+y entregados como un conjunto de datos **LeRobot v3.0** listo para entrenar.
+
+Proyecto para el Meta Global AI Developer Hackathon (Indie Developer · Push the Frontier).
+
+![DataCache](docs/1026_datacache_brand.png)
+
+## En resumen
+
+| | |
+|---|---|
+| Participantes | App de Android + app de reloj. Elige una misión → verificación facial → graba → 1–2 preguntas → *ding*, recibes tu pago |
+| Compradores | **Piden en lenguaje natural** desde la web ("datos de levantar cajas para robots de almacén, 20–50 años, presupuesto 3.000 USD") → la IA diseña las misiones y las abre en todo el mundo |
+| Privacidad | El rostro del participante se reemplaza por **una persona que no existe**; se ocultan transeúntes, pantallas y documentos; los originales se borran tras el procesamiento |
+| Tacto | Sin guante — **el reloj vibra y mide cuánto absorbe la mano** para estimar la fuerza de agarre (GripSense, UIST 2012) |
+
+## Dónde se usan los modelos de Meta
+
+| Modelo | Función | Código |
+|---|---|---|
+| **SAM 3.1** | Oculta personas sin consentimiento, niños, pantallas, espejos, cuadros y documentos (seguimiento en video); segmenta el objeto manipulado → `observation.objects` | `datacache/meta/sam.py`, `datacache/privacy/mask.py` |
+| **Muse Spark 1.3** | Video ocultado → pasos, instrucciones, mano activa, objetos, errores (JSON estructurado); petición en lenguaje natural → diseño de misiones | `datacache/understand/`, `datacache/requests.py` |
+| **Muse Image** | 34 personas que no existen (7 regiones × mujeres/hombres × 20–60 años) para reemplazar rostros | `scripts/make_donors.py`, `datacache/donors/` |
+| **Muse Voice Transcribe** | Detecta información personal hablada en la grabación y la silencia | `datacache/privacy/speech.py` |
+| **Muse Glimmer** (pesos abiertos) | Modelo de 30B ejecutado localmente en este Mac con llama.cpp — revisa los pasos de Spark fotograma a fotograma (sin costo de API) | `datacache/understand/glimmer.py` |
+
+Cada llamada a la API se registra con su costo en `data/api_ledger.jsonl`; si se alcanza el presupuesto, solo se omite ese paso.
+
+## Ideas clave
+
+### 1. Privacidad que conserva el valor de los datos
+- **Reemplazo de rostro, no desenfoque:** el rostro del participante se cambia por una persona de Muse Image (LivePortrait + MediaPipe). Elegimos a la más parecida del mismo género y edad similar, probamos 20 fotogramas y pasamos a la siguiente si el reconocimiento facial (SFace) consideraría "la misma persona" a más de la mitad.
+- **Continuidad:** si un fotograma reemplazado sale demasiado parecido, se regenera con una expresión más suave en lugar de pixelarlo — el video nunca se corta.
+- **Ocultación:** SAM 3.1 oculta solo lo que no tiene consentimiento: otras personas, niños, pantallas, espejos, cuadros y documentos. Los familiares que consienten siguen visibles, cada uno con su propio rostro virtual.
+- **Originales borrados:** en producción, el video y el audio originales se borran al terminar el procesamiento (`purge_originals`). En el servidor de demostración del hackathon solo esa llamada está desactivada, para poder mostrar la comparación original vs. reemplazado.
+
+### 2. Sincronización automática de sensores
+Sin aplaudir: ida y vuelta del reloj teléfono↔reloj, una baliza acústica de 18–20 kHz y pulsos de vibración del reloj. Error residual de 0,5–2,3 ms en grabaciones reales con teléfono + reloj (`datacache/sync/`).
+
+### 3. Tacto sin guante — GripSense en la muñeca
+Trasladamos *GripSense* de Goel, Wobbrock y Patel (UIST 2012) a la muñeca. El reloj vibra brevemente; cuanto más fuerte agarras, más vibración absorbe la mano — baja la energía de alta frecuencia del giroscopio y sube el temblor de 4–12 Hz de los dedos. Un árbol de decisión por persona, entrenado con niveles autoevaluados (soltar · suave · normal · fuerte, sin báscula), da el nivel de agarre 0–3 (`datacache/touch/`).
+La frecuencia cardíaca, los intervalos entre latidos y la temperatura de la piel vienen del Samsung Health Sensor SDK (`docs/samsung_health_sdk.md`).
+
+### 4. Peticiones en lenguaje natural → misiones
+El comprador escribe lo que necesita; Muse Spark (salida estructurada) diseña las misiones (acciones, objetos, condiciones a variar), los requisitos (edad, género) y los paquetes de sensores, y el servidor ajusta un presupuesto. Al confirmarse, las misiones solo aparecen para los participantes que cumplen los requisitos — la petición *es* la distribución de la recolección.
+
+### 5. Costos de procesamiento que dejan margen
+- Las grabaciones inútiles (muy cortas, manos no visibles, muy oscuras) se rechazan **en local antes de cualquier llamada a la API** — 0 USD
+- Un detector de objetos local revisa primero; SAM solo recibe lo necesario (sin consulta "person" en grabaciones individuales, pantallas solo si aparecen, objetos estáticos a 1 fps)
+- En 4 grabaciones reales: costo de SAM **2,92 → 0,27 USD (−91 %)**, unos 5–7 USD por hora de video (se vende a ~43 USD/hora)
+- Decodificación de máscaras de SAM reescrita con Numba: 593 s → 8 s por grabación, idéntica bit a bit al analizador oficial
+
+## El conjunto de datos (LeRobot v3.0)
+
+`observation.images.ego` (video ocultado + rostro reemplazado) · `observation.hands` · `observation.body` · `observation.imu.phone` · `observation.imu.wrist` ·
+`observation.audio` · **`observation.touch`** (contacto, nivel de agarre 0–3) · `observation.touch.vibration` · **`observation.physio`** (frecuencia cardíaca, temperatura de la piel; solo con consentimiento biométrico) ·
+`observation.objects` · `annotation.step` · `annotation.primitive` (reach · grasp · … · release) · `sync.error_ms` + un certificado de calidad.
+Se carga con `lerobot` 0.6.1 real (`scripts/validate_lerobot.py`).
+
+Los compradores eligen paquetes de sensores por hora de datos — video (obligatorio) ₩35.000 · pose ₩20.000 · audio ₩5.000 · IMU de muñeca ₩15.000 · tacto ₩25.000 · biometría ₩50.000 (`datacache/pricing.py`).
+
+## Ejecutar
+
+```bash
+python3.12 -m venv .venv && .venv/bin/pip install -e ".[dev]" torch pyyaml rich
+echo "MODEL_API_KEY=..." > .env                       # nunca se sube al repositorio
+# data/models: MediaPipe hand/pose/face landmarker .task, efficientdet_lite0.tflite, OpenCV yunet.onnx + sface.onnx
+.venv/bin/python -m pytest                            # verificado con sesiones sintéticas de resultado conocido
+DATACACHE_TOKEN=... .venv/bin/python -m datacache.server.app --port 8800   # servidor + web para compradores
+cd app && ./gradlew assembleDebug                     # app de Android + app de reloj
+```
+
+LivePortrait no se incluye — descarga [KwaiVGI/LivePortrait](https://github.com/KwaiVGI/LivePortrait) (MIT) y apunta `LP_ROOT` a esa carpeta.
+
+## Estructura
+
+| Carpeta | Qué hace |
+|---|---|
+| `app/` | App de Android (consentimiento, misiones, verificación facial, grabación, marcar errores, preguntas, subida, pagos, apelaciones) + app de reloj |
+| `web/` | Web para compradores (peticiones en lenguaje natural, línea de tiempo de sensores, presupuestos, pedidos, descargas) y consola del operador |
+| `datacache/privacy` | Ocultación con SAM · reemplazo de rostro · privacidad del habla · revisión previa |
+| `datacache/sync` · `touch` · `labels` | Sincronización · tacto · pose de manos y cuerpo |
+| `datacache/understand` | Comprensión con Muse Spark · revisión con Glimmer · verificación con sensores |
+| `datacache/export` · `jobs.py` | Exportación LeRobot · certificado · flujo de procesamiento |
+| `datacache/server` | Servidor de recolección + API para compradores |
+
+## Documentos (en coreano)
+
+- Plan del hackathon: [docs/1026_meta_hackathon.md](docs/1026_meta_hackathon.md) · Registro del día 1: [docs/DAY1.md](docs/DAY1.md)
+- Evaluación de ocultación y reemplazo de rostro: [docs/privacy_eval.md](docs/privacy_eval.md) · Verificación de modelos de Meta: [docs/model_check.md](docs/model_check.md)
+- SDK del reloj: [docs/samsung_health_sdk.md](docs/samsung_health_sdk.md) · Guion del video demo: [docs/demo_video_script.md](docs/demo_video_script.md)
+
+## Antes y durante el hackathon
+
+| | Contenido |
+|---|---|
+| Antes (hasta el 26 de octubre) | Solo el documento de planificación y la imagen de marca. Sin código |
+| Durante (desde el 27 de octubre, 01:00 KST) | Todo el código, la app, la web, las personas de Muse Image y los documentos de este repositorio |
+
+## Licencias y fuentes
+
+MediaPipe (Apache 2.0) · OpenCV YuNet y SFace (Apache 2.0) · LivePortrait (MIT) · LeRobot (Apache 2.0) · Numba (BSD).
+Los videos de prueba son de Wikimedia Commons (solo CC BY, CC BY-SA o dominio público; fuentes en `docs/privacy_eval.md`) y no se suben al repositorio.
+El Samsung Health Sensor SDK no se sube al repositorio, según sus términos.

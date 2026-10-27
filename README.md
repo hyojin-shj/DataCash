@@ -1,96 +1,111 @@
-# DataCache (데이터캐시)
+**English** · [한국어](README.ko.md) · [Español](README.es.md) · [中文](README.zh-CN.md) · [日本語](README.ja.md)
 
-집에 이미 있는 기기(폰·워치)만으로 **촉각·시각·청각·몸 감각**을 한 시간축에 모으는 생활밀착형 고품질 로봇 데이터 양산소.
-사용자는 집에서 로봇 조작 기본 동작 미션(티슈 뽑기·컵 옮기기·파우치 뜯기·뚜껑 돌리기 등 12가지)을 폰·워치로 찍어 보상을 받고, 휴머노이드·피지컬 AI 회사는 개인정보가 지워진 4감 데이터를 LeRobot v3.0 그대로 산다.
-Meta Global AI Developer Hackathon (Indie Developer · Push the Frontier) 출품작.
+# DataCache
+
+**Robot hand data from everyday people — using only the phone and watch they already own.**
+
+People record short robot-skill missions at home (pull a tissue, move a cup, twist a lid — 12 in total) with their phone and smartwatch, and get paid.
+Humanoid and physical-AI companies buy the result: privacy-scrubbed video, sound, wrist motion, grip force and heart rate on one shared clock,
+delivered as a ready-to-train **LeRobot v3.0** dataset.
+
+Built for the Meta Global AI Developer Hackathon (Indie Developer · Push the Frontier).
 
 ![DataCache](docs/1026_datacache_brand.png)
 
-- 해커톤 계획: [docs/1026_meta_hackathon.md](docs/1026_meta_hackathon.md)
-- 첫날 작업 기록: [docs/DAY1.md](docs/DAY1.md)
-- Meta 모델 확인: [docs/model_check.md](docs/model_check.md) · 가리기 평가: [docs/privacy_eval.md](docs/privacy_eval.md)
+## At a glance
 
-## 해커톤 전 / 해커톤 중
-
-| | 내용 |
+| | |
 |---|---|
-| 해커톤 전 (10-26 이전) | 계획 문서와 브랜드 이미지만. 코드는 없다. 가져와 쓰는 자산은 계획 문서 1-1 표에 출처와 함께 밝힌다 |
-| 해커톤 중 (한국 10-27 01:00 = 10-26 정오 ET 부터) | 이 저장소의 모든 코드 · 앱 · 웹 · Muse Image 로 만든 가상 인물(`datacache/donors`) · 문서 |
+| Contributors | Android app + watch app. Pick a mission → face check → record → 1–2 quick questions → *ding*, you're paid |
+| Buyers | **Ask in plain words** on the web ("box-lifting data for warehouse robots, ages 20–50, budget $3,000") → AI designs the missions and opens them worldwide |
+| Privacy | The contributor's face is replaced by **a person who doesn't exist**; bystanders, screens and documents are masked; originals are deleted after processing |
+| Touch | No glove — the **watch vibrates itself and measures how much the hand absorbs** to estimate grip force (GripSense, UIST 2012) |
 
-## Meta 모델을 어디에
+## Where the Meta models are used
 
-| 모델 | 쓰임 | 코드 |
+| Model | Role | Code |
 |---|---|---|
-| **SAM 3.1** | 동의 안 한 사람·아이·화면·거울·액자·서류 가리기 (영상 추적), 조작 물체 영역 → `observation.objects`, 접촉 판정 | `datacache/meta/sam.py`, `datacache/privacy/mask.py` |
-| **Muse Spark 1.3** | 가린 영상 → 구조화 JSON (과제·단계 지시문·쓰는 손·물체·실수·장소·도구) → 촉각·소리·손목으로 검증 | `datacache/understand/` |
-| **Muse Image** | 실존하지 않는 가상 인물 (참여자 얼굴 치환용) | `datacache/meta/image.py`, `datacache/donors/` |
-| **Muse Voice Transcribe** | 녹화 소리 받아쓰기 (개인정보 발화 구간 끄기용) | `datacache/meta/voice.py` |
-| **Muse Glimmer** (오픈 웨이트) | Spark 라벨을 배워 우리 서버에서 라벨링 (진행 중) | — |
+| **SAM 3.1** | Masks non-consenting people, children, screens, mirrors, picture frames and documents (video tracking); segments the handled object → `observation.objects` | `datacache/meta/sam.py`, `datacache/privacy/mask.py` |
+| **Muse Spark 1.3** | Masked video → steps, instructions, active hand, objects, mistakes (structured JSON); a buyer's plain-language request → mission design | `datacache/understand/`, `datacache/requests.py` |
+| **Muse Image** | 34 people who don't exist (7 regions × women/men × 20s–60s) used for face replacement | `scripts/make_donors.py`, `datacache/donors/` |
+| **Muse Voice Transcribe** | Finds spoken personal information in the recording and mutes it | `datacache/privacy/speech.py` |
+| **Muse Glimmer** (open weights) | 30B model running locally on this Mac with llama.cpp — re-checks Spark's steps frame by frame (no API cost) | `datacache/understand/glimmer.py` |
 
-Muse Wonder 는 한국에서 쓸 수 없어 영상 이해는 Spark 1.3 으로 한다. API 호출마다 비용을 `data/api_ledger.jsonl` 에 적고 한도를 넘으면 그 단계만 건너뛴다.
+Every API call is logged with its cost in `data/api_ledger.jsonl`; if the budget is hit, only that step is skipped.
 
-**오픈 웨이트:** Muse Glimmer 30B(Q4_K_M, 17GB)를 이 맥(Apple M5·32GB)에서 llama.cpp 로 돌린다 — API 비용 없음.
-Spark 가 붙인 단계마다 가운데 장면을 보고 같은 동작인지 다시 확인해, 감각 증거와 함께 단계 검증에 쓴다 (`datacache/understand/glimmer.py`).
-`llama-server -m data/glimmer/Muse-Glimmer-30B-KQuant-17GB-Q4_K_M.gguf --mmproj data/glimmer/mmproj-Muse-Glimmer-30B-Q4_K_M.gguf --port 8090 -ngl 99 --jinja`
+## Key ideas
 
-## 핵심 기술
+### 1. Privacy that keeps the data valuable
+- **Face replacement, not blur:** the contributor's face is swapped for a Muse Image person (LivePortrait + MediaPipe). We pick the closest match of the same gender and similar age, test-swap 20 frames, and move to the next person if face recognition (SFace) would call more than half of them "the same person".
+- **Continuity:** when a swapped frame comes out too similar, we regenerate it with a softer expression instead of pixelating — the video never breaks.
+- **Masking:** SAM 3.1 hides only what wasn't consented: other people, children, screens, mirrors, picture frames, documents. Consenting family members stay visible, each with their own virtual face.
+- **Originals deleted:** in production, raw video and audio are deleted as soon as processing ends (`purge_originals`). On the hackathon demo server only that call is switched off, so we can show the original-vs-replaced comparison.
 
-1. **가치 보존 개인정보 처리** — 블러 대신: SAM 3.1 로 동의 안 한 것만 가리고, 참여자 얼굴은 실사 가상 인물로 치환
-   (LivePortrait(MIT) + MediaPipe 자르기 — 비상업 InsightFace 를 쓰지 않는다), 장면마다 SFace 재식별 검사.
-   먼 장면의 40px 얼굴도 YuNet → 둘레 키워 치환. 본인 얼굴 등록·녹화 전 얼굴 확인으로 참여자를 알아보고,
-   동의 받은 가족은 가리지 않고 사람마다 다른 가상 얼굴로 (`datacache/people.py`, 사진 대신 특징값만 저장).
-   이의 신청은 자동 확인 → 검토자 → 결과, 개인정보 신고는 즉시 판매 중지 (`datacache/appeals.py`)
-2. **4감 자동 동기화** — 사용자 동작 없이: 폰↔워치 시계 왕복, 18~20kHz 음향 비콘(폰 마이크·워치 마이크가 같이 들음),
-   워치 진동 펄스(촉각 펄스가 동기 신호를 겸함), 영상 움직임↔손목 상관으로 검증 (`datacache/sync/`)
-3. **주변 기기로 만드는 촉각 (GripSense 방식)** — Goel·Wobbrock·Patel, *GripSense*, UIST 2012 를 워치 손목에 옮겼다.
-   워치가 0.5초마다 진동하면, 세게 쥘수록 손이 떨림을 흡수해 자이로·가속도 고주파가 줄고(90번째 백분위수),
-   손가락이 버티는 4~12Hz 떨림은 커진다(분산). 0.5초 창을 0.25초마다 보고, 사람마다 '손 놓기·가볍게·평소처럼·꽉'
-   (저울 없이 스스로 구분한 세기)으로 학습한 결정 트리가 쥐는 세기 단계(0~3)와 연속 점수를 낸다. 팔이 움직이면
-   모터 흡수 특징만 쓰는 트리로. 영상 접촉 단계, 접촉음 + 손목 충격도 함께 (`datacache/touch/`)
-4. **장면 이해와 검증된 라벨** — Muse Spark 라벨을 감각으로 확인, 지어낸 단계는 걸러진다
-5. **말로 의뢰 → 미션 (역설계)** — 구매 기업이 웹 채팅에 "택배 상하차 로봇용, 성별 무관 50대 이하, 예산 500만 원,
-   손 관절·쥐는 세기 필수"처럼 쓰면, Muse Spark 가 구조화 출력으로 미션(기본 동작·물체·바꿀 조건)·참여 조건·센서 묶음을
-   설계하고 서버가 예산에 맞춰 견적을 낸다. 확정하면 조건에 맞는 사람에게만 앱에 미션이 열린다 — 의뢰 조건이 곧 수집
-   분포라서 다양성을 따로 맞추지 않는다 (`datacache/requests.py`). 센서 묶음은 따로 골라 살 수 있다 (`pricing.SENSORS`)
+### 2. Automatic multi-sensor sync
+No clapping required: phone↔watch clock round-trips, an 18–20 kHz acoustic beacon, and watch vibration pulses. Residual 0.5–2.3 ms on real phone + watch recordings (`datacache/sync/`).
 
-## 판매 데이터 (LeRobot v3.0)
+### 3. Touch without a glove — GripSense on the wrist
+We moved Goel, Wobbrock & Patel's *GripSense* (UIST 2012) to the wrist. The watch buzzes briefly; the tighter you grip, the more the hand absorbs it — high-frequency gyro energy drops while 4–12 Hz finger tremor rises. A per-person decision tree, trained on self-rated levels (release · light · normal · tight, no scale needed), outputs grip level 0–3 (`datacache/touch/`).
+Heart rate, beat-to-beat intervals and skin temperature come from the Samsung Health Sensor SDK (`docs/samsung_health_sdk.md`).
 
-`observation.images.ego` (가린·치환 영상) · `observation.hands` · `observation.body` · `observation.body_world` ·
-`observation.imu.phone` · `observation.imu.wrist` · `observation.audio` · **`observation.touch`** (접촉·쥐는 세기 단계 0~3·점수·접촉 단계·물체) ·
-`observation.touch.vibration` · **`observation.physio`** (심박·HRR·피부온도 변화, 생체 동의만) · `observation.objects` ·
-`annotation.events` · `annotation.step` · `annotation.primitive` (reach·grasp·pull…release) · `sync.error_ms` + 에피소드 정보(단계·실수·장면·성공·동기화·촉각 보정) + 품질 인증서.
-실제 `lerobot` 0.6.1 로 읽힌다 (`scripts/validate_lerobot.py`).
+### 4. Plain-language requests → missions
+A buyer types what they need; Muse Spark (structured output) designs the missions (actions, objects, conditions to vary), eligibility (age, gender) and sensor packs, and the server fits a quote to the budget. Once confirmed, the missions appear only for eligible contributors — the request *is* the collection distribution.
 
-등급: 기본 60,000원/시간 · 고품질(+손목·쥐는 힘) 100,000원 · 생체(+심박·체온) 150,000원 (시장 사례 기준, `datacache/pricing.py`).
+### 5. Processing costs that leave a margin
+- Unusable recordings (too short, hands not visible, too dark) are rejected **on-device before any API call** — $0
+- A local object detector scans first; SAM only gets what's needed (no "person" query for solo recordings, screens only when present, static objects at 1 fps)
+- On 4 real recordings: SAM cost **$2.92 → $0.27 (−91%)**, about $5–7 per hour of video (sold at ~$43/hour)
+- SAM mask decoding rewritten with Numba: 593 s → 8 s per recording, bit-identical to the official parser
 
-## 실행
+## The dataset (LeRobot v3.0)
+
+`observation.images.ego` (masked + face-replaced video) · `observation.hands` · `observation.body` · `observation.imu.phone` · `observation.imu.wrist` ·
+`observation.audio` · **`observation.touch`** (contact, grip level 0–3) · `observation.touch.vibration` · **`observation.physio`** (heart rate, skin temperature; biometric consent only) ·
+`observation.objects` · `annotation.step` · `annotation.primitive` (reach · grasp · … · release) · `sync.error_ms` + a quality certificate.
+Loads with the real `lerobot` 0.6.1 (`scripts/validate_lerobot.py`).
+
+Buyers pick sensor packs per hour of data — video (required) ₩35,000 · pose ₩20,000 · audio ₩5,000 · wrist IMU ₩15,000 · touch ₩25,000 · biometrics ₩50,000 (`datacache/pricing.py`).
+
+## Run it
 
 ```bash
 python3.12 -m venv .venv && .venv/bin/pip install -e ".[dev]" torch pyyaml rich
-echo "MODEL_API_KEY=LLM_..." > .env                     # 저장소에 올리지 않는다
-# data/models 에 MediaPipe hand/pose/face landmarker .task, OpenCV yunet.onnx·sface.onnx
-.venv/bin/python -m pytest                              # 합성 4감 세션으로 동기화·촉각·내보내기 검증
-.venv/bin/python scripts/model_check.py                 # Meta 모델 확인
-DATACACHE_TOKEN=... .venv/bin/python -m datacache.server.app --port 8800   # 서버 + 구매 기업 웹(http://localhost:8800)
-cd app && ./gradlew assembleDebug                       # 일반 사용자 앱 (안드로이드)
+echo "MODEL_API_KEY=..." > .env                       # never committed
+# data/models: MediaPipe hand/pose/face landmarker .task, efficientdet_lite0.tflite, OpenCV yunet.onnx + sface.onnx
+.venv/bin/python -m pytest                            # verified on synthetic sessions with known ground truth
+DATACACHE_TOKEN=... .venv/bin/python -m datacache.server.app --port 8800   # server + buyer web
+cd app && ./gradlew assembleDebug                     # Android app + watch app
 ```
 
-LivePortrait 는 저장소에 넣지 않는다 — [KwaiVGI/LivePortrait](https://github.com/KwaiVGI/LivePortrait) (MIT) 를 받아 `LP_ROOT` 로 지정.
+LivePortrait is not vendored — get [KwaiVGI/LivePortrait](https://github.com/KwaiVGI/LivePortrait) (MIT) and point `LP_ROOT` to it.
 
-## 폴더
+## Layout
 
-| 폴더 | 하는 일 |
+| Folder | What it does |
 |---|---|
-| `app/` | 일반 사용자 안드로이드 앱 (동의·오늘의 보너스 미션·얼굴 확인·녹화·실수 표시·미션 후 질문·업로드·적립·동의 인원·이의 신청·계좌) + 워치 앱 |
-| `web/` | 구매 기업 데스크톱 웹 (4감 타임라인·카탈로그·견적·주문·내려받기), 운영자 화면 |
-| `datacache/meta` | Meta Model API 클라이언트 (비용 장부·한도) |
-| `datacache/session` | 녹화 세션 형식, 정답을 아는 합성 4감 세션 |
-| `datacache/sync` · `touch` · `labels` | 4감 동기화 · 촉각 · 손·몸 관절 |
-| `datacache/privacy` · `understand` | SAM 3.1 가리기·얼굴 치환 · Muse Spark 이해·검증 |
-| `datacache/export` · `pipeline.py` · `jobs.py` | LeRobot 내보내기·인증서·묶음, 처리 순서 |
-| `datacache/server` | 수집 서버 + 구매 기업 API |
+| `app/` | Android app (consent, missions, face check, recording, mistake marks, questions, upload, rewards, appeals) + watch app |
+| `web/` | Buyer web (plain-language requests, multi-sensor timeline, quotes, orders, downloads) and operator console |
+| `datacache/privacy` | SAM masking · face replacement · speech privacy · pre-scan |
+| `datacache/sync` · `touch` · `labels` | Sensor sync · touch · hand and body pose |
+| `datacache/understand` | Muse Spark understanding · Glimmer checks · sensor-based verification |
+| `datacache/export` · `jobs.py` | LeRobot export · certificate · processing pipeline |
+| `datacache/server` | Collection server + buyer API |
 
-## 라이선스·출처
+## Docs (in Korean)
 
-- 시험 영상: Wikimedia Commons (CC BY·CC BY-SA·퍼블릭 도메인만, 출처는 `docs/privacy_eval.md`). 영상은 저장소에 넣지 않는다
-- MediaPipe (Apache 2.0) · OpenCV YuNet·SFace (Apache 2.0) · LivePortrait (MIT) · LeRobot (Apache 2.0)
+- Hackathon plan: [docs/1026_meta_hackathon.md](docs/1026_meta_hackathon.md) · Day 1 log: [docs/DAY1.md](docs/DAY1.md)
+- Masking & face-replacement evaluation: [docs/privacy_eval.md](docs/privacy_eval.md) · Meta model check: [docs/model_check.md](docs/model_check.md)
+- Watch SDK: [docs/samsung_health_sdk.md](docs/samsung_health_sdk.md) · Demo video script: [docs/demo_video_script.md](docs/demo_video_script.md)
+
+## Before vs. during the hackathon
+
+| | Contents |
+|---|---|
+| Before (until Oct 26) | Planning document and brand image only. No code |
+| During (from Oct 27 01:00 KST) | All code, app, web, Muse Image people and docs in this repository |
+
+## Licenses and sources
+
+MediaPipe (Apache 2.0) · OpenCV YuNet & SFace (Apache 2.0) · LivePortrait (MIT) · LeRobot (Apache 2.0) · Numba (BSD).
+Test videos are from Wikimedia Commons (CC BY, CC BY-SA or public domain only; sources in `docs/privacy_eval.md`) and are not committed.
+The Samsung Health Sensor SDK is not committed, per its terms.
