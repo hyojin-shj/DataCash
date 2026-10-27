@@ -56,3 +56,16 @@ def test_small_face_found_for_swap():
     assert len(found) == 1
     expect = big * k + np.array([x0, y0])
     assert np.abs(found[0].mean(0) - expect.mean(0)).max() < 4    # 원래 좌표로 맞게 되돌린다
+
+
+def test_mps_conv3d_as_2d_same():
+    """맥 GPU 빠른 길: 7×7×7 Conv3d 를 2D 합성곱 7번으로 — 값이 같아야 한다 (CPU 에서 확인)."""
+    import torch
+
+    from datacache.privacy.mps_speed import conv3d_as_2d
+
+    torch.manual_seed(0)
+    conv = torch.nn.Conv3d(6, 4, 7, padding=3)
+    x = torch.randn(1, 6, 5, 12, 12)
+    with torch.no_grad():
+        assert torch.allclose(conv(x), conv3d_as_2d(x, conv.weight, conv.bias, 3), atol=1e-5)

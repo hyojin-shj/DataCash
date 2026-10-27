@@ -117,6 +117,13 @@ class LivePortraitSwap:
 
         self.torch, self.rot = torch, get_rotation_matrix
         self.w = LivePortraitWrapper(InferenceConfig())
+        self.half = self.w.device == "mps"
+        if self.half:       # 맥 GPU: 큰 Conv3d 를 2D 로 + 변형·생성은 fp16 (장면당 1.65초 → 0.17초, fp32 와 PSNR 51dB)
+            from .mps_speed import speed_up
+
+            speed_up(self.w.warping_module)
+            self.w.warping_module.half()
+            self.w.spade_generator.half()
         m = cv2.imread(str(LP_ROOT / "src" / "utils" / "resources" / "mask_template.png"), cv2.IMREAD_GRAYSCALE)
         self.mask = cv2.resize(m, (CROP, CROP)).astype(np.float32) / 255.0 if m is not None else None
 
@@ -157,7 +164,11 @@ class LivePortraitSwap:
         x_d = scale_new[..., None] * (kp_c @ R_new + exp_new.view(1, -1, 3)) + t_new[:, None, :]
         x_d = self.w.stitching(self.s_kp, x_d)
         with t.no_grad():
-            out = self.w.warp_decode(self.s_feat, self.s_kp, x_d)["out"]
+            if self.half:
+                warped = self.w.warping_module(self.s_feat.half(), kp_source=self.s_kp.half(), kp_driving=x_d.half())["out"]
+                out = self.w.spade_generator(feature=warped).float()
+            else:
+                out = self.w.warp_decode(self.s_feat, self.s_kp, x_d)["out"]
         img = (out.permute(0, 2, 3, 1).clamp(0, 1).cpu().numpy()[0] * 255).astype(np.uint8)
         return cv2.cvtColor(cv2.resize(img, (CROP, CROP)), cv2.COLOR_RGB2BGR)
 
@@ -380,11 +391,54 @@ def _age_num(band: Optional[str]) -> Optional[int]:
     return 20 if band.startswith("19") else int(digits[:2]) if digits else None
 
 
-def rank_donors(original_video, donors_dir=None, gender: Optional[str] = None, age_band: Optional[str] = None) -> List[Path]:
-    """가상 인물 순서 (첫째는 참여자, 다음은 동의한 가족에게). 얼굴은 영상 곳곳 8장면에서.
-    가장 덜 닮은 사람을 고르면 성별·나이·인종이 달라 어색하다 (실제 녹화에서 긴 머리 여성에게 20대 서양 남성이 붙었다).
-    그래서 '알아볼 수 없을 만큼 다른' 사람들(닮음 < DONOR_SAFE) 가운데, 본인이 알려 준 성별이 같고 연령대가 가까운 사람,
-    그다음 가장 닮은 사람부터 — 개인정보는 지키고 자연스럽게. 안전한 사람이 없으면 덜 닮은 순서."""
+TRIAL_FRAMES = 10         # 가상 인물마다 시험으로 바꿔 볼 장면 수
+TRIAL_MARGIN = 0.02       # 시험 결과 최대 닮음이 REID_MAX - 이 값 미만이어야 '통과'
+
+
+def trial_reid(original_video, donors: List[Path], frames: int = TRIAL_FRAMES, lp: Optional["LivePortraitSwap"] = None) -> dict:
+    """가상 인물마다 영상 곳곳 몇 장면을 실제로 바꿔 보고, 바꾼 얼굴이 원래 사람과 얼마나 닮았는지 (평균·최대).
+    사진끼리는 덜 닮아도 표정·얼굴형이 옮겨지면 닮아질 수 있다 (점심 녹화: 20대 여성 donor2 사진 0.2대 → 바꾼 뒤 최대 0.37)."""
+    fl, reid = FaceLandmarks(), Reid()
+    lp = lp or LivePortraitSwap()
+    cap = cv2.VideoCapture(str(original_video))
+    n = int(cap.get(7))
+    picks = []
+    for i in np.linspace(0, max(0, n - 10), frames).astype(int):
+        cap.set(cv2.CAP_PROP_POS_FRAMES, int(i))
+        ok, f = cap.read()
+        if ok:
+            found = fl(f)
+            if found:
+                picks.append((f, max(found, key=lambda a: np.ptp(a[:, 0]) * np.ptp(a[:, 1]))))
+    cap.release()
+    out = {}
+    for d in donors:
+        img = cv2.imread(str(d))
+        dl = fl(img) if img is not None else []
+        if not dl or not picks:
+            continue
+        lp.source(img, dl[0])
+        sims = []
+        for f, l in picks:
+            M = crop_matrix(l)
+            g = lp.drive(warp_in(f, M))
+            gl = fl(g)
+            swapped = lp.paste(f, g, M, gl[0] if gl else None)
+            e0, e1 = reid.embed(f, l.mean(0)), reid.embed(swapped, l.mean(0))
+            if e0 is not None and e1 is not None:
+                sims.append(reid.sim(e0, e1))
+        if sims:
+            out[d] = (float(np.mean(sims)), float(np.max(sims)))
+    return out
+
+
+def rank_donors(original_video, donors_dir=None, gender: Optional[str] = None, age_band: Optional[str] = None,
+                trial: bool = True) -> List[Path]:
+    """가상 인물 순서 (첫째는 참여자, 다음은 동의한 가족에게).
+    1) 사진끼리 '알아볼 수 없을 만큼 다른' 사람(닮음 < DONOR_SAFE)만 후보 — 가장 덜 닮은 사람만 고르면 성별·나이가 달라 어색하다.
+    2) trial: 후보마다 몇 장면을 실제로 바꿔 보고, 바꾼 얼굴이 원래 사람과 닮으면(최대 ≥ REID_MAX - TRIAL_MARGIN) 뒤로.
+    3) 그 안에서 본인이 알려 준 성별이 같고, 연령대가 가깝고, 바꾼 뒤 덜 닮은 사람부터 (같은 성별이 모두 못 통과하면 그중 덜 닮은 사람).
+    안전한 사람이 없으면 덜 닮은 순서."""
     donors = sorted(Path(donors_dir or Path(__file__).parents[1] / "donors").glob("*.png"))
     if not donors:
         return []
@@ -392,7 +446,7 @@ def rank_donors(original_video, donors_dir=None, gender: Optional[str] = None, a
     cap = cv2.VideoCapture(str(original_video))
     n = int(cap.get(7))
     embs = []
-    for i in np.linspace(0, max(0, n - 1), 8).astype(int):
+    for i in np.linspace(0, max(0, n - 10), 8).astype(int):
         cap.set(cv2.CAP_PROP_POS_FRAMES, int(i))
         ok, f = cap.read()
         e = reid.embed(f) if ok else None
@@ -405,11 +459,17 @@ def rank_donors(original_video, donors_dir=None, gender: Optional[str] = None, a
         return 1.0 if e is None else max(reid.sim(e, x) for x in embs)
     sims = {d: worst(d) for d in donors}
     age = _age_num(age_band)
+    safe = [d for d in donors if sims[d] < DONOR_SAFE]
+    tried = trial_reid(original_video, safe) if trial and safe else {}
 
     def fit(d):
         g, a = DONOR_INFO.get(d.stem, (None, None))
-        return (0 if gender in (None, "") or g == gender else 1, abs((a or 0) - age) if age and a else 0, -sims[d])
+        mean, mx = tried.get(d, (sims[d], sims[d]))
+        passed = not tried or mx < REID_MAX - TRIAL_MARGIN
+        return (0 if gender in (None, "") or g == gender else 1,
+                0 if passed else 1,
+                (abs((a or 0) - age) if age and a else 0) if passed else mx,     # 못 통과하면 덜 닮은 사람부터
+                mean)
 
-    safe = sorted((d for d in donors if sims[d] < DONOR_SAFE), key=fit)
     rest = sorted((d for d in donors if sims[d] >= DONOR_SAFE), key=lambda d: sims[d])
-    return safe + rest
+    return sorted(safe, key=fit) + rest
