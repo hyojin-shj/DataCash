@@ -84,6 +84,7 @@ class Store:
             (root / d).mkdir(parents=True, exist_ok=True)
         self.q: Queue = Queue()
         self.lock = threading.Lock()
+        self.train_lock = threading.Lock()
         self.live: dict = {}          # 지금 녹화 중인 세션 {sid, started, watch_joined}
         self.people = People(root / "people")
         self.appeals = Appeals(root / "appeals")
@@ -129,6 +130,17 @@ class Store:
                 fin = self.set_status(sid, state="failed", error=f"{type(e).__name__}: {str(e)[:300]}")
             self.appeals.reprocessed(sid, fin)
             self.settle(sid)
+            if fin.get("state") == "done":           # 모델 진화: 검증된 라벨이 늘었으니 동작 모델을 뒤에서 다시 학습
+                threading.Thread(target=self.retrain, daemon=True).start()
+
+    def retrain(self) -> None:
+        from .. import evolve
+
+        with self.train_lock:
+            try:
+                evolve.train(sorted(p for p in (self.root / "out").iterdir() if p.is_dir()), log=print)
+            except Exception as e:
+                print(f"동작 모델 학습 실패: {type(e).__name__}: {e}")
 
     def settle(self, sid: str) -> dict:
         """승인된 녹화의 보상을 입금 기록으로 (계좌가 없으면 기다림)."""
@@ -754,6 +766,16 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
         st.save_order(o)
         bg.add_task(st.build_bundle, oid)
         return {"id": oid, "status": "building"}
+
+    @app.get("/api/admin/evolve")
+    def admin_evolve(token: str = Query("")):
+        """모델 진화: 동작 모델 버전들 (학습 녹화·점수·기준선·성장 곡선·Spark 대신 쓰기 가능 여부)."""
+        auth(token)
+        from .. import evolve
+
+        reg = evolve._registry()
+        return {"ready_rule": {"macro_f1": evolve.READY_F1, "recordings": evolve.READY_RECORDINGS, "confidence": evolve.CONFIDENT},
+                "versions": reg["versions"]}
 
     @app.get("/api/admin/appeals")
     def admin_appeals(token: str = Query("")):

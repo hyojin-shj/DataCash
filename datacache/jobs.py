@@ -213,9 +213,14 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
         except Exception as e:
             report["skipped"].append(f"speech: {type(e).__name__}: {str(e)[:200]}")
 
-    # 3. Muse Spark 이해 (가린 영상만)
+    # 3. 단계 라벨 — 우리 동작 모델이 준비됐고 확신하면 그것으로 (Spark 를 부르지 않는다), 아니면 Muse Spark
     steps, mistakes, scene = None, None, None
-    if use_api:
+    auto = _model_steps(sd, out, masked, labels, objects) if not synthetic else None
+    if auto:
+        steps, mistakes = auto["steps"], []
+        report["labels_by"] = auto["model"]
+        log(f"[{sd.name}] 단계 라벨: {auto['model']} (확신 {auto['confidence']}) — Spark 생략")
+    elif use_api:
         try:
             from .media import clip_mp4
             from .understand.spark import understand_clip
@@ -284,6 +289,25 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
                   sync=cert["sync"]["chosen"], certificate=str(out / "certificate.md"))
     (out / "job.json").write_text(json.dumps(report, indent=2, ensure_ascii=False))
     return report
+
+
+def _model_steps(sd: Path, out: Path, masked, labels, objects) -> Optional[dict]:
+    """모델 진화(datacache/evolve.py): 준비된 버전이 있으면 먼저 특징만 내보내 보고, 확신이 높을 때만 단계를 낸다."""
+    from . import evolve
+
+    cur = evolve.current()
+    if cur is None or not cur[1]["ready"] or masked is None:
+        return None
+    try:
+        process(sd, out, level="basic", masked_video=masked, labels=labels, objects=objects, extract=False)
+        r = evolve.try_label(out)
+    except Exception:
+        return None
+    if r:
+        for st_ in r["steps"]:
+            st_.update(instruction=st_["action"], hand="unknown", objects=[], grasp_type="unclear", success="unknown",
+                       labeled_by=r["model"])
+    return r
 
 
 ORIGINALS = ("video.mp4", "audio.wav", "watch_audio.wav")    # 녹화 폴더: 참여자 원래 얼굴·목소리
