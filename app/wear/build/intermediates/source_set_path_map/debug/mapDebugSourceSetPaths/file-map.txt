@@ -1,7 +1,0 @@
-com.datacash.wear-pngs-0 /Users/simhyojin/Desktop/DataCash/app/wear/build/generated/res/pngs/debug
-com.datacash.wear-resValues-1 /Users/simhyojin/Desktop/DataCash/app/wear/build/generated/res/resValues/debug
-com.datacash.wear-packageDebugResources-2 /Users/simhyojin/Desktop/DataCash/app/wear/build/intermediates/incremental/debug/packageDebugResources/merged.dir
-com.datacash.wear-packageDebugResources-3 /Users/simhyojin/Desktop/DataCash/app/wear/build/intermediates/incremental/debug/packageDebugResources/stripped.dir
-com.datacash.wear-debug-4 /Users/simhyojin/Desktop/DataCash/app/wear/build/intermediates/merged_res/debug/mergeDebugResources
-com.datacash.wear-debug-5 /Users/simhyojin/Desktop/DataCash/app/wear/src/debug/res
-com.datacash.wear-main-6 /Users/simhyojin/Desktop/DataCash/app/wear/src/main/res

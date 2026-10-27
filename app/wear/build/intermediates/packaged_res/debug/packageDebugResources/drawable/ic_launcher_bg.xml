@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- 데이터캐시 아이콘 바탕: Vibrant Cache(#FF5F5F) → Earn Gold(#FFAF5F) -->
-<shape xmlns:android="http://schemas.android.com/apk/res/android">
-    <gradient android:angle="0" android:startColor="#FF5F5F" android:endColor="#FFAF5F" />
-</shape>
