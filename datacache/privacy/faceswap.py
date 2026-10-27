@@ -366,8 +366,25 @@ def pick_donor(original_video, donors_dir=None) -> Optional[Path]:
     return r[0] if r else None
 
 
-def rank_donors(original_video, donors_dir=None) -> List[Path]:
-    """가상 인물을 영상 속 얼굴들과 덜 닮은 순서로 (첫째는 참여자, 다음은 동의한 가족에게). 얼굴은 영상 곳곳 8장면에서."""
+DONOR_SAFE = 0.25          # 이보다 덜 닮아야 '다른 사람' (재식별 검사 REID_MAX 0.30 에 여유)
+
+
+DONOR_INFO = {"donor0": ("female", 30), "donor1": ("male", 30), "donor2": ("female", 20), "donor3": ("male", 50),
+              "donor4": ("female", 40), "donor5": ("male", 20)}       # Muse Image 로 만들 때 정한 성별·나이 (donors/README.md)
+
+
+def _age_num(band: Optional[str]) -> Optional[int]:
+    if not band:
+        return None
+    digits = "".join(ch for ch in band if ch.isdigit())
+    return 20 if band.startswith("19") else int(digits[:2]) if digits else None
+
+
+def rank_donors(original_video, donors_dir=None, gender: Optional[str] = None, age_band: Optional[str] = None) -> List[Path]:
+    """가상 인물 순서 (첫째는 참여자, 다음은 동의한 가족에게). 얼굴은 영상 곳곳 8장면에서.
+    가장 덜 닮은 사람을 고르면 성별·나이·인종이 달라 어색하다 (실제 녹화에서 긴 머리 여성에게 20대 서양 남성이 붙었다).
+    그래서 '알아볼 수 없을 만큼 다른' 사람들(닮음 < DONOR_SAFE) 가운데, 본인이 알려 준 성별이 같고 연령대가 가까운 사람,
+    그다음 가장 닮은 사람부터 — 개인정보는 지키고 자연스럽게. 안전한 사람이 없으면 덜 닮은 순서."""
     donors = sorted(Path(donors_dir or Path(__file__).parents[1] / "donors").glob("*.png"))
     if not donors:
         return []
@@ -386,4 +403,13 @@ def rank_donors(original_video, donors_dir=None) -> List[Path]:
     def worst(d):
         e = reid.embed(cv2.imread(str(d)))
         return 1.0 if e is None else max(reid.sim(e, x) for x in embs)
-    return sorted(donors, key=worst)
+    sims = {d: worst(d) for d in donors}
+    age = _age_num(age_band)
+
+    def fit(d):
+        g, a = DONOR_INFO.get(d.stem, (None, None))
+        return (0 if gender in (None, "") or g == gender else 1, abs((a or 0) - age) if age and a else 0, -sims[d])
+
+    safe = sorted((d for d in donors if sims[d] < DONOR_SAFE), key=fit)
+    rest = sorted((d for d in donors if sims[d] >= DONOR_SAFE), key=lambda d: sims[d])
+    return safe + rest

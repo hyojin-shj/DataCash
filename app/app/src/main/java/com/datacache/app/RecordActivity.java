@@ -580,7 +580,8 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
                         .put("mission", new JSONObject().put("id", missionId).put("title", title).put("situation", situation))
                         .put("devices", new JSONObject().put("phone", new JSONObject().put("model", Build.MANUFACTURER + " " + Build.MODEL)
                                 .put("android", Build.VERSION.RELEASE).put("id", Store.deviceId(this))))
-                        .put("participant", new JSONObject().put("consent", Store.consentJson(this)).put("age_band", Store.ageBand(this)))
+                        .put("participant", new JSONObject().put("consent", Store.consentJson(this)).put("age_band", Store.ageBand(this))
+                                .put("gender", Store.gender(this)))   // 가상 인물을 성별·연령대가 맞는 사람으로 고르는 데만
                         .put("face_check", faceCheckInfo())
                         .put("self_marks_ns", mk).put("video", video).put("audio", a).put("phone_imu_rows", imuRows)
                         .put("recorded_at", Clock.wallIso());

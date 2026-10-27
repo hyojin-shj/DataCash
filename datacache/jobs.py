@@ -137,7 +137,8 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
         try:
             from .privacy.faceswap import rank_donors, swap_video
 
-            donors = rank_donors(video)
+            part = meta.get("participant") or {}
+            donors = rank_donors(video, gender=part.get("gender"), age_band=part.get("age_band"))
             dev = ((meta.get("devices") or {}).get("phone") or {}).get("id")
             mine = people.donor_for(dev, "owner") if people is not None else None      # 본인이 고른 가상 인물
             fam = {oid: people.donor_for(dev, pid) for oid, pid in getattr(r, "consented_who", {}).items()} if people is not None else {}

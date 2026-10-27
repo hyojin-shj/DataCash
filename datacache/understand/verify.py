@@ -23,8 +23,10 @@ NOISY = {"place", "tear", "wipe", "insert", "press", "squeeze"}
 
 def verify_steps(steps: List[dict], t_s: np.ndarray, motion: Optional[np.ndarray] = None,
                  contact: Optional[np.ndarray] = None, grip: Optional[np.ndarray] = None,
-                 sound_t_s: Optional[List[float]] = None, contact_change_t_s: Optional[List[float]] = None) -> List[dict]:
-    """t_s: 장면 시각(초). motion·contact·grip: 장면마다 값(없으면 None)."""
+                 sound_t_s: Optional[List[float]] = None, contact_change_t_s: Optional[List[float]] = None,
+                 hands: Optional[np.ndarray] = None) -> List[dict]:
+    """t_s: 장면 시각(초). motion·contact·grip·hands(손이 보였나 0~1): 장면마다 값(없으면 None).
+    손이 그 구간의 30% 미만에서만 보였으면 (고무장갑·화면 밖) 영상 접촉은 '모름'으로 보고 증거에서 뺀다."""
     base = float(np.median(motion)) if motion is not None and len(motion) else None
     out = []
     for st in steps:
@@ -32,8 +34,9 @@ def verify_steps(steps: List[dict], t_s: np.ndarray, motion: Optional[np.ndarray
         ev = {}
         if motion is not None and sel.any():
             ev["motion"] = bool(np.mean(motion[sel]) > 1.2 * base) if base and base > 0 else bool(np.mean(motion[sel]) > 0)
-        if st.get("action") in GRASPY and sel.any() and (contact is not None or grip is not None):
-            c = contact[sel].max() if contact is not None else 0
+        seen = hands is None or not sel.any() or float(np.mean(hands[sel] > 0)) >= 0.3
+        if st.get("action") in GRASPY and sel.any() and ((contact is not None and seen) or grip is not None):
+            c = contact[sel].max() if contact is not None and seen else 0
             g = grip[sel].max() if grip is not None else 0
             ev["contact"] = bool(c >= 1.0 or g > 0.5)
         if st.get("action") in NOISY and sound_t_s is not None:

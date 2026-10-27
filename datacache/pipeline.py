@@ -132,7 +132,9 @@ def process(session_dir, out_dir, level: str = "bio", fps: float = 30.0, masked_
             motion = np.abs(np.linalg.norm(acc, axis=1) - np.median(np.linalg.norm(acc, axis=1)))
         T_all, _ = touch_rows(cframes, src_all, g_all, grip, vib)
         ph = phase_events(cframes, (frame_ns - frame_ns[0]) / 1e9) if cframes else []
+        _, hp = hand_rows(labels, src_all, size) if labels is not None else (None, None)
         steps = verify_steps(steps, t_all, motion=motion, contact=T_all[:, 0] if cframes else None,
+                             hands=hp.max(1) if hp is not None else None,
                              grip=T_all[:, 1] if grip else None,
                              sound_t_s=[(e["t_ns"] - frame_ns[0]) / 1e9 for e in onsets],
                              contact_change_t_s=[e["t_s"] for e in ph])
