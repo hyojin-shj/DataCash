@@ -11,7 +11,7 @@ lora_dropout: 0.05
 lora_target_linear: true
 
 datasets:
-  - path: data/evolve/sft/train.jsonl     # datacache.evolve.build_dataset 이 만든 것 (이미지 경로는 이 파일 기준)
+  - path: data/evolve/sft/train.jsonl     # datacash.evolve.build_dataset 이 만든 것 (이미지 경로는 이 파일 기준)
     type: chat_template
     field_messages: messages
 test_datasets:

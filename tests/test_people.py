@@ -7,10 +7,10 @@ import cv2
 import numpy as np
 import pytest
 
-from datacache import config
-from datacache import people as people_mod
+from datacash import config
+from datacash import people as people_mod
 
-DONORS = config.ROOT / "datacache" / "donors"
+DONORS = config.ROOT / "datacash" / "donors"
 pytestmark = pytest.mark.skipif(not (config.MODELS / "yunet.onnx").exists(), reason="얼굴 모델이 없음 (data/models)")
 DEV = {"X-DC-Token": "t", "X-DC-Device": "phoneA1"}
 
@@ -23,7 +23,7 @@ def jpg(name: str) -> bytes:
 def client(tmp_path):
     from fastapi.testclient import TestClient
 
-    from datacache.server.app import create_app
+    from datacash.server.app import create_app
 
     return TestClient(create_app(tmp_path, "t", use_api=False)), tmp_path
 
@@ -69,9 +69,9 @@ def test_people_consent_face_donor(client):
 
 def test_tracks_identified_owner_family_stranger(tmp_path):
     """한 영상의 세 사람 추적: 본인 → 참여자, 동의한 가족 → 가리지 않음, 모르는 사람 → 알아보지 못함(가림)."""
-    from datacache.meta.sam import SamObject
-    from datacache.people import People, embed_image
-    from datacache.privacy.mask import identify_tracks
+    from datacash.meta.sam import SamObject
+    from datacash.people import People, embed_image
+    from datacash.privacy.mask import identify_tracks
 
     ppl = People(tmp_path)
     face = {n: cv2.resize(cv2.imread(str(DONORS / f"donor{n}.png")), (240, 240)) for n in (0, 2, 5)}

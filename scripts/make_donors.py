@@ -1,7 +1,7 @@
 """Muse Image 로 실존하지 않는 가상 인물(얼굴 치환용)을 더 만든다 — 전 세계 참여자에게 맞는 사람을 고를 수 있게.
 
   python scripts/make_donors.py            # DONORS 가운데 아직 없는 사람만 만든다 (장당 $0.01)
-원본(1024px)은 data/donors/, 치환용(768px)은 datacache/donors/, 성별·나이·지역은 datacache/donors/donors.json.
+원본(1024px)은 data/donors/, 치환용(768px)은 datacash/donors/, 성별·나이·지역은 datacash/donors/donors.json.
 얼굴을 찾지 못한 사진은 한 번 다시 만든다."""
 
 import json
@@ -11,11 +11,11 @@ from pathlib import Path
 import cv2
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from datacache.meta.image import generate  # noqa: E402
-from datacache.privacy.faceswap import FaceLandmarks  # noqa: E402
+from datacash.meta.image import generate  # noqa: E402
+from datacash.privacy.faceswap import FaceLandmarks  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT, RAW = ROOT / "datacache" / "donors", ROOT / "data" / "donors"
+OUT, RAW = ROOT / "datacash" / "donors", ROOT / "data" / "donors"
 INFO = OUT / "donors.json"
 BASE = ("Photorealistic passport-style portrait photo of a fictional {who}, {age}, facing the camera straight on, "
         "head and upper shoulders, neutral expression, eyes open, mouth closed, no glasses, no hat, no jewelry, "

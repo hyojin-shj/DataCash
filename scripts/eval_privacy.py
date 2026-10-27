@@ -18,12 +18,12 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from datacache import config
-from datacache.media import clip_mp4
-from datacache.meta import spent_usd
-from datacache.meta.client import BudgetExceeded
-from datacache.meta.sam import Sam
-from datacache.privacy import mask_video
+from datacash import config
+from datacash.media import clip_mp4
+from datacash.meta import spent_usd
+from datacash.meta.client import BudgetExceeded
+from datacash.meta.sam import Sam
+from datacash.privacy import mask_video
 
 CLIPS = [
     ("home_kitchen_wide", "dishwashing/_Yum-Cast_Our_Daily_Life_Let_s_clean_and_do_the_dishes_.webm", 0.15, ["plate", "chair"]),
@@ -105,8 +105,8 @@ def main(only=None):
         fps = cv2.VideoCapture(str(src)).get(5) or 25
         clip = clip_mp4(src, OUT / f"{name}.mp4", start_s=at * n / fps, dur_s=8, max_side=640, fps=15, audio=False)
         t = time.time()
-        from datacache.labels import extract_labels
-        from datacache.pipeline import FINGERTIPS
+        from datacash.labels import extract_labels
+        from datacash.pipeline import FINGERTIPS
 
         pts = [[h[FINGERTIPS, :2] for h in f.hands if h is not None] for f in extract_labels(clip)]   # 앱 처리와 같게 손끝을 넘긴다
         try:

@@ -3,8 +3,8 @@
 import cv2
 import numpy as np
 
-from datacache.meta.sam import Sam, SamObject
-from datacache.privacy.mask import GRAY, mask_video
+from datacash.meta.sam import Sam, SamObject
+from datacash.privacy.mask import GRAY, mask_video
 
 
 def _video(path, n=30, fps=30):
@@ -75,7 +75,7 @@ def test_cache(tmp_path, monkeypatch):
 
 def test_plan_skips_and_slows(tmp_path):
     """혼자 찍은 영상: 사람은 SAM 에 묻지 않고, 화면은 초당 1장면."""
-    from datacache.privacy.scan import sam_frames, sam_plan
+    from datacash.privacy.scan import sam_frames, sam_plan
 
     v = tmp_path / "v.mp4"
     _video(v, n=60)
@@ -97,7 +97,7 @@ def test_fast_mask_decode_same_as_official():
 
     from meta_sam_parser._mask_codec import _encode_raster, decode_mask_to_raster
 
-    from datacache.meta.mask_fast import decode
+    from datacash.meta.mask_fast import decode
 
     rng = np.random.default_rng(0)
     for w, h in ((37, 23), (120, 80)):

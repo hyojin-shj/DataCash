@@ -10,7 +10,7 @@ from pathlib import Path
 
 import cv2
 
-from datacache.media import clip_mp4, wav
+from datacash.media import clip_mp4, wav
 
 P0 = 2_000_000_000_000
 
@@ -36,7 +36,7 @@ def main():
         (out / "audio.json").write_text(json.dumps({"start_ns": P0, "rate": 48000}))
     except Exception:
         pass
-    meta = {"session_id": out.name, "format": "datacache/1", "public_video": True, "source": a.source or str(a.video),
+    meta = {"session_id": out.name, "format": "datacash/1", "public_video": True, "source": a.source or str(a.video),
             "mission": {"id": a.mission, "title": a.title, "situation": "공개 영상"},
             "devices": {"phone": {"model": "public-video"}},
             "participant": {"consent": {"video": True, "bio": False}, "age_band": ""}, "self_marks_ns": [],

@@ -24,3 +24,5 @@ app/.idea/
 # Samsung Health Sensor SDK — 삼성 약관상 저장소에 올리지 않는다 (각자 받아 app/wear/libs/ 에)
 app/wear/libs/*.aar
 app/wear/libs/*.jar
+app/*/build/
+app/.gradle/

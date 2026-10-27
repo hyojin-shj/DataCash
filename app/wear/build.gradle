@@ -4,11 +4,11 @@ plugins {
 
 // 갤럭시 워치(Wear OS) 앱 — 손목 IMU · 능동 진동 펄스 · 심박 · 마이크 · 서버 시각. 외부 라이브러리 없이 (삼성 SDK 는 선택).
 android {
-    namespace 'com.datacache.wear'
+    namespace 'com.datacash.wear'
     compileSdk 34
 
     defaultConfig {
-        applicationId 'com.datacache.wear'
+        applicationId 'com.datacash.wear'
         minSdk 30
         targetSdk 34
         versionCode 1

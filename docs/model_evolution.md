@@ -1,6 +1,6 @@
 # 모델 진화 — Meta 오픈 웨이트 Muse Glimmer 를 우리 라벨로 키운다
 
-코드: `datacache/evolve.py` · 명령: `scripts/evolve.py` · 학습: `train/glimmer_qlora.yaml`, `scripts/train_glimmer.sh`
+코드: `datacash/evolve.py` · 명령: `scripts/evolve.py` · 학습: `train/glimmer_qlora.yaml`, `scripts/train_glimmer.sh`
 운영자 API: `GET /api/admin/evolve` · 기록: `data/evolve/registry.json`
 
 ## 흐름

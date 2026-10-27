@@ -2,8 +2,8 @@
 
 import json
 
-from datacache import evolve, judge
-from datacache.appeals import Appeals
+from datacash import evolve, judge
+from datacash.appeals import Appeals
 
 OLD = [{"action": "reach", "start_s": 0, "end_s": 1}, {"action": "lift", "start_s": 1, "end_s": 2},
        {"action": "release", "start_s": 2, "end_s": 3}]

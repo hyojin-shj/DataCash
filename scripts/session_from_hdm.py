@@ -19,7 +19,7 @@ from pathlib import Path
 
 import numpy as np
 
-from datacache.media import run
+from datacash.media import run
 
 MISSION_OBJECTS = {"dishwashing": ["plate", "cup", "sponge"], "cooking": ["frying pan", "spatula", "bowl"],
                    "game": ["game controller"], "squat": [], "vacuum": ["vacuum cleaner"], "makeup": ["brush"]}
@@ -86,7 +86,7 @@ def main():
                  "imu_rows": n_w, "role": "hdm wrist (vibration pulses 없음)"}
     m = s.get("mission") or {}
     mid_ = m.get("id", "unknown")
-    meta = {"session_id": out.name, "format": "datacache/1", "clock": "BOOTTIME", "source": f"home-data-mission {src.name}",
+    meta = {"session_id": out.name, "format": "datacash/1", "clock": "BOOTTIME", "source": f"home-data-mission {src.name}",
             "mission": {"id": f"hdm_{mid_}", "title": m.get("title", ""), "situation": m.get("situation", ""),
                         "objects": MISSION_OBJECTS.get(mid_, [])},
             "devices": {"phone": {"model": s.get("device"), "android": s.get("android"), "id": "hdmphone01"},

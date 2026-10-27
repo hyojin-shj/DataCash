@@ -5,8 +5,8 @@ import json
 import numpy as np
 import pyarrow.parquet as pq
 
-from datacache.export.lerobot import read_episode_info
-from datacache.pipeline import process
+from datacash.export.lerobot import read_episode_info
+from datacash.pipeline import process
 
 
 def _run(synth_session, synth_tracks, tmp_path, level):
@@ -59,7 +59,7 @@ def test_face_check_segment_left_out(synth_session, synth_tracks, tmp_path):
 
     import pyarrow.parquet as pq
 
-    from datacache.pipeline import process
+    from datacash.pipeline import process
 
     d, truth = synth_session
     d2 = tmp_path / "s"
@@ -79,9 +79,9 @@ def test_buy_by_sensor_pack(synth_session, synth_tracks, tmp_path):
     """센서 묶음을 골라 산다: 영상(필수) + 관절 + 촉각 → 묶음에 그 채널만, 값은 묶음 합."""
     import json
 
-    from datacache import pricing
-    from datacache.export.bundle import merge
-    from datacache.pipeline import process
+    from datacash import pricing
+    from datacash.export.bundle import merge
+    from datacash.pipeline import process
 
     d, _ = synth_session
     hand, objs, _ = synth_tracks
@@ -97,7 +97,7 @@ def test_buy_by_sensor_pack(synth_session, synth_tracks, tmp_path):
 
 def test_purge_originals(tmp_path):
     """처리가 끝나면 원본 영상·소리와 얼굴을 바꾸기 전 영상은 지우고, 판매용·센서 값은 남긴다."""
-    from datacache.jobs import purge_originals
+    from datacash.jobs import purge_originals
 
     sd, out = tmp_path / "s", tmp_path / "o"
     sd.mkdir()

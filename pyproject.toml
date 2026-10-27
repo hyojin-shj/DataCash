@@ -1,7 +1,7 @@
 [project]
-name = "datacache"
+name = "datacash"
 version = "0.1.0"
-description = "DataCache — 집에 있는 기기로 촉각·시각·청각·몸 감각을 한 시간축에 모으는 로봇 학습 데이터 양산소"
+description = "DataCash — 집에 있는 기기로 촉각·시각·청각·몸 감각을 한 시간축에 모으는 로봇 학습 데이터 양산소"
 requires-python = ">=3.11"
 dependencies = [
   "numpy", "scipy", "pandas", "opencv-python", "mediapipe", "pyarrow", "openai", "python-dotenv",
@@ -13,14 +13,14 @@ dependencies = [
 dev = ["pytest"]
 
 [project.scripts]
-datacache = "datacache.cli:main"
+datacash = "datacash.cli:main"
 
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["datacache*"]
+include = ["datacash*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

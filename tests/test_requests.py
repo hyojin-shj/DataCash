@@ -17,13 +17,13 @@ PLAN = {"ready": True, "title": "택배 상하차", "domain": "물류", "robot_u
 def client(tmp_path):
     from fastapi.testclient import TestClient
 
-    from datacache.server.app import create_app
+    from datacash.server.app import create_app
 
     return TestClient(create_app(tmp_path, "t", use_api=False)), tmp_path
 
 
 def test_budget_fit_quote():
-    from datacache.requests import fit_quote
+    from datacash.requests import fit_quote
 
     q = fit_quote(PLAN)
     assert q["within_budget"] and q["total"] <= 5_000_000 and q["hours"] >= 10 and q["custom"]
@@ -59,7 +59,7 @@ def test_request_opens_missions_for_eligible_people(client):
 
 
 def test_session_uses_request_mission(tmp_path):
-    from datacache.jobs import _mission
+    from datacash.jobs import _mission
 
     m = _mission({"mission": {"id": "req_x_0"}}, extra=[{"id": "req_x_0", "title": "상자", "title_en": "box", "objects": ["box"],
                                                          "primitives": ["reach", "release"]}])

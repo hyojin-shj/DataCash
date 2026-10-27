@@ -12,11 +12,11 @@ from pathlib import Path
 
 import httpx
 
-from datacache import config
+from datacash import config
 
 API = "https://commons.wikimedia.org/w/api.php"
 OK = re.compile(r"^(CC BY(-SA)? \d|CC0|Public domain)", re.I)
-UA = {"User-Agent": "DataCache/0.1 (hackathon research; https://github.com/hyojin-shj/DataCache)"}
+UA = {"User-Agent": "DataCash/0.1 (hackathon research; https://github.com/hyojin-shj/DataCash)"}
 
 
 def search(q: str, limit: int = 30):

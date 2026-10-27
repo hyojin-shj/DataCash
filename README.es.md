@@ -1,6 +1,6 @@
 [English](README.md) · [한국어](README.ko.md) · **Español** · [中文](README.zh-CN.md) · [日本語](README.ja.md)
 
-# DataCache
+# DataCash
 
 **Datos de manos humanas para robots, grabados por personas comunes con el teléfono y el reloj que ya tienen.**
 
@@ -10,7 +10,7 @@ y entregados como un conjunto de datos **LeRobot v3.0** listo para entrenar.
 
 Proyecto para el Meta Global AI Developer Hackathon (Indie Developer · Push the Frontier).
 
-![DataCache](docs/1026_datacache_brand.png)
+![DataCash](docs/1026_datacash_brand.png)
 
 ## En resumen
 
@@ -25,11 +25,11 @@ Proyecto para el Meta Global AI Developer Hackathon (Indie Developer · Push the
 
 | Modelo | Función | Código |
 |---|---|---|
-| **SAM 3.1** | Oculta personas sin consentimiento, niños, pantallas, espejos, cuadros y documentos (seguimiento en video); segmenta el objeto manipulado → `observation.objects` | `datacache/meta/sam.py`, `datacache/privacy/mask.py` |
-| **Muse Spark 1.3** | Video ocultado → pasos, instrucciones, mano activa, objetos, errores (JSON estructurado); petición en lenguaje natural → diseño de misiones | `datacache/understand/`, `datacache/requests.py` |
-| **Muse Image** | 34 personas que no existen (7 regiones × mujeres/hombres × 20–60 años) para reemplazar rostros | `scripts/make_donors.py`, `datacache/donors/` |
-| **Muse Voice Transcribe** | Detecta información personal hablada en la grabación y la silencia | `datacache/privacy/speech.py` |
-| **Muse Glimmer** (pesos abiertos) | Modelo de 30B ejecutado localmente en este Mac con llama.cpp — revisa los pasos de Spark fotograma a fotograma (sin costo de API) | `datacache/understand/glimmer.py` |
+| **SAM 3.1** | Oculta personas sin consentimiento, niños, pantallas, espejos, cuadros y documentos (seguimiento en video); segmenta el objeto manipulado → `observation.objects` | `datacash/meta/sam.py`, `datacash/privacy/mask.py` |
+| **Muse Spark 1.3** | Video ocultado → pasos, instrucciones, mano activa, objetos, errores (JSON estructurado); petición en lenguaje natural → diseño de misiones | `datacash/understand/`, `datacash/requests.py` |
+| **Muse Image** | 34 personas que no existen (7 regiones × mujeres/hombres × 20–60 años) para reemplazar rostros | `scripts/make_donors.py`, `datacash/donors/` |
+| **Muse Voice Transcribe** | Detecta información personal hablada en la grabación y la silencia | `datacash/privacy/speech.py` |
+| **Muse Glimmer** (pesos abiertos) | Modelo de 30B ejecutado localmente en este Mac con llama.cpp — revisa los pasos de Spark fotograma a fotograma (sin costo de API) | `datacash/understand/glimmer.py` |
 
 Cada llamada a la API se registra con su costo en `data/api_ledger.jsonl`; si se alcanza el presupuesto, solo se omite ese paso.
 
@@ -42,10 +42,10 @@ Cada llamada a la API se registra con su costo en `data/api_ledger.jsonl`; si se
 - **Originales borrados:** en producción, el video y el audio originales se borran al terminar el procesamiento (`purge_originals`). En el servidor de demostración del hackathon solo esa llamada está desactivada, para poder mostrar la comparación original vs. reemplazado.
 
 ### 2. Sincronización automática de sensores
-Sin aplaudir: ida y vuelta del reloj teléfono↔reloj, una baliza acústica de 18–20 kHz y pulsos de vibración del reloj. Error residual de 0,5–2,3 ms en grabaciones reales con teléfono + reloj (`datacache/sync/`).
+Sin aplaudir: ida y vuelta del reloj teléfono↔reloj, una baliza acústica de 18–20 kHz y pulsos de vibración del reloj. Error residual de 0,5–2,3 ms en grabaciones reales con teléfono + reloj (`datacash/sync/`).
 
 ### 3. Tacto sin guante — GripSense en la muñeca
-Trasladamos *GripSense* de Goel, Wobbrock y Patel (UIST 2012) a la muñeca. El reloj vibra brevemente; cuanto más fuerte agarras, más vibración absorbe la mano — baja la energía de alta frecuencia del giroscopio y sube el temblor de 4–12 Hz de los dedos. Un árbol de decisión por persona, entrenado con niveles autoevaluados (soltar · suave · normal · fuerte, sin báscula), da el nivel de agarre 0–3 (`datacache/touch/`).
+Trasladamos *GripSense* de Goel, Wobbrock y Patel (UIST 2012) a la muñeca. El reloj vibra brevemente; cuanto más fuerte agarras, más vibración absorbe la mano — baja la energía de alta frecuencia del giroscopio y sube el temblor de 4–12 Hz de los dedos. Un árbol de decisión por persona, entrenado con niveles autoevaluados (soltar · suave · normal · fuerte, sin báscula), da el nivel de agarre 0–3 (`datacash/touch/`).
 La frecuencia cardíaca, los intervalos entre latidos y la temperatura de la piel vienen del Samsung Health Sensor SDK (`docs/samsung_health_sdk.md`).
 
 ### 4. Peticiones en lenguaje natural → misiones
@@ -64,7 +64,7 @@ El comprador escribe lo que necesita; Muse Spark (salida estructurada) diseña l
 `observation.objects` · `annotation.step` · `annotation.primitive` (reach · grasp · … · release) · `sync.error_ms` + un certificado de calidad.
 Se carga con `lerobot` 0.6.1 real (`scripts/validate_lerobot.py`).
 
-Los compradores eligen paquetes de sensores por hora de datos — video (obligatorio) ₩35.000 · pose ₩20.000 · audio ₩5.000 · IMU de muñeca ₩15.000 · tacto ₩25.000 · biometría ₩50.000 (`datacache/pricing.py`).
+Los compradores eligen paquetes de sensores por hora de datos — video (obligatorio) ₩35.000 · pose ₩20.000 · audio ₩5.000 · IMU de muñeca ₩15.000 · tacto ₩25.000 · biometría ₩50.000 (`datacash/pricing.py`).
 
 ## Ejecutar
 
@@ -73,7 +73,7 @@ python3.12 -m venv .venv && .venv/bin/pip install -e ".[dev]" torch pyyaml rich
 echo "MODEL_API_KEY=..." > .env                       # nunca se sube al repositorio
 # data/models: MediaPipe hand/pose/face landmarker .task, efficientdet_lite0.tflite, OpenCV yunet.onnx + sface.onnx
 .venv/bin/python -m pytest                            # verificado con sesiones sintéticas de resultado conocido
-DATACACHE_TOKEN=... .venv/bin/python -m datacache.server.app --port 8800   # servidor + web para compradores
+DATACASH_TOKEN=... .venv/bin/python -m datacash.server.app --port 8800   # servidor + web para compradores
 cd app && ./gradlew assembleDebug                     # app de Android + app de reloj
 ```
 
@@ -85,11 +85,11 @@ LivePortrait no se incluye — descarga [KwaiVGI/LivePortrait](https://github.co
 |---|---|
 | `app/` | App de Android (consentimiento, misiones, verificación facial, grabación, marcar errores, preguntas, subida, pagos, apelaciones) + app de reloj |
 | `web/` | Web para compradores (peticiones en lenguaje natural, línea de tiempo de sensores, presupuestos, pedidos, descargas) y consola del operador |
-| `datacache/privacy` | Ocultación con SAM · reemplazo de rostro · privacidad del habla · revisión previa |
-| `datacache/sync` · `touch` · `labels` | Sincronización · tacto · pose de manos y cuerpo |
-| `datacache/understand` | Comprensión con Muse Spark · revisión con Glimmer · verificación con sensores |
-| `datacache/export` · `jobs.py` | Exportación LeRobot · certificado · flujo de procesamiento |
-| `datacache/server` | Servidor de recolección + API para compradores |
+| `datacash/privacy` | Ocultación con SAM · reemplazo de rostro · privacidad del habla · revisión previa |
+| `datacash/sync` · `touch` · `labels` | Sincronización · tacto · pose de manos y cuerpo |
+| `datacash/understand` | Comprensión con Muse Spark · revisión con Glimmer · verificación con sensores |
+| `datacash/export` · `jobs.py` | Exportación LeRobot · certificado · flujo de procesamiento |
+| `datacash/server` | Servidor de recolección + API para compradores |
 
 ## Documentos (en coreano)
 

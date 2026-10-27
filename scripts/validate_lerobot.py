@@ -10,7 +10,7 @@ from lerobot.datasets.lerobot_dataset import LeRobotDataset
 
 
 def main(root):
-    ds = LeRobotDataset("local/datacache", root=root, video_backend="pyav")
+    ds = LeRobotDataset("local/datacash", root=root, video_backend="pyav")
     print(f"에피소드 {ds.num_episodes} · 장면 {len(ds)} · {ds.fps}fps")
     x = ds[len(ds) // 2]
     for k, v in x.items():

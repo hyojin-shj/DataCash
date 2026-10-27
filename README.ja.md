@@ -1,6 +1,6 @@
 [English](README.md) · [한국어](README.ko.md) · [Español](README.es.md) · [中文](README.zh-CN.md) · **日本語**
 
-# DataCache
+# DataCash
 
 **みんながすでに持っているスマホとスマートウォッチだけで、ロボットが学ぶ人の手のデータを集める。**
 
@@ -10,7 +10,7 @@
 
 Meta Global AI Developer Hackathon（Indie Developer · Push the Frontier）出品作。
 
-![DataCache](docs/1026_datacache_brand.png)
+![DataCash](docs/1026_datacash_brand.png)
 
 ## ひと目で
 
@@ -25,11 +25,11 @@ Meta Global AI Developer Hackathon（Indie Developer · Push the Frontier）出�
 
 | モデル | 役割 | コード |
 |---|---|---|
-| **SAM 3.1** | 同意していない人・子ども・画面・鏡・写真立て・書類を隠す（動画追跡）、扱っている物体の領域 → `observation.objects` | `datacache/meta/sam.py`、`datacache/privacy/mask.py` |
-| **Muse Spark 1.3** | 隠した映像 → 手順・指示文・使う手・物体・ミス（構造化 JSON）、企業のふつうの言葉の依頼 → ミッション設計 | `datacache/understand/`、`datacache/requests.py` |
-| **Muse Image** | 実在しない 34 人（7 地域 × 男女 × 20〜60 代）—— 顔の置き換え用 | `scripts/make_donors.py`、`datacache/donors/` |
-| **Muse Voice Transcribe** | 録音の中で話された個人情報を見つけて消音 | `datacache/privacy/speech.py` |
-| **Muse Glimmer**（オープンウェイト） | 30B モデルをこの Mac で llama.cpp により実行 —— Spark の手順をフレームごとに再確認（API 費用なし） | `datacache/understand/glimmer.py` |
+| **SAM 3.1** | 同意していない人・子ども・画面・鏡・写真立て・書類を隠す（動画追跡）、扱っている物体の領域 → `observation.objects` | `datacash/meta/sam.py`、`datacash/privacy/mask.py` |
+| **Muse Spark 1.3** | 隠した映像 → 手順・指示文・使う手・物体・ミス（構造化 JSON）、企業のふつうの言葉の依頼 → ミッション設計 | `datacash/understand/`、`datacash/requests.py` |
+| **Muse Image** | 実在しない 34 人（7 地域 × 男女 × 20〜60 代）—— 顔の置き換え用 | `scripts/make_donors.py`、`datacash/donors/` |
+| **Muse Voice Transcribe** | 録音の中で話された個人情報を見つけて消音 | `datacash/privacy/speech.py` |
+| **Muse Glimmer**（オープンウェイト） | 30B モデルをこの Mac で llama.cpp により実行 —— Spark の手順をフレームごとに再確認（API 費用なし） | `datacash/understand/glimmer.py` |
 
 API を呼ぶたびに費用を `data/api_ledger.jsonl` に記録し、上限を超えたらその段階だけをスキップします。
 
@@ -42,10 +42,10 @@ API を呼ぶたびに費用を `data/api_ledger.jsonl` に記録し、上限を
 - **元データの削除：** サービスでは処理が終わるとすぐに元の映像・音を削除します（`purge_originals`）。ハッカソンのデモ用サーバーでは、元の映像と置き換え後の比較を見せるため、この呼び出しだけを止めています。
 
 ### 2. センサーの自動同期
-手をたたく必要はありません：スマホ↔ウォッチの時計の往復、18〜20 kHz の音響ビーコン、ウォッチの振動パルス。実際のスマホ + ウォッチの録画で残差 0.5〜2.3 ミリ秒（`datacache/sync/`）。
+手をたたく必要はありません：スマホ↔ウォッチの時計の往復、18〜20 kHz の音響ビーコン、ウォッチの振動パルス。実際のスマホ + ウォッチの録画で残差 0.5〜2.3 ミリ秒（`datacash/sync/`）。
 
 ### 3. 手袋なしの触覚 —— 手首の GripSense
-Goel・Wobbrock・Patel の *GripSense*（UIST 2012）を手首に移しました。ウォッチが短く振動すると、強く握るほど手が振動を吸収し、ジャイロの高周波が減り、指が踏ん張る 4〜12 Hz の震えが増えます。一人ひとりが自分で区別した強さ（離す・軽く・ふつう・ぎゅっと、はかり不要）で学習した決定木が、握る力のレベル 0〜3 を出します（`datacache/touch/`）。
+Goel・Wobbrock・Patel の *GripSense*（UIST 2012）を手首に移しました。ウォッチが短く振動すると、強く握るほど手が振動を吸収し、ジャイロの高周波が減り、指が踏ん張る 4〜12 Hz の震えが増えます。一人ひとりが自分で区別した強さ（離す・軽く・ふつう・ぎゅっと、はかり不要）で学習した決定木が、握る力のレベル 0〜3 を出します（`datacash/touch/`）。
 心拍・拍動間隔・皮膚温度は Samsung Health Sensor SDK から（`docs/samsung_health_sdk.md`）。
 
 ### 4. ふつうの言葉の依頼 → ミッション
@@ -64,7 +64,7 @@ Goel・Wobbrock・Patel の *GripSense*（UIST 2012）を手首に移しまし�
 `observation.objects` · `annotation.step` · `annotation.primitive`（reach · grasp · … · release）· `sync.error_ms` + 品質証明書。
 実際の `lerobot` 0.6.1 で読み込めます（`scripts/validate_lerobot.py`）。
 
-企業はデータ 1 時間あたりのセンサーの組み合わせを選んで購入します —— 映像（必須）₩35,000 · 姿勢 ₩20,000 · 音 ₩5,000 · 手首 IMU ₩15,000 · 触覚 ₩25,000 · 生体情報 ₩50,000（`datacache/pricing.py`）。
+企業はデータ 1 時間あたりのセンサーの組み合わせを選んで購入します —— 映像（必須）₩35,000 · 姿勢 ₩20,000 · 音 ₩5,000 · 手首 IMU ₩15,000 · 触覚 ₩25,000 · 生体情報 ₩50,000（`datacash/pricing.py`）。
 
 ## 実行
 
@@ -73,7 +73,7 @@ python3.12 -m venv .venv && .venv/bin/pip install -e ".[dev]" torch pyyaml rich
 echo "MODEL_API_KEY=..." > .env                       # リポジトリには入れない
 # data/models：MediaPipe hand/pose/face landmarker .task、efficientdet_lite0.tflite、OpenCV yunet.onnx + sface.onnx
 .venv/bin/python -m pytest                            # 正解がわかっている合成セッションで検証
-DATACACHE_TOKEN=... .venv/bin/python -m datacache.server.app --port 8800   # サーバー + 企業向け Web
+DATACASH_TOKEN=... .venv/bin/python -m datacash.server.app --port 8800   # サーバー + 企業向け Web
 cd app && ./gradlew assembleDebug                     # Android アプリ + ウォッチアプリ
 ```
 
@@ -85,11 +85,11 @@ LivePortrait はリポジトリに含めていません —— [KwaiVGI/LivePort
 |---|---|
 | `app/` | Android アプリ（同意・ミッション・顔の確認・撮影・ミスの記録・質問・アップロード・報酬・異議申し立て）+ ウォッチアプリ |
 | `web/` | 企業向け Web（ふつうの言葉の依頼・センサーのタイムライン・見積もり・注文・ダウンロード）と運営画面 |
-| `datacache/privacy` | SAM で隠す · 顔の置き換え · 音声のプライバシー · 事前スキャン |
-| `datacache/sync` · `touch` · `labels` | センサー同期 · 触覚 · 手と体の姿勢 |
-| `datacache/understand` | Muse Spark による理解 · Glimmer による確認 · センサーによる検証 |
-| `datacache/export` · `jobs.py` | LeRobot 出力 · 証明書 · 処理の流れ |
-| `datacache/server` | 収集サーバー + 企業向け API |
+| `datacash/privacy` | SAM で隠す · 顔の置き換え · 音声のプライバシー · 事前スキャン |
+| `datacash/sync` · `touch` · `labels` | センサー同期 · 触覚 · 手と体の姿勢 |
+| `datacash/understand` | Muse Spark による理解 · Glimmer による確認 · センサーによる検証 |
+| `datacash/export` · `jobs.py` | LeRobot 出力 · 証明書 · 処理の流れ |
+| `datacash/server` | 収集サーバー + 企業向け API |
 
 ## ドキュメント（韓国語）
 

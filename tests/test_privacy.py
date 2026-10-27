@@ -2,8 +2,8 @@
 
 import numpy as np
 
-from datacache.meta.sam import SamObject
-from datacache.privacy.mask import participant_hands
+from datacash.meta.sam import SamObject
+from datacash.privacy.mask import participant_hands
 
 
 def _obj(oid, box, shape=(240, 320)):
@@ -37,13 +37,13 @@ def test_small_face_found_for_swap():
     import cv2
     import pytest
 
-    from datacache import config
+    from datacash import config
 
     if not (config.MODELS / "yunet.onnx").exists() or not (config.MODELS / "face_landmarker.task").exists():
         pytest.skip("얼굴 모델이 없음 (data/models)")
-    from datacache.privacy.faceswap import FaceLandmarks, Reid, find_small_faces
+    from datacash.privacy.faceswap import FaceLandmarks, Reid, find_small_faces
 
-    donor = cv2.imread(str(config.ROOT / "datacache" / "donors" / "donor0.png"))
+    donor = cv2.imread(str(config.ROOT / "datacash" / "donors" / "donor0.png"))
     fl, reid = FaceLandmarks(), Reid()
     big = fl(donor)[0]
     k = 40 / np.ptp(big[:, 1])                          # 얼굴 높이 40px 로 줄인다
@@ -59,13 +59,12 @@ def test_small_face_found_for_swap():
 
 
 def test_mps_conv3d_as_2d_same():
-    """맥 GPU 빠른 길: 7×7×7 Conv3d 를 2D 합성곱 7번으로 — 값이 같아야 한다 (CPU 에서 확인)."""
-    import torch
+    """맥 GPU 빠른 길: 7×7×7 Conv3d 를 2D 합성곱 7번으로 — 값이 같아야 한다 (CPU 에서 확인).
+    torch 는 따로 떨어진 프로세스에서 — 같은 프로세스의 OpenCV·MediaPipe 스레드와 엉켜 멈춘 적이 있다."""
+    import subprocess
+    import sys
 
-    from datacache.privacy.mps_speed import conv3d_as_2d
-
-    torch.manual_seed(0)
-    conv = torch.nn.Conv3d(6, 4, 7, padding=3)
-    x = torch.randn(1, 6, 5, 12, 12)
-    with torch.no_grad():
-        assert torch.allclose(conv(x), conv3d_as_2d(x, conv.weight, conv.bias, 3), atol=1e-5)
+    code = ("import torch; from datacash.privacy.mps_speed import conv3d_as_2d; torch.manual_seed(0); "
+            "c = torch.nn.Conv3d(6, 4, 7, padding=3); x = torch.randn(1, 6, 5, 12, 12); "
+            "torch.no_grad().__enter__(); assert torch.allclose(c(x), conv3d_as_2d(x, c.weight, c.bias, 3), atol=1e-5)")
+    assert subprocess.run([sys.executable, "-c", code], timeout=120).returncode == 0

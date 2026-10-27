@@ -6,13 +6,13 @@
 import json
 import time
 
-from datacache import config
-from datacache.media import clip_mp4, wav
-from datacache.meta import MetaClient, spent_usd
-from datacache.meta.client import data_url
-from datacache.meta.image import generate
-from datacache.meta.sam import Sam
-from datacache.meta.voice import transcribe
+from datacash import config
+from datacash.media import clip_mp4, wav
+from datacash.meta import MetaClient, spent_usd
+from datacash.meta.client import data_url
+from datacash.meta.image import generate
+from datacash.meta.sam import Sam
+from datacash.meta.voice import transcribe
 
 CHECK = config.DATA / "check"
 

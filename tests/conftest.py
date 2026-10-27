@@ -3,7 +3,7 @@ import json
 import numpy as np
 import pytest
 
-from datacache.session.synth import generate
+from datacash.session.synth import generate
 
 
 @pytest.fixture(scope="session")
@@ -21,3 +21,10 @@ def synth_tracks(synth_session):
             for h in [x["hand"] for x in tr]]
     objs = [{0: tuple(x["cup"])} for x in tr]
     return hand, objs, [x["t_s"] for x in tr]
+
+
+def pytest_sessionstart(session):
+    """Numba 해독기를 별도 프로세스에서 미리 컴파일 (같은 프로세스의 OpenCV·MediaPipe 스레드와 엉켜 멈추지 않게)."""
+    from datacash.meta.mask_fast import warm
+
+    warm()

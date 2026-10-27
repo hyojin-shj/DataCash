@@ -1,6 +1,6 @@
 [English](README.md) · **한국어** · [Español](README.es.md) · [中文](README.zh-CN.md) · [日本語](README.ja.md)
 
-# DataCache (데이터캐시)
+# DataCash (데이터캐시)
 
 **집에 이미 있는 폰과 워치만으로, 로봇이 배울 사람의 손 데이터를 모은다.**
 
@@ -10,7 +10,7 @@
 
 Meta Global AI Developer Hackathon (Indie Developer · Push the Frontier) 출품작.
 
-![DataCache](docs/1026_datacache_brand.png)
+![DataCash](docs/1026_datacash_brand.png)
 
 ## 한눈에
 
@@ -25,11 +25,11 @@ Meta Global AI Developer Hackathon (Indie Developer · Push the Frontier) 출품
 
 | 모델 | 쓰임 | 코드 |
 |---|---|---|
-| **SAM 3.1** | 동의 안 한 사람·아이·화면·거울·액자·서류 가리기(영상 추적), 다루는 물체 영역 → `observation.objects` | `datacache/meta/sam.py`, `datacache/privacy/mask.py` |
-| **Muse Spark 1.3** | 가린 영상 → 단계·지시문·쓰는 손·물체·실수 (구조화 JSON), 기업의 말 의뢰 → 미션 설계 | `datacache/understand/`, `datacache/requests.py` |
-| **Muse Image** | 실존하지 않는 가상 인물 34명 (7개 지역 × 남녀 × 20대~60대) — 얼굴 치환용 | `scripts/make_donors.py`, `datacache/donors/` |
-| **Muse Voice Transcribe** | 녹화 소리에서 개인정보가 들린 구간 끄기 | `datacache/privacy/speech.py` |
-| **Muse Glimmer** (오픈 웨이트) | 30B 모델을 이 맥에서 llama.cpp 로 — Spark 단계를 장면으로 다시 확인 (API 비용 없음) | `datacache/understand/glimmer.py` |
+| **SAM 3.1** | 동의 안 한 사람·아이·화면·거울·액자·서류 가리기(영상 추적), 다루는 물체 영역 → `observation.objects` | `datacash/meta/sam.py`, `datacash/privacy/mask.py` |
+| **Muse Spark 1.3** | 가린 영상 → 단계·지시문·쓰는 손·물체·실수 (구조화 JSON), 기업의 말 의뢰 → 미션 설계 | `datacash/understand/`, `datacash/requests.py` |
+| **Muse Image** | 실존하지 않는 가상 인물 34명 (7개 지역 × 남녀 × 20대~60대) — 얼굴 치환용 | `scripts/make_donors.py`, `datacash/donors/` |
+| **Muse Voice Transcribe** | 녹화 소리에서 개인정보가 들린 구간 끄기 | `datacash/privacy/speech.py` |
+| **Muse Glimmer** (오픈 웨이트) | 30B 모델을 이 맥에서 llama.cpp 로 — Spark 단계를 장면으로 다시 확인 (API 비용 없음) | `datacash/understand/glimmer.py` |
 
 API 호출마다 비용을 장부(`data/api_ledger.jsonl`)에 적고, 한도를 넘으면 그 단계만 건너뜁니다.
 
@@ -42,10 +42,10 @@ API 호출마다 비용을 장부(`data/api_ledger.jsonl`)에 적고, 한도를 
 - **원본 삭제:** 서비스에서는 처리가 끝나면 원본 영상·소리를 바로 지웁니다 (`purge_originals`). 해커톤 시연 서버는 원본↔치환 비교를 보여 주려고 이 호출만 꺼 두었습니다.
 
 ### 2. 4감 자동 동기화
-사용자가 손뼉 칠 필요 없이: 폰↔워치 시계 왕복, 18~20kHz 음향 비콘, 워치 진동 펄스. 실제 폰+워치 녹화에서 잔차 0.5~2.3ms (`datacache/sync/`).
+사용자가 손뼉 칠 필요 없이: 폰↔워치 시계 왕복, 18~20kHz 음향 비콘, 워치 진동 펄스. 실제 폰+워치 녹화에서 잔차 0.5~2.3ms (`datacash/sync/`).
 
 ### 3. 장갑 없는 촉각 — GripSense 방식
-Goel·Wobbrock·Patel, *GripSense* (UIST 2012)를 손목에 옮겼습니다. 워치가 짧게 떨리면, 세게 쥘수록 손이 떨림을 흡수해 자이로 고주파가 줄고 손가락이 버티는 4~12Hz 떨림이 커집니다. 사람마다 저울 없이 스스로 구분한 세기(놓기·가볍게·평소·꽉)로 학습한 결정 트리가 쥐는 세기 단계 0~3을 냅니다 (`datacache/touch/`).
+Goel·Wobbrock·Patel, *GripSense* (UIST 2012)를 손목에 옮겼습니다. 워치가 짧게 떨리면, 세게 쥘수록 손이 떨림을 흡수해 자이로 고주파가 줄고 손가락이 버티는 4~12Hz 떨림이 커집니다. 사람마다 저울 없이 스스로 구분한 세기(놓기·가볍게·평소·꽉)로 학습한 결정 트리가 쥐는 세기 단계 0~3을 냅니다 (`datacash/touch/`).
 워치 심박·박동 간격·피부온도는 Samsung Health Sensor SDK 로 (`docs/samsung_health_sdk.md`).
 
 ### 4. 말로 의뢰 → 미션
@@ -64,7 +64,7 @@ Goel·Wobbrock·Patel, *GripSense* (UIST 2012)를 손목에 옮겼습니다. 워
 `observation.objects` · `annotation.step` · `annotation.primitive` (reach·grasp·…·release) · `sync.error_ms` + 품질 인증서.
 실제 `lerobot` 0.6.1 로 읽힙니다 (`scripts/validate_lerobot.py`).
 
-센서는 묶음으로 골라 삽니다 — 영상(필수) 35,000원 · 관절 20,000 · 소리 5,000 · 손목 IMU 15,000 · 촉각 25,000 · 생체 50,000 (시간당, `datacache/pricing.py`).
+센서는 묶음으로 골라 삽니다 — 영상(필수) 35,000원 · 관절 20,000 · 소리 5,000 · 손목 IMU 15,000 · 촉각 25,000 · 생체 50,000 (시간당, `datacash/pricing.py`).
 
 ## 실행
 
@@ -73,7 +73,7 @@ python3.12 -m venv .venv && .venv/bin/pip install -e ".[dev]" torch pyyaml rich
 echo "MODEL_API_KEY=..." > .env                       # 저장소에 올리지 않는다
 # data/models 에 MediaPipe hand/pose/face landmarker .task, efficientdet_lite0.tflite, OpenCV yunet.onnx·sface.onnx
 .venv/bin/python -m pytest                            # 정답을 아는 합성 4감 세션으로 검증
-DATACACHE_TOKEN=... .venv/bin/python -m datacache.server.app --port 8800   # 서버 + 구매 기업 웹
+DATACASH_TOKEN=... .venv/bin/python -m datacash.server.app --port 8800   # 서버 + 구매 기업 웹
 cd app && ./gradlew assembleDebug                     # 안드로이드 앱 + 워치 앱
 ```
 
@@ -85,11 +85,11 @@ LivePortrait 는 저장소에 넣지 않습니다 — [KwaiVGI/LivePortrait](htt
 |---|---|
 | `app/` | 안드로이드 앱(동의·미션·얼굴 확인·녹화·실수 표시·질문·업로드·보상·이의 신청) + 워치 앱 |
 | `web/` | 구매 기업 웹(말로 의뢰·4감 타임라인·견적·주문·내려받기), 운영자 화면 |
-| `datacache/privacy` | SAM 가리기 · 얼굴 치환 · 소리 개인정보 · 미리 훑기 |
-| `datacache/sync` · `touch` · `labels` | 4감 동기화 · 촉각 · 손·몸 관절 |
-| `datacache/understand` | Muse Spark 이해 · Glimmer 확인 · 감각으로 검증 |
-| `datacache/export` · `jobs.py` | LeRobot 내보내기 · 인증서 · 처리 순서 |
-| `datacache/server` | 수집 서버 + 구매 기업 API |
+| `datacash/privacy` | SAM 가리기 · 얼굴 치환 · 소리 개인정보 · 미리 훑기 |
+| `datacash/sync` · `touch` · `labels` | 4감 동기화 · 촉각 · 손·몸 관절 |
+| `datacash/understand` | Muse Spark 이해 · Glimmer 확인 · 감각으로 검증 |
+| `datacash/export` · `jobs.py` | LeRobot 내보내기 · 인증서 · 처리 순서 |
+| `datacash/server` | 수집 서버 + 구매 기업 API |
 
 ## 문서
 

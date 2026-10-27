@@ -1,109 +1,109 @@
 -- Merging decision tree log ---
 manifest
-ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:2:1-31:12
-INJECTED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:2:1-31:12
-INJECTED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:2:1-31:12
-INJECTED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:2:1-31:12
+ADDED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:2:1-31:12
+INJECTED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:2:1-31:12
+INJECTED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:2:1-31:12
+INJECTED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:2:1-31:12
 MERGED from [samsung-health-sensor-api-1.4.1.aar] /Users/simhyojin/.gradle/caches/transforms-4/036adc01f56f5d0becf9fd42c195c2d6/transformed/samsung-health-sensor-api-1.4.1/AndroidManifest.xml:2:1-14:12
 	package
-		INJECTED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml
+		INJECTED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml
 	android:versionName
-		INJECTED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml
+		INJECTED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml
 	android:versionCode
-		INJECTED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml
+		INJECTED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml
 	xmlns:android
-		ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:2:11-69
+		ADDED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:2:11-69
 uses-feature#android.hardware.type.watch
-ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:4:5-64
+ADDED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:4:5-64
 	android:name
-		ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:4:19-61
+		ADDED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:4:19-61
 uses-permission#android.permission.INTERNET
-ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:5:5-67
+ADDED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:5:5-67
 	android:name
-		ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:5:22-64
+		ADDED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:5:22-64
 uses-permission#android.permission.RECORD_AUDIO
-ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:6:5-71
+ADDED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:6:5-71
 	android:name
-		ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:6:22-68
+		ADDED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:6:22-68
 uses-permission#android.permission.BODY_SENSORS
-ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:7:5-71
+ADDED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:7:5-71
 	android:name
-		ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:7:22-68
+		ADDED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:7:22-68
 uses-permission#android.permission.VIBRATE
-ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:8:5-66
+ADDED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:8:5-66
 	android:name
-		ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:8:22-63
+		ADDED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:8:22-63
 uses-permission#android.permission.WAKE_LOCK
-ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:9:5-68
+ADDED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:9:5-68
 	android:name
-		ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:9:22-65
+		ADDED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:9:22-65
 uses-permission#android.permission.HIGH_SAMPLING_RATE_SENSORS
-ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:10:5-85
+ADDED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:10:5-85
 	android:name
-		ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:10:22-82
+		ADDED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:10:22-82
 queries
-ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:13:5-15:15
+ADDED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:13:5-15:15
 MERGED from [samsung-health-sensor-api-1.4.1.aar] /Users/simhyojin/.gradle/caches/transforms-4/036adc01f56f5d0becf9fd42c195c2d6/transformed/samsung-health-sensor-api-1.4.1/AndroidManifest.xml:7:5-9:15
 MERGED from [samsung-health-sensor-api-1.4.1.aar] /Users/simhyojin/.gradle/caches/transforms-4/036adc01f56f5d0becf9fd42c195c2d6/transformed/samsung-health-sensor-api-1.4.1/AndroidManifest.xml:7:5-9:15
 MERGED from [samsung-health-sensor-api-1.4.1.aar] /Users/simhyojin/.gradle/caches/transforms-4/036adc01f56f5d0becf9fd42c195c2d6/transformed/samsung-health-sensor-api-1.4.1/AndroidManifest.xml:10:5-12:15
 MERGED from [samsung-health-sensor-api-1.4.1.aar] /Users/simhyojin/.gradle/caches/transforms-4/036adc01f56f5d0becf9fd42c195c2d6/transformed/samsung-health-sensor-api-1.4.1/AndroidManifest.xml:10:5-12:15
 package#com.samsung.android.service.health
-ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:14:9-70
+ADDED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:14:9-70
 MERGED from [samsung-health-sensor-api-1.4.1.aar] /Users/simhyojin/.gradle/caches/transforms-4/036adc01f56f5d0becf9fd42c195c2d6/transformed/samsung-health-sensor-api-1.4.1/AndroidManifest.xml:11:9-70
 MERGED from [samsung-health-sensor-api-1.4.1.aar] /Users/simhyojin/.gradle/caches/transforms-4/036adc01f56f5d0becf9fd42c195c2d6/transformed/samsung-health-sensor-api-1.4.1/AndroidManifest.xml:11:9-70
 	android:name
-		ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:14:18-67
+		ADDED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:14:18-67
 application
-ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:17:5-30:19
-INJECTED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:17:5-30:19
+ADDED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:17:5-30:19
+INJECTED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:17:5-30:19
 	android:extractNativeLibs
-		INJECTED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml
+		INJECTED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml
 	android:label
-		ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:18:9-33
+		ADDED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:18:9-33
 	android:icon
-		ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:19:9-43
+		ADDED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:19:9-43
 	android:theme
-		ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:20:9-59
+		ADDED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:20:9-59
 	android:usesCleartextTraffic
-		ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:21:9-44
+		ADDED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:21:9-44
 uses-library#com.google.android.wearable
-ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:22:9-93
+ADDED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:22:9-93
 	android:required
-		ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:22:66-90
+		ADDED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:22:66-90
 	android:name
-		ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:22:23-65
+		ADDED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:22:23-65
 meta-data#com.google.android.wearable.standalone
-ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:23:9-97
+ADDED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:23:9-97
 	android:value
-		ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:23:74-94
+		ADDED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:23:74-94
 	android:name
-		ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:23:20-73
-activity#com.datacache.wear.WatchActivity
-ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:24:9-29:20
+		ADDED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:23:20-73
+activity#com.datacash.wear.WatchActivity
+ADDED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:24:9-29:20
 	android:exported
-		ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:24:49-72
+		ADDED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:24:49-72
 	android:name
-		ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:24:19-48
+		ADDED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:24:19-48
 intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
-ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:25:13-28:29
+ADDED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:25:13-28:29
 action#android.intent.action.MAIN
-ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:26:17-69
+ADDED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:26:17-69
 	android:name
-		ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:26:25-66
+		ADDED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:26:25-66
 category#android.intent.category.LAUNCHER
-ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:27:17-77
+ADDED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:27:17-77
 	android:name
-		ADDED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml:27:27-74
+		ADDED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml:27:27-74
 uses-sdk
-INJECTED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml reason: use-sdk injection requested
-INJECTED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml
-INJECTED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml
+INJECTED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml
+INJECTED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml
 MERGED from [samsung-health-sensor-api-1.4.1.aar] /Users/simhyojin/.gradle/caches/transforms-4/036adc01f56f5d0becf9fd42c195c2d6/transformed/samsung-health-sensor-api-1.4.1/AndroidManifest.xml:5:5-44
 MERGED from [samsung-health-sensor-api-1.4.1.aar] /Users/simhyojin/.gradle/caches/transforms-4/036adc01f56f5d0becf9fd42c195c2d6/transformed/samsung-health-sensor-api-1.4.1/AndroidManifest.xml:5:5-44
 	android:targetSdkVersion
-		INJECTED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml
+		INJECTED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml
 	android:minSdkVersion
-		INJECTED from /Users/simhyojin/Desktop/DataCache/app/wear/src/main/AndroidManifest.xml
+		INJECTED from /Users/simhyojin/Desktop/DataCash/app/wear/src/main/AndroidManifest.xml
 package#com.sec.android.app.samsungapps
 ADDED from [samsung-health-sensor-api-1.4.1.aar] /Users/simhyojin/.gradle/caches/transforms-4/036adc01f56f5d0becf9fd42c195c2d6/transformed/samsung-health-sensor-api-1.4.1/AndroidManifest.xml:8:9-67
 	android:name

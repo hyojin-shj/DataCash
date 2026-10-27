@@ -11,15 +11,15 @@
 
 ## 오늘 만든 것
 
-### 1. Meta 모델 쓰기 (`datacache/meta/`)
+### 1. Meta 모델 쓰기 (`datacash/meta/`)
 - **OpenAI 호환 클라이언트 + 비용 장부.** 요청마다 비용을 적고, 누적이 **$10** 를 넘으면 API 호출만 멈춘다. 나머지 처리는 계속된다.
 - **SAM 3.1** (영상·이미지): Files API 로 영상을 올리고 Responses API 로 요청한다. 결과는 `meta_sam_parser` 로 마스크를 풀어 프레임별 물체로 바꾼다.
 - **Muse Spark** (strict json_schema 구조화 출력): 영상 클립을 보고 단계·실수·장면·결과를 낸다. 발화가 개인정보인지도 판정한다.
 - **Voice Transcribe:** 발화 시각을 얻는다. 문서에 없는 `audioEncoding: "WAV"` 가 꼭 필요했다.
-- **Muse Image:** 얼굴 치환에 쓸 가상 인물 6명을 만들었다 (`datacache/donors/`).
+- **Muse Image:** 얼굴 치환에 쓸 가상 인물 6명을 만들었다 (`datacash/donors/`).
 - 이 계정에서 Muse Wonder 는 한국 미지원이라 쓰지 않았다. 확인 결과는 `docs/model_check.md` 에 있다.
 
-### 2. 4감 자동 동기화 (`datacache/sync/`) — 사람마다 톡톡 맞출 필요 없이
+### 2. 4감 자동 동기화 (`datacash/sync/`) — 사람마다 톡톡 맞출 필요 없이
 여러 층을 겹쳐 쓰고, 가장 정확한 방법을 자동으로 고른다.
 1. 같은 기기는 BOOTTIME 하나로 맞춘다. 카메라 프레임마다 `onCaptureStarted` 시각, 마이크는 AudioTimestamp 를 쓴다.
 2. 폰↔서버와 워치↔서버가 각각 시각을 주고받는다 (RTT). 그래서 **폰과 워치가 직접 연결되지 않아도** 서버를 거쳐 맞춘다.
@@ -34,7 +34,7 @@
 - 진동 펄스 40/40 짝지음.
 - 움직임 교차검증 ~50ms 안.
 
-### 3. 촉각 (`datacache/touch/`)
+### 3. 촉각 (`datacash/touch/`)
 - **쥐는 힘:** 워치 진동 펄스의 반응 크기와 사그라듦으로 잰다. 합성 8N 을 7.5~8.1N 으로 추정했다.
 - **영상 접촉 단계:** 없음 · 다가감 · 닿음 · 쥠 · 미끄러짐 · 놓음.
 - **접촉음:** 소리 사건과 손목 충격이 겹칠 때만 '확인된 접촉'으로 친다. 내려놓기는 두 신호 차이 0.2ms 로 확인됐다.
@@ -48,13 +48,13 @@
 - MediaPipe 손 21점 × 2, 몸 33점(화면 좌표 + 미터 단위 world 좌표)을 쓴다. 짧은 끊김은 보간한다.
 - **심박:** 동의한 원값만 담는다. 연령대 중간값으로 HRR(%) 을 계산하고, 피부온도 변화도 담는다. 조언은 하지 않는다.
 
-### 5. LeRobot v3.0 4감 내보내기 (`datacache/export/`)
+### 5. LeRobot v3.0 4감 내보내기 (`datacash/export/`)
 - **채널:** 손·몸·물체(SAM)·폰/손목 IMU·소리(세기·사건·접촉음)·촉각(접촉·쥐는 힘·단계)·능동 진동 반응·생체·이벤트·단계·감각별 동기화 오차.
 - **진짜 `lerobot 0.6.1` 로 불러오기 검증을 통과했다** (`scripts/validate_lerobot.py`).
 - 등급별 채널: 기본(폰만) / 고품질(+손목·촉각) / 생체(+심박).
 - 데이터 인증서(Markdown)를 쓰고, 여러 녹화를 한 묶음으로 합칠 수 있다.
 
-### 6. 개인정보 (`datacache/privacy/`)
+### 6. 개인정보 (`datacash/privacy/`)
 - **SAM 3.1 가리기:** 참여자 외 사람·아이·TV·모니터·거울·액자·서류.
   - 공개 영상 5편 평가: 화면·거울은 장면 100% 가렸다. 음식점 다른 사람 4명을 가리고 손은 100% 유지했다 (`docs/privacy_eval.md`).
 - **참여자 얼굴 실사 치환:** Muse Image 가상 인물에 LivePortrait(MIT) 를 쓰고, 자르기는 InsightFace 대신 MediaPipe 로 한다.
@@ -64,11 +64,11 @@
   - 너무 작아 치환 못 한 얼굴 86개는 YuNet 으로 찾아 모자이크했다.
 - **말소리 개인정보:** Voice Transcribe 발화에 Muse Spark 가 이름·주소·전화 등을 판정하고, 해당 발화만 무음 처리한다.
 
-### 7. 라벨 검증 (`datacache/understand/`)
+### 7. 라벨 검증 (`datacash/understand/`)
 - Spark 가 낸 단계를 촉각·소리·손목 신호로 다시 확인한다.
 - 합성에서는 진실 단계와 맞았고, **지어낸 단계는 거절했다**. 공개 요리 영상에서는 3단계 중 2단계가 검증됐다.
 
-### 8. 서버 · 구매 기업 웹 · 운영자 화면 (`datacache/server/`, `web/`)
+### 8. 서버 · 구매 기업 웹 · 운영자 화면 (`datacash/server/`, `web/`)
 - 업로드 → 처리(가리기·치환·무음·이해·검증·내보내기) → 보상 계산 순서로 돈다. 워치가 합류했으면 워치 업로드를 기다린다.
 - **구매 기업 웹:** 4감 타임라인, 카탈로그(감각이 많은 녹화 먼저), 등급·견적(시간당 6만/10만/15만원)·주문·내려받기.
 - 브랜드: 저금통 아이콘 + #FF5F5F · #FFAF5F · #FFFFFF · #333333.
@@ -80,7 +80,7 @@
 - **워치 앱(Wear OS):** 서버를 보고 폰 녹화에 맞춰 손목 IMU · 진동 펄스 · 심박 · 피부온도 · 마이크를 기록하고 업로드한다.
 - 두 모듈 모두 빌드된다. 에뮬레이터에서 녹화 → 업로드 → 서버 처리 완료(적립 130원)까지 확인했다. 폰↔서버 RTT 는 ~3.6ms.
 
-### 10. 활용 예시: 같이 나르는 휴머노이드 (`datacache/demo/`)
+### 10. 활용 예시: 같이 나르는 휴머노이드 (`datacash/demo/`)
 - 생체 데이터로 **3초 뒤 HRR** 을 예측한다 (리지 회귀, 합성 테스트 MAE 3.3%p).
 - 예측에 따라 로봇 분담을 최대 90% 까지 올린다.
 - MuJoCo 장면과 그래프 영상 생성기가 있다 (`scripts/demo_collab.py`).
@@ -100,7 +100,7 @@
 - 저장소는 아직 private. 11-04 에 공개할 예정이다.
 
 ## 아침에 할 일 (사용자)
-1. 서버를 켠다: `DATACACHE_TOKEN=... .venv/bin/python -m datacache.server.app --port 8800`.
+1. 서버를 켠다: `DATACASH_TOKEN=... .venv/bin/python -m datacash.server.app --port 8800`.
 2. 폰에 앱을 설치한다: `app/app/build/outputs/apk/debug/app-debug.apk`.
 3. 설정에서 서버 주소·토큰을 넣고, 실제 집안일을 1건 녹화해 본다.
 4. Glimmer 용 Command Line Tools 업데이트 여부를 결정한다.
@@ -115,13 +115,13 @@
 
 | 폴더 | 하는 일 | 규모 |
 |---|---|---|
-| `datacache/privacy` | SAM 가리기 · 얼굴 치환 · 미리 훑기 · 말소리 개인정보 끄기 | 1,006줄 |
-| `datacache/sync` | 폰·워치·서버 시계 맞추기 | 395줄 |
-| `datacache/touch` | GripSense 쥐는 세기 · 접촉 판정 | 417줄 |
-| `datacache/understand` | Muse Spark 단계 라벨 · Glimmer 확인 · 감각으로 검증 | 221줄 |
-| `datacache/export` | LeRobot v3.0 내보내기 · 인증서 · 판매 묶음 | 575줄 |
-| `datacache/server` | 수집 서버 · 구매 기업 API · 운영자 API | 798줄 |
-| `datacache/*.py` | 처리 순서(jobs) · 가격 · 사람 등록 · 이의 신청 · 정산 · 말로 의뢰 | 1,434줄 |
+| `datacash/privacy` | SAM 가리기 · 얼굴 치환 · 미리 훑기 · 말소리 개인정보 끄기 | 1,006줄 |
+| `datacash/sync` | 폰·워치·서버 시계 맞추기 | 395줄 |
+| `datacash/touch` | GripSense 쥐는 세기 · 접촉 판정 | 417줄 |
+| `datacash/understand` | Muse Spark 단계 라벨 · Glimmer 확인 · 감각으로 검증 | 221줄 |
+| `datacash/export` | LeRobot v3.0 내보내기 · 인증서 · 판매 묶음 | 575줄 |
+| `datacash/server` | 수집 서버 · 구매 기업 API · 운영자 API | 798줄 |
+| `datacash/*.py` | 처리 순서(jobs) · 가격 · 사람 등록 · 이의 신청 · 정산 · 말로 의뢰 | 1,434줄 |
 | `app/` | 폰 앱(동의·미션·녹화·질문·보상·이의 신청) + 워치 앱 | 5,250줄 |
 | `web/` | 구매 기업 웹(말로 의뢰·견적·주문) · 운영자 화면 | 491줄 |
 

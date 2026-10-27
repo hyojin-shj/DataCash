@@ -1,7 +1,7 @@
 """Muse Spark 라벨 검증: 맞는 단계는 감각이 받쳐 주고, 지어낸 단계는 걸러진다 (API 호출 없음)."""
 
-from datacache.pipeline import process
-from datacache.understand.verify import check_mistakes
+from datacash.pipeline import process
+from datacash.understand.verify import check_mistakes
 
 
 def test_true_steps_verified_fake_step_rejected(synth_session, synth_tracks, tmp_path):
@@ -29,7 +29,7 @@ def test_mistake_confirmed_by_self_mark():
 def test_mute_only_personal_spans():
     import numpy as np
 
-    from datacache.privacy.speech import mute
+    from datacash.privacy.speech import mute
 
     rate = 16000
     x = np.ones(rate * 4, np.float32)
@@ -45,7 +45,7 @@ def test_primitive_channel_in_lerobot(synth_session, synth_tracks, tmp_path):
     import numpy as np
     import pyarrow.parquet as pq
 
-    from datacache.understand.spark import PRIMITIVES
+    from datacash.understand.spark import PRIMITIVES
 
     d, _ = synth_session
     hand, objs, _ = synth_tracks
@@ -55,7 +55,7 @@ def test_primitive_channel_in_lerobot(synth_session, synth_tracks, tmp_path):
     t = pq.read_table(tmp_path / "o" / "lerobot" / "data" / "chunk-000" / "file-000.parquet")
     p = np.array(t.column("annotation.primitive").to_pylist(), dtype=float).ravel()
     ts = np.array(t.column("timestamp").to_pylist())
-    names = json.loads((tmp_path / "o" / "lerobot" / "meta" / "info.json").read_text())["datacache"]["primitives"]
+    names = json.loads((tmp_path / "o" / "lerobot" / "meta" / "info.json").read_text())["datacash"]["primitives"]
     assert names == PRIMITIVES
     assert names[int(p[np.argmin(abs(ts - 5.5))])] == "reach" and names[int(p[np.argmin(abs(ts - 8.0))])] == "grasp"
     assert p[np.argmin(abs(ts - 2.0))] == -1
@@ -66,10 +66,10 @@ def test_missions_use_known_primitives():
     import json
     from pathlib import Path
 
-    from datacache.understand.spark import PRIMITIVES
+    from datacash.understand.spark import PRIMITIVES
 
     root = Path(__file__).parents[1]
-    srv = json.loads((root / "datacache" / "missions.json").read_text())
+    srv = json.loads((root / "datacash" / "missions.json").read_text())
     app = json.loads((root / "app" / "app" / "src" / "main" / "assets" / "missions.json").read_text())
     assert srv == app and len(srv["missions"]) == 12
     assert set(srv["primitives_ko"]) == set(PRIMITIVES)
@@ -81,7 +81,7 @@ def test_glimmer_answer_counts_as_evidence():
     """이 맥의 Muse Glimmer 대답이 단계 검증의 증거 하나가 된다 (서버 없이, 대답만 흉내)."""
     import numpy as np
 
-    from datacache.understand.verify import verify_steps
+    from datacash.understand.verify import verify_steps
 
     t = np.arange(0, 10, 0.1)
     steps = [{"start_s": 1, "end_s": 3, "action": "other", "glimmer": {"agree": True}},

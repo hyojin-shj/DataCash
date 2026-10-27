@@ -2,11 +2,11 @@
 
 import numpy as np
 
-from datacache.session import load_session
-from datacache.session.synth import watch_to_phone_truth
-from datacache.sync import align_session
-from datacache.sync.clock import rtt_map
-from datacache.sync.linear import fit
+from datacash.session import load_session
+from datacash.session.synth import watch_to_phone_truth
+from datacash.sync import align_session
+from datacash.sync.clock import rtt_map
+from datacash.sync.linear import fit
 
 
 def test_linear_fit_rejects_outliers():
@@ -36,7 +36,7 @@ def test_beacon_beats_clock_and_pulses_agree(synth_session):
 
 def test_low_rate_watch_mic_falls_back(tmp_path):
     """워치 마이크가 16kHz 면 18kHz 비콘을 못 듣는다 → 진동 펄스로."""
-    from datacache.session.synth import generate
+    from datacash.session.synth import generate
 
     truth = generate(tmp_path / "s", duration=14.0, watch_audio_rate=16000)
     s = load_session(tmp_path / "s")
@@ -49,8 +49,8 @@ def test_low_rate_watch_mic_falls_back(tmp_path):
 
 def test_clock_via_server_without_direct_link(tmp_path):
     """폰·워치가 직접 통신하지 않고 각자 서버와 시각을 주고받아도 워치 → 폰 사상이 수 ms 안."""
-    from datacache.session.synth import generate
-    from datacache.sync.clock import via_server
+    from datacash.session.synth import generate
+    from datacash.sync.clock import via_server
 
     truth = generate(tmp_path / "s", duration=14.0, via_server=True)
     s = load_session(tmp_path / "s")

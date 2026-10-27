@@ -58,7 +58,7 @@
 **화면 키워드:** 2-3 순간 큰 글자 `TOUCH.`
 
 **내레이션:**
-> "Just your phone. And your wearables."
+> "Just use your phone. And your wearables."
 > "View. Sound. Heart rates. And time sync."
 > "And above all… even the touch sense!"
 > "Bringing true physical touch into the wearable world."
@@ -91,10 +91,11 @@
 **화면 키워드:** `ANY DATA.` (3-1) → `INSTANT GLOBAL MISSION.` (3-2) → `EVERY AGE. EVERYWHERE.` (3-3) → `POSE.` (3-4) → `PRIVACY: SECURED.` (3-5)
 
 **내레이션:**
-> "You ask for any robotics data — we turn it into an instant global mission."
+> "If you ask for any robotics data — we turn it into an instant global mission."
 > "Across every age. All over the world."
 > "Real-life scenes, captured. Instantly transformed with precise pose recognition…"
 > "And privacy? Secured. Your face? Completely and safely masked."
+> > “But your gaze, your expression, every move… stays. That’s what robots learn from.”
 
 (자막: 로보틱스에 필요한 어떤 데이터든 요청하세요. 우리가 곧바로 전 세계를 향한 미션으로 만듭니다. / 나이와 국경을 넘어 지구촌 곳곳에서. / 현실의 일상이 포착되고, 정밀한 관절 인식으로 곧바로 데이터가 됩니다. / 프라이버시는 걱정 마세요. 당신의 얼굴은 철저하고 안전하게 숨겨집니다.)
 
@@ -110,16 +111,16 @@
 |---|---|---|---|---|
 | 4-1 | 2:30–2:38 | 🎥 + 그래픽 | 앱 화면에서 **'띠롱- 띠롱-' 소리와 함께 리워드 캐시가 계속 쌓이는 UI** | 실제 앱 홈 녹화 + 숫자가 빠르게 올라가는 그래픽 |
 | 4-2 | 2:38–2:50 | 🤖 | 방금 모인 사람의 관절·촉각 데이터(빛나는 선)가 **로봇 손으로 자연스럽게 겹쳐지며** 로봇이 유연하고 정교하게 물건을 다룸 | `A glowing skeletal hand overlay of 21 keypoints flows from a human hand gripping a cup onto a sleek white robotic hand, which then grasps the same cup with the same gentle, precise motion, bright clean lab, emotional, cinematic slow motion` |
-| 4-3 | 2:50–2:58 | 그래픽 | 흰 바탕 로고 **DataCache** + 한 줄 | 로고 애니메이션 |
+| 4-3 | 2:50–2:58 | 그래픽 | 흰 바탕 로고 **DataCash** + 한 줄 | 로고 애니메이션 |
 
 **화면 키워드:** `CACHE.` (4-1) → 마지막 화면:
 ```
-DataCache
+DataCash
 The future of AI is in your hands.
 ```
 
 **내레이션:**
-> "Of course… you'll get the cache!"
+> "Of course… you'll get the cash rewarded for your data!"
 > "From your everyday actions…"
 > "…to the next breakthrough in robotics."
 > (조용히) "The future of AI is in your hands."

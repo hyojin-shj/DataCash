@@ -1,3 +1,3 @@
-com.datacache.wear:mipmap/ic_launcher = 0x7f020000
-com.datacache.wear:drawable/ic_launcher_bg = 0x7f010001
-com.datacache.wear:drawable/ic_launcher_art = 0x7f010000
+com.datacash.wear:mipmap/ic_launcher = 0x7f020000
+com.datacash.wear:drawable/ic_launcher_bg = 0x7f010001
+com.datacash.wear:drawable/ic_launcher_art = 0x7f010000

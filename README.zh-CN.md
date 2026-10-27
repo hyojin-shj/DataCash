@@ -1,6 +1,6 @@
 [English](README.md) · [한국어](README.ko.md) · [Español](README.es.md) · **中文** · [日本語](README.ja.md)
 
-# DataCache
+# DataCash
 
 **只用大家手里已有的手机和手表，收集机器人学习所需的人手数据。**
 
@@ -10,7 +10,7 @@
 
 Meta Global AI Developer Hackathon（Indie Developer · Push the Frontier）参赛作品。
 
-![DataCache](docs/1026_datacache_brand.png)
+![DataCash](docs/1026_datacash_brand.png)
 
 ## 一览
 
@@ -25,11 +25,11 @@ Meta Global AI Developer Hackathon（Indie Developer · Push the Frontier）参�
 
 | 模型 | 用途 | 代码 |
 |---|---|---|
-| **SAM 3.1** | 遮盖未同意的人、儿童、屏幕、镜子、相框和文件（视频跟踪）；分割被操作的物体 → `observation.objects` | `datacache/meta/sam.py`、`datacache/privacy/mask.py` |
-| **Muse Spark 1.3** | 遮盖后的视频 → 步骤、指令、使用的手、物体、失误（结构化 JSON）；企业的自然语言需求 → 任务设计 | `datacache/understand/`、`datacache/requests.py` |
-| **Muse Image** | 34 位不存在的人（7 个地区 × 男女 × 20–60 多岁），用于换脸 | `scripts/make_donors.py`、`datacache/donors/` |
-| **Muse Voice Transcribe** | 找出录音中说出的个人信息并静音 | `datacache/privacy/speech.py` |
-| **Muse Glimmer**（开放权重） | 30B 模型用 llama.cpp 在这台 Mac 本地运行 —— 逐帧复核 Spark 的步骤（无 API 费用） | `datacache/understand/glimmer.py` |
+| **SAM 3.1** | 遮盖未同意的人、儿童、屏幕、镜子、相框和文件（视频跟踪）；分割被操作的物体 → `observation.objects` | `datacash/meta/sam.py`、`datacash/privacy/mask.py` |
+| **Muse Spark 1.3** | 遮盖后的视频 → 步骤、指令、使用的手、物体、失误（结构化 JSON）；企业的自然语言需求 → 任务设计 | `datacash/understand/`、`datacash/requests.py` |
+| **Muse Image** | 34 位不存在的人（7 个地区 × 男女 × 20–60 多岁），用于换脸 | `scripts/make_donors.py`、`datacash/donors/` |
+| **Muse Voice Transcribe** | 找出录音中说出的个人信息并静音 | `datacash/privacy/speech.py` |
+| **Muse Glimmer**（开放权重） | 30B 模型用 llama.cpp 在这台 Mac 本地运行 —— 逐帧复核 Spark 的步骤（无 API 费用） | `datacash/understand/glimmer.py` |
 
 每次 API 调用的费用都记录在 `data/api_ledger.jsonl`；超出预算时只跳过该步骤。
 
@@ -42,10 +42,10 @@ Meta Global AI Developer Hackathon（Indie Developer · Push the Frontier）参�
 - **删除原始文件：** 正式服务中，处理一结束就删除原始视频和音频（`purge_originals`）。黑客松演示服务器只关闭了这一调用，以便展示原始与替换后的对比。
 
 ### 2. 多传感器自动同步
-无需拍手：手机↔手表时钟往返、18–20 kHz 声学信标、手表振动脉冲。在真实手机 + 手表录制中残差为 0.5–2.3 毫秒（`datacache/sync/`）。
+无需拍手：手机↔手表时钟往返、18–20 kHz 声学信标、手表振动脉冲。在真实手机 + 手表录制中残差为 0.5–2.3 毫秒（`datacash/sync/`）。
 
 ### 3. 不用手套的触觉 —— 戴在手腕上的 GripSense
-我们把 Goel、Wobbrock、Patel 的 *GripSense*（UIST 2012）移到了手腕上。手表短暂振动；握得越紧，手吸收的振动越多 —— 陀螺仪高频能量下降，手指 4–12 Hz 的抖动上升。每个人用自评的力度（松开 · 轻 · 平常 · 紧，无需秤）训练一棵决策树，输出握力等级 0–3（`datacache/touch/`）。
+我们把 Goel、Wobbrock、Patel 的 *GripSense*（UIST 2012）移到了手腕上。手表短暂振动；握得越紧，手吸收的振动越多 —— 陀螺仪高频能量下降，手指 4–12 Hz 的抖动上升。每个人用自评的力度（松开 · 轻 · 平常 · 紧，无需秤）训练一棵决策树，输出握力等级 0–3（`datacash/touch/`）。
 心率、心跳间隔和皮肤温度来自 Samsung Health Sensor SDK（`docs/samsung_health_sdk.md`）。
 
 ### 4. 自然语言需求 → 任务
@@ -64,7 +64,7 @@ Meta Global AI Developer Hackathon（Indie Developer · Push the Frontier）参�
 `observation.objects` · `annotation.step` · `annotation.primitive`（reach · grasp · … · release）· `sync.error_ms` + 质量证书。
 可用真实的 `lerobot` 0.6.1 读取（`scripts/validate_lerobot.py`）。
 
-企业按每小时数据选择传感器组合 —— 视频（必选）₩35,000 · 姿态 ₩20,000 · 声音 ₩5,000 · 手腕 IMU ₩15,000 · 触觉 ₩25,000 · 生物信息 ₩50,000（`datacache/pricing.py`）。
+企业按每小时数据选择传感器组合 —— 视频（必选）₩35,000 · 姿态 ₩20,000 · 声音 ₩5,000 · 手腕 IMU ₩15,000 · 触觉 ₩25,000 · 生物信息 ₩50,000（`datacash/pricing.py`）。
 
 ## 运行
 
@@ -73,7 +73,7 @@ python3.12 -m venv .venv && .venv/bin/pip install -e ".[dev]" torch pyyaml rich
 echo "MODEL_API_KEY=..." > .env                       # 不提交到仓库
 # data/models：MediaPipe hand/pose/face landmarker .task、efficientdet_lite0.tflite、OpenCV yunet.onnx + sface.onnx
 .venv/bin/python -m pytest                            # 用已知真值的合成会话验证
-DATACACHE_TOKEN=... .venv/bin/python -m datacache.server.app --port 8800   # 服务器 + 企业网页
+DATACASH_TOKEN=... .venv/bin/python -m datacash.server.app --port 8800   # 服务器 + 企业网页
 cd app && ./gradlew assembleDebug                     # 安卓 App + 手表 App
 ```
 
@@ -85,11 +85,11 @@ cd app && ./gradlew assembleDebug                     # 安卓 App + 手表 App
 |---|---|
 | `app/` | 安卓 App（同意、任务、人脸确认、录制、标记失误、问题、上传、报酬、申诉）+ 手表 App |
 | `web/` | 企业网页（自然语言需求、多传感器时间轴、报价、订单、下载）和运营后台 |
-| `datacache/privacy` | SAM 遮盖 · 换脸 · 语音隐私 · 预扫描 |
-| `datacache/sync` · `touch` · `labels` | 传感器同步 · 触觉 · 手和身体姿态 |
-| `datacache/understand` | Muse Spark 理解 · Glimmer 复核 · 传感器验证 |
-| `datacache/export` · `jobs.py` | LeRobot 导出 · 证书 · 处理流程 |
-| `datacache/server` | 采集服务器 + 企业 API |
+| `datacash/privacy` | SAM 遮盖 · 换脸 · 语音隐私 · 预扫描 |
+| `datacash/sync` · `touch` · `labels` | 传感器同步 · 触觉 · 手和身体姿态 |
+| `datacash/understand` | Muse Spark 理解 · Glimmer 复核 · 传感器验证 |
+| `datacash/export` · `jobs.py` | LeRobot 导出 · 证书 · 处理流程 |
+| `datacash/server` | 采集服务器 + 企业 API |
 
 ## 文档（韩语）
 

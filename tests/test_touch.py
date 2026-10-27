@@ -4,12 +4,12 @@ import json
 
 import numpy as np
 
-from datacache.session import load_session
-from datacache.sync import align_session
-from datacache.touch.contact import contact_phases, phase_events
-from datacache.touch.sounds import audio_onsets, confirmed_contacts, wrist_impacts
-from datacache.touch.gripsense import GripModel, labels_for, train, window_features
-from datacache.touch.vibration import pulse_responses
+from datacash.session import load_session
+from datacash.sync import align_session
+from datacash.touch.contact import contact_phases, phase_events
+from datacash.touch.sounds import audio_onsets, confirmed_contacts, wrist_impacts
+from datacash.touch.gripsense import GripModel, labels_for, train, window_features
+from datacash.touch.vibration import pulse_responses
 
 
 def test_motor_pulses_measured(synth_session):
@@ -70,8 +70,8 @@ def test_calibration_session_then_reuse(tmp_path):
     """보정 세션(폰 화면이 안내한 '손 놓기·가볍게·평소처럼·꽉' 구간, 폰 시계) → 사람별 모델 저장 → 보정 구간 없는 다음 녹화에 그 모델."""
     import pyarrow.parquet as pq
 
-    from datacache.jobs import run_session
-    from datacache.session.synth import generate
+    from datacash.jobs import run_session
+    from datacash.session.synth import generate
 
     store = tmp_path / "grip_calibration"
     cal_dir = tmp_path / "s_cal"

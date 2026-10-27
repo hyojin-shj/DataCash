@@ -55,7 +55,7 @@ adb -s <워치> install -r -g wear/build/outputs/apk/debug/wear-debug.apk
 
 ## 구현 메모
 
-- **부르는 방식:** `app/wear/src/main/java/com/datacache/wear/SamsungHealth.java` — SDK 클래스를 리플렉션으로 부른다.
+- **부르는 방식:** `app/wear/src/main/java/com/datacash/wear/SamsungHealth.java` — SDK 클래스를 리플렉션으로 부른다.
   그래서 SDK 가 없어도 컴파일되고, 있으면 저절로 쓴다.
   - 연결: `HealthTrackingService.connectService()`
   - 지원 종류 확인: `getTrackingCapability().getSupportHealthTrackerTypes()`

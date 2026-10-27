@@ -8,8 +8,8 @@ import argparse
 import json
 from pathlib import Path
 
-from datacache.demo.collab import render
-from datacache.demo.effort import train
+from datacash.demo.collab import render
+from datacash.demo.effort import train
 
 
 def main():
@@ -21,8 +21,8 @@ def main():
     ap.add_argument("--out", default="out/demo/collab.mp4")
     a = ap.parse_args()
     if a.synthetic:
-        from datacache.jobs import run_session
-        from datacache.session.synth import generate
+        from datacash.jobs import run_session
+        from datacash.session.synth import generate
 
         sets = []
         for k, g in enumerate([3, 5, 7, 9, 11, 13, 4, 8, 12, 6]):
