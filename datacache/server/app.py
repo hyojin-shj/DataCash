@@ -145,7 +145,7 @@ class Store:
                          "features": c["dataset"]["features"], "sync": c["sync"].get("chosen"),
                          "sync_error_ms": c["sync"].get("error_ms", {}),
                          "verified_steps": sum(1 for s in (c.get("steps") or []) if s.get("verified") is True),
-                         "steps": len(c.get("steps") or []), "grip_calibrated": bool((c.get("touch") or {}).get("calibration")),
+                         "steps": len(c.get("steps") or []), "grip_calibrated": bool((c.get("touch") or {}).get("grip_model")),
                          "contacts": len((c.get("touch") or {}).get("contact_events", [])),
                          "synthetic": "synthetic" in json.dumps(c.get("devices"))})
         return rows
