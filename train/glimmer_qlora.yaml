@@ -1,0 +1,40 @@
+# Muse Glimmer 30B QLoRA — 데이터캐시 단계 라벨 학습 (Axolotl 0.19.0, 클라우드 H100 1장)
+# 공식 문서(dev.meta.ai/docs/muse-glimmer/post-training)의 QLoRA·멀티모달 설정을 따랐다. 아직 실제 GPU 에서 돌려 보지 않았다.
+base_model: meta-models/Muse-Glimmer-30B
+processor_type: AutoProcessor
+
+adapter: qlora
+load_in_4bit: true
+lora_r: 16
+lora_alpha: 32                 # 공식 권장: alpha = 2 × rank
+lora_dropout: 0.05
+lora_target_linear: true
+
+datasets:
+  - path: data/evolve/sft/train.jsonl     # datacache.evolve.build_dataset 이 만든 것 (이미지 경로는 이 파일 기준)
+    type: chat_template
+    field_messages: messages
+test_datasets:
+  - path: data/evolve/sft/eval.jsonl
+    type: chat_template
+    field_messages: messages
+    split: train
+
+sample_packing: false          # 공식: 멀티모달은 끈다
+skip_prepare_dataset: true
+remove_unused_columns: false
+sequence_len: 4096
+
+micro_batch_size: 1
+gradient_accumulation_steps: 8
+num_epochs: 3
+learning_rate: 2.0e-4          # 공식 LoRA 범위 1e-4 ~ 3e-4
+lr_scheduler: cosine
+warmup_ratio: 0.05
+optimizer: adamw_torch_fused
+bf16: auto
+gradient_checkpointing: true
+logging_steps: 5
+eval_strategy: epoch
+save_strategy: epoch
+output_dir: out/glimmer-lora

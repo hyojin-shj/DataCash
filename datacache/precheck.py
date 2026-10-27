@@ -41,5 +41,5 @@ def precheck(video, labels: Optional[list], action_start_s: float = 0.0) -> dict
         reasons.append(f"손이 거의 안 보여요 (동작 중 {hands * 100:.0f}% · 손이 화면에 나오게 찍어 주세요)")
     if luma < MIN_LUMA:
         reasons.append("너무 어두워요 · 불을 켜고 찍어 주세요")
-    return {"ok": not reasons, "reasons": reasons, "action_s": round(action_s, 2),
+    return {"ok": not reasons, "reasons": reasons, "action_s": round(action_s, 2), "action_start_s": round(action_start_s, 2),
             "hands_frac": None if hands is None else round(hands, 3), "luma": round(luma, 1)}

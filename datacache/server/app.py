@@ -85,6 +85,7 @@ class Store:
         self.q: Queue = Queue()
         self.lock = threading.Lock()
         self.train_lock = threading.Lock()
+        self.judge_lock = threading.Lock()
         self.live: dict = {}          # 지금 녹화 중인 세션 {sid, started, watch_joined}
         self.people = People(root / "people")
         self.appeals = Appeals(root / "appeals")
@@ -118,8 +119,9 @@ class Store:
             try:
                 rep = run_session(self.root / "sessions" / sid, self.root / "out" / sid, use_api=self.use_api,
                                   calibration_store=self.root / "grip_calibration", people=self.people,
-                                  extra_missions=self.requests.live_missions())
-                fin = self.set_status(sid, state="done" if "error" not in rep else "rejected", **rep)
+                                  extra_missions=self.requests.live_missions(),
+                                  skip_precheck=bool(self.status(sid).get("skip_precheck")))
+                fin = self.set_status(sid, state="done" if "error" not in rep else "rejected", skip_precheck=False, **rep)
                 # 실제 서비스: 처리가 끝나면(승인·반려) 원본은 바로 지운다. 서버 오류(failed)면 다시 처리하도록 둔다.
                 # 해커톤 시연에서는 원본 ↔ 치환 비교를 보여 줘야 해서 지우지 않는다 — 서비스에서는 아래 주석을 푼다.
                 # from ..jobs import purge_originals
@@ -130,17 +132,47 @@ class Store:
                 fin = self.set_status(sid, state="failed", error=f"{type(e).__name__}: {str(e)[:300]}")
             self.appeals.reprocessed(sid, fin)
             self.settle(sid)
-            if fin.get("state") == "done":           # 모델 진화: 검증된 라벨이 늘었으니 동작 모델을 뒤에서 다시 학습
+            if fin.get("state") == "done":           # 모델 진화: 검증된 라벨이 늘었으니 Glimmer 학습 데이터를 뒤에서 다시 만든다
                 threading.Thread(target=self.retrain, daemon=True).start()
+
+    def credit(self, a: dict) -> None:
+        """인정된 추가 보상 → 그 녹화의 입금에 더한다."""
+        if a.get("state") == "accepted" and a.get("extra_reward"):
+            s = self.status(a["sid"])
+            self.set_status(a["sid"], appeal_extra=int(s.get("appeal_extra") or 0) + int(a["extra_reward"]))
+            self.settle(a["sid"])
+
+    def judge_appeal(self, aid: str) -> None:
+        """이의 신청을 더 높은 설정(Muse Spark 1.3 최대 추론)으로 다시 본다 (datacache/judge.py). 한 번에 하나씩."""
+        from ..judge import judge
+
+        with self.judge_lock:
+            a = self.appeals.get(aid)
+            sid = a["sid"]
+            try:
+                res = judge(a, self.status(sid), self.root / "sessions" / sid, self.root / "out" / sid)
+            except Exception as e:
+                res = {"decision": "review", "note": f"다시 보기 실패 ({type(e).__name__}) → 검토자 확인", "extra": 0, "corrections": []}
+            a = self.appeals.judged(aid, res)
+            if res["decision"] == "reprocess":
+                self.set_status(sid, state="queued", skip_precheck=True)
+                self.q.put(sid)
+            elif res["decision"] == "accept":
+                self.credit(a)
+                if res.get("corrections"):              # 바로잡은 라벨 → 모델 진화(Glimmer 학습 데이터)의 정답 · Spark 예시
+                    from .. import evolve
+
+                    evolve.add_correction(sid, res["corrections"], self.status(sid).get("mission", ""))
+                    threading.Thread(target=self.retrain, daemon=True).start()
 
     def retrain(self) -> None:
         from .. import evolve
 
         with self.train_lock:
             try:
-                evolve.train(sorted(p for p in (self.root / "out").iterdir() if p.is_dir()), log=print)
+                evolve.build_dataset(sorted(p for p in (self.root / "out").iterdir() if p.is_dir()), log=print)
             except Exception as e:
-                print(f"동작 모델 학습 실패: {type(e).__name__}: {e}")
+                print(f"Glimmer 학습 데이터 만들기 실패: {type(e).__name__}: {e}")
 
     def settle(self, sid: str) -> dict:
         """승인된 녹화의 보상을 입금 기록으로 (계좌가 없으면 기다림)."""
@@ -531,18 +563,14 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
             st.q.put(s)
 
         try:
-            a = st.appeals.file(dev, sid, b.reason, b.detail, st.status(sid), requeue, lambda s: st.set_status(s, withheld=True))
+            a = st.appeals.file(dev, sid, b.reason, b.detail, st.status(sid), requeue, lambda s: st.set_status(s, withheld=True),
+                                review_model=True)
         except ValueError as e:
             raise HTTPException(400, str(e))
-        credit_appeal(a)
+        if a["state"] == "judging":                     # 다시 보기는 뒤에서 (1~2분) — 앱은 이의 신청 목록에서 결과를 본다
+            threading.Thread(target=st.judge_appeal, args=(a["id"],), daemon=True).start()
+        st.credit(a)
         return a
-
-    def credit_appeal(a: dict) -> None:
-        """인정된 추가 보상 → 그 녹화의 입금에 더한다."""
-        if a.get("state") == "accepted" and a.get("extra_reward"):
-            s = st.status(a["sid"])
-            st.set_status(a["sid"], appeal_extra=int(s.get("appeal_extra") or 0) + int(a["extra_reward"]))
-            st.settle(a["sid"])
 
     @app.get("/api/sessions/{sid}/preview/{k}")
     def preview(sid: str, k: int, x_dc_token: Optional[str] = Header(None), x_dc_device: Optional[str] = Header(None)):
@@ -769,13 +797,12 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
 
     @app.get("/api/admin/evolve")
     def admin_evolve(token: str = Query("")):
-        """모델 진화: 동작 모델 버전들 (학습 녹화·점수·기준선·성장 곡선·Spark 대신 쓰기 가능 여부)."""
+        """모델 진화: Glimmer 학습 데이터 버전 · 평가 기록(학습 전·어댑터별 정확도) · Spark 대신 쓰는 어댑터."""
         auth(token)
         from .. import evolve
 
-        reg = evolve._registry()
-        return {"ready_rule": {"macro_f1": evolve.READY_F1, "recordings": evolve.READY_RECORDINGS, "confidence": evolve.CONFIDENT},
-                "versions": reg["versions"]}
+        return {"ready_rule": {"accuracy": evolve.READY_ACCURACY, "train_steps": evolve.READY_EXAMPLES},
+                "in_use": evolve.ready_adapter(), **evolve._registry()}
 
     @app.get("/api/admin/appeals")
     def admin_appeals(token: str = Query("")):
@@ -793,7 +820,7 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
             raise HTTPException(400, str(e))
         if a["reason"] == "privacy" and not b.accept:      # 가리기에 문제 없다고 판단 → 다시 판매
             st.set_status(a["sid"], withheld=False)
-        credit_appeal(a)
+        st.credit(a)
         return a
 
     return app

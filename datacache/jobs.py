@@ -92,7 +92,8 @@ def run_calibration(sd: Path, out: Path, store: Path) -> dict:
 
 
 def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str] = None, log=print,
-                calibration_store: Optional[Path] = None, people=None, extra_missions: Optional[list] = None) -> dict:
+                calibration_store: Optional[Path] = None, people=None, extra_missions: Optional[list] = None,
+                skip_precheck: bool = False) -> dict:
     """people: 사람 알아보기 (people.People). 이 폰에 등록된 본인 얼굴이 참여자를, 동의한 가족이 가리지 않을 사람을 정한다."""
     sd, out = Path(session_dir), Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -134,7 +135,9 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
         pc = precheck(video, labels, t_act)
         report["precheck"] = pc
         lap("precheck")
-        if not pc["ok"]:
+        if skip_precheck and not pc["ok"]:
+            pc["overridden"] = "이의 신청: Muse Glimmer 가 미션을 했다고 봄"
+        elif not pc["ok"]:
             report["error"] = " · ".join(pc["reasons"])
             report["reward"] = 0
             (out / "job.json").write_text(json.dumps(report, indent=2, ensure_ascii=False))
@@ -219,7 +222,7 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
     if auto:
         steps, mistakes = auto["steps"], []
         report["labels_by"] = auto["model"]
-        log(f"[{sd.name}] 단계 라벨: {auto['model']} (확신 {auto['confidence']}) — Spark 생략")
+        log(f"[{sd.name}] 단계 라벨: {auto['model']} — Spark 생략")
     elif use_api:
         try:
             from .media import clip_mp4
@@ -292,22 +295,31 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
 
 
 def _model_steps(sd: Path, out: Path, masked, labels, objects) -> Optional[dict]:
-    """모델 진화(datacache/evolve.py): 준비된 버전이 있으면 먼저 특징만 내보내 보고, 확신이 높을 때만 단계를 낸다."""
+    """모델 진화(datacache/evolve.py): 준비된 Glimmer 어댑터가 있으면 Spark 대신 그것으로 단계 라벨 (이 맥, API 비용 0)."""
     from . import evolve
+    from .understand import glimmer
 
-    cur = evolve.current()
-    if cur is None or not cur[1]["ready"] or masked is None:
+    adapter = evolve.ready_adapter()
+    if adapter is None or masked is None:
         return None
+    meta = json.loads((sd / "meta.json").read_text())
+    m = meta.get("mission") or {}
     try:
-        process(sd, out, level="basic", masked_video=masked, labels=labels, objects=objects, extract=False)
-        r = evolve.try_label(out)
+        if not glimmer.ensure(lora=adapter):
+            return None
+        from openai import OpenAI
+
+        steps = evolve.label_video(masked, m.get("title_en") or m.get("title") or "", client=OpenAI(base_url=glimmer.URL, api_key="local"))
     except Exception:
         return None
-    if r:
-        for st_ in r["steps"]:
-            st_.update(instruction=st_["action"], hand="unknown", objects=[], grasp_type="unclear", success="unknown",
-                       labeled_by=r["model"])
-    return r
+    finally:
+        glimmer.stop()
+    if not steps:
+        return None
+    name = f"muse-glimmer-30b + {Path(adapter).name}"
+    for st_ in steps:
+        st_.update(instruction=st_["action"], hand="unknown", objects=[], grasp_type="unclear", success="unknown", labeled_by=name)
+    return {"model": name, "confidence": None, "steps": steps}
 
 
 ORIGINALS = ("video.mp4", "audio.wav", "watch_audio.wav")    # 녹화 폴더: 참여자 원래 얼굴·목소리

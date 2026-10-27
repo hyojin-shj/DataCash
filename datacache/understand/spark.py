@@ -59,14 +59,30 @@ Also list mistakes (drops, slips, misses, re-grasps, tearing too much) with time
 environment (place type, tools, materials, lighting). Only describe what is visible. Do not guess identities."""
 
 
+def _hints() -> str:
+    """이의 신청에서 바로잡은 라벨을 예시로 붙인다 (evolve.correction_hints)."""
+    try:
+        from ..evolve import correction_hints
+
+        h = correction_hints()
+        return "\n" + h if h else ""
+    except Exception:
+        return ""
+
+
 def understand_clip(clip, mission: str, duration_s: float, client: Optional[MetaClient] = None,
-                    model: str = MODEL, primitives: Optional[list] = None) -> dict:
+                    model: str = MODEL, primitives: Optional[list] = None, reasoning: Optional[str] = None,
+                    extra: str = "") -> dict:
+    """reasoning: 추론 세기 ('max' 는 이의 신청 다시 보기용 — 느리고 비싸지만 가장 꼼꼼하다). extra: 프롬프트 끝에 붙일 말."""
     c = client or MetaClient()
+    kw = {"reasoning_effort": reasoning} if reasoning else {}
     out = c.chat_json(model, [{"role": "user", "content": [
         {"type": "text", "text": PROMPT.format(mission=mission, dur=duration_s,
-                                               primitives=" -> ".join(primitives) if primitives else "not given")},
+                                               primitives=" -> ".join(primitives) if primitives else "not given")
+                 + _hints() + (("\n" + extra) if extra else "")},
         {"type": "video_url", "video_url": {"url": data_url(clip)}}]}],
-        SCHEMA, "manipulation_labels", f"spark understand {Path(clip).name}", estimate_usd=0.05)
+        SCHEMA, "manipulation_labels", f"spark understand{' ' + reasoning if reasoning else ''} {Path(clip).name}",
+        estimate_usd=0.3 if reasoning == "max" else 0.05, **kw)
     for st in out["steps"]:   # 구간 밖 시각은 잘라 둔다
         st["start_s"] = float(max(0.0, min(duration_s, st["start_s"])))
         st["end_s"] = float(max(st["start_s"], min(duration_s, st["end_s"])))

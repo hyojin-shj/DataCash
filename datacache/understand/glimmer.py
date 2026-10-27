@@ -30,6 +30,56 @@ Look at this frame from the middle of that step. Does the frame plausibly show t
 agree (true/false), seen (the primitive you actually see, one of: {prims}), note (max 12 words)."""
 
 
+MODEL_FILE = "Muse-Glimmer-30B-KQuant-17GB-Q4_K_M.gguf"
+MMPROJ_FILE = "mmproj-Muse-Glimmer-30B-Q4_K_M.gguf"
+_proc = None
+
+
+def ensure(wait_s: float = 240, log=print, lora=None) -> bool:
+    """Glimmer 서버가 없으면 켠다 (메모리 17GB 를 쓰므로 평소엔 꺼 두고 필요할 때만). 켜졌으면 True.
+    lora: 학습한 어댑터(GGUF) — 모델 진화로 만든 버전을 붙여 켠다 (이미 켜져 있으면 그대로 쓴다)."""
+    import shutil
+    import subprocess
+    import time
+
+    global _proc
+    if available():
+        return True
+    from .. import config
+
+    d = config.DATA / "glimmer"
+    exe = shutil.which("llama-server")
+    if exe is None or not (d / MODEL_FILE).exists() or not (d / MMPROJ_FILE).exists():
+        log("Glimmer 를 켤 수 없음 (llama-server 또는 모델 파일 없음)")
+        return False
+    port = URL.rsplit(":", 1)[1].split("/")[0]
+    _proc = subprocess.Popen([exe, "-m", str(d / MODEL_FILE), "--mmproj", str(d / MMPROJ_FILE), "--port", port,
+                              "-ngl", "99", "--jinja", "-c", "8192"] + (["--lora", str(lora)] if lora else []),
+                             stdout=open(d / "server.log", "ab"), stderr=subprocess.STDOUT)
+    t0 = time.time()
+    while time.time() - t0 < wait_s:
+        if available():
+            log(f"Glimmer 켬 ({time.time() - t0:.0f}초)")
+            return True
+        if _proc.poll() is not None:
+            break
+        time.sleep(2)
+    stop()
+    return False
+
+
+def stop() -> None:
+    """ensure() 가 켠 Glimmer 만 끈다 (사용자가 따로 켠 것은 두기)."""
+    global _proc
+    if _proc is not None and _proc.poll() is None:
+        _proc.terminate()
+        try:
+            _proc.wait(20)
+        except Exception:
+            _proc.kill()
+    _proc = None
+
+
 def available(timeout: float = 1.0) -> bool:
     import urllib.request
 
@@ -83,3 +133,4 @@ def check_steps(video, steps: List[dict], client=None, log=print) -> List[Option
             log(f"Glimmer 확인 실패 {i}: {type(e).__name__}")
             out.append(None)
     return out
+
