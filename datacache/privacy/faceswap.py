@@ -35,9 +35,8 @@ class SwapReport:
     frames: int = 0
     swapped: int = 0
     no_face: int = 0
-    reid_blocked: int = 0           # 표정을 줄여도 알아봐져 모자이크한 장면 (마지막 수단 — 영상이 끊겨 보인다)
-    damped: int = 0                 # 표정을 줄여 다시 만들어 통과한 장면 (모자이크 대신 — 영상이 이어진다)
-    held: int = 0                   # 표정을 다 빼도 닮아 바로 앞 얼굴을 다시 쓴 장면
+    damped: int = 0                 # 바꾼 얼굴이 닮아 표정을 줄여 다시 만든 장면 (모자이크 대신 — 영상이 이어진다)
+    over_reid: int = 0              # 표정을 다 빼도 같은 사람 기준(REID_MAX)을 넘은 장면 — 가장 덜 닮은 것을 그대로 썼다 (인증서에 남김)
     small_face_swapped: int = 0     # 작은 얼굴: YuNet 으로 찾고 그 둘레를 키워 478점을 찾아 치환한 장면
     small_face_covered: int = 0     # 그래도 478점을 못 찾은 작은 얼굴 → 모자이크로 가림 (원래 얼굴이 남지 않게)
     family: int = 0                 # 동의한 가족 수 (사람마다 다른 가상 인물)
@@ -296,7 +295,7 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
     out_path = Path(out_path)
     raw = out_path.with_suffix(".raw.mp4")
     vw = cv2.VideoWriter(str(raw), cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))
-    sims, scales, last_gen, i = [], {}, {}, 0
+    sims, scales, i = [], {}, 0
     family_order: list = []
     while True:
         ok1, fo = co.read()
@@ -335,40 +334,26 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
             e0 = reid.embed(fo, c)
             # 재식별 검사를 장면마다: 바꾼 얼굴이 원래 사람과 닮으면 모자이크(영상이 끊긴다) 대신 표정을 줄여 다시 만든다
             start = min(1.0, scales.get(key, 1.0) + EXP_RAMP)       # 줄였던 표정은 조금씩 되돌린다 (깜빡이지 않게)
-            out, ok, used_scale = None, False, start
+            tries = []                                     # (닮음, 결과, 표정 비율)
             for es in dict.fromkeys((start, start * 0.5, 0.0)):
                 lp.use(person_state(key, 0 if key == "participant" else 1 + family_order.index(key.split(":", 1)[1])))
                 gen = lp.drive(crop, es)
                 gl = fl(gen)
-                out, used_scale = lp.paste(res, gen, M, gl[0] if gl else None), es
+                out = lp.paste(res, gen, M, gl[0] if gl else None)
                 e1 = reid.embed(out, c) if e0 is not None else None
                 sv = reid.sim(e0, e1) if e1 is not None else None
-                if sv is not None:
-                    sims.append(sv)
+                tries.append((-1.0 if sv is None else sv, out, es))
                 if sv is None or sv < REID_MAX:
-                    ok = True
                     break
+            sv, out, used_scale = min(tries, key=lambda t: t[0])   # 다 넘으면 가장 덜 닮은 것 — 굳히거나 모자이크하지 않는다 (연속성)
+            if sv >= 0:
+                sims.append(sv)
             states[key] = lp.state()                       # 움직임 기준(d0)을 사람마다 이어 간다
             scales[key] = used_scale
-            if ok:
-                last_gen[key] = gen
-            elif key in last_gen:                          # 그래도 닮으면 바로 앞 통과한 얼굴을 지금 자리에 (한 장면 멈춤은 티가 안 난다)
-                held = lp.paste(res, last_gen[key], M, None)
-                e1 = reid.embed(held, c) if e0 is not None else None
-                if e1 is None or reid.sim(e0, e1) < REID_MAX:
-                    out, ok = held, True
-                    rep.held += 1
-            if not ok:                                     # 그래도 알아봐지면 — 그때만 모자이크
-                x0, y0 = lmk.min(0)
-                x1, y1 = lmk.max(0)
-                pad = 0.25 * max(x1 - x0, y1 - y0)
-                out = res.copy()
-                pixelate(out, int(x0 - pad), int(y0 - pad), int(x1 + pad), int(y1 + pad))
-                rep.reid_blocked += 1
-            else:
-                rep.swapped += 1
-                rep.damped += used_scale < 1.0
-                rep.small_face_swapped += small
+            rep.swapped += 1
+            rep.damped += used_scale < 1.0
+            rep.over_reid += sv >= REID_MAX
+            rep.small_face_swapped += small
             res = out
         if not any_face:
             rep.no_face += 1
