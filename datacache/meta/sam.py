@@ -36,10 +36,10 @@ class SamObject:
 
 
 def _raster(record, frame_w: int, frame_h: int) -> np.ndarray:
-    from meta_sam_parser import decode_mask_to_raster
+    from .mask_fast import decode
 
     m = record.mask
-    r = np.frombuffer(decode_mask_to_raster(m), dtype=np.uint8).reshape(m.height, m.width)
+    r = decode(m)
     b = record.bounds
     x0, y0 = max(0, int(round(b.left))), max(0, int(round(b.top)))
     x1, y1 = min(frame_w, int(round(b.right))), min(frame_h, int(round(b.bottom)))
@@ -52,10 +52,16 @@ def _raster(record, frame_w: int, frame_h: int) -> np.ndarray:
 def _parse(text: str, media: str, frame_w: int, frame_h: int) -> Dict[int, List[SamObject]]:
     from meta_sam_parser import CompletedOutcome, image_segmentation_format, video_segmentation_format
 
+    import meta_sam_parser._segmentation as seg
+
     fmt = image_segmentation_format() if media == "image" else video_segmentation_format()
     p = fmt.create_parser()
-    p.push(text if text.endswith("\n") else text + "\n", emit=False)
-    res = p.finish(CompletedOutcome()).result
+    check, seg.decode_mask_to_raster = seg.decode_mask_to_raster, lambda m: b""   # 파서의 검사용 풀기는 건너뛴다 (아래에서 한 번 푼다)
+    try:
+        p.push(text if text.endswith("\n") else text + "\n", emit=False)
+        res = p.finish(CompletedOutcome()).result
+    finally:
+        seg.decode_mask_to_raster = check
     frames: Dict[int, Dict[str, SamObject]] = {}
     for rec in res.records:
         fi = rec.frame.frame_index if getattr(rec, "frame", None) is not None else 0

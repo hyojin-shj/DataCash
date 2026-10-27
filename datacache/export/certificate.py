@@ -56,7 +56,8 @@ def to_markdown(c: dict) -> str:
               f"녹화 중 '실수 표시': {len(o.get('self_marks_s', []))}번 {o.get('self_marks_s', [])}"]
     p = c.get("privacy")
     if p:
-        L += ["", "## 개인정보 처리", "", "- " + json.dumps(p, ensure_ascii=False)]
+        L += ["", "## 개인정보 처리", "", "- 원본 영상·소리는 처리하는 동안만 서버에 있고 끝나면 지운다 (판매용은 얼굴을 바꾸고 가린 영상·개인정보를 끈 소리만)",
+              "- " + json.dumps(p, ensure_ascii=False)]
     cons = c.get("consent") or {}
     L += ["", "## 출처·동의", "", f"- 영상 동의: {cons.get('video')}, 생체 동의: {cons.get('bio')}, 연령대: {cons.get('age_band', '-')} (이름·얼굴 정보 없음)",
           f"- 기기: {json.dumps(c.get('devices'), ensure_ascii=False)}"]

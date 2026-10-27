@@ -87,7 +87,7 @@ public class ProcessService extends Service {
             if (!Uploader.localState(dir).has("state") || "upload_failed".equals(Uploader.localState(dir).optString("state"))
                     || "saved".equals(Uploader.localState(dir).optString("state"))
                     || "uploading".equals(Uploader.localState(dir).optString("state"))) {
-                Uploader.upload(this, dir, (step, pct) -> progress(title + " 녹화 · 올리는 중 " + pct + "%", "가리기·치환은 서버에서 하고, 판매에는 가린 영상만 써요"));
+                Uploader.upload(this, dir, (step, pct) -> progress(title + " 녹화 · 올리는 중 " + pct + "%", "서버에서 얼굴을 바꾸고 가린 뒤 원본은 바로 지워요"));
             }
             return true;
         } catch (Exception e) {

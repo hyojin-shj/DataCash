@@ -80,6 +80,7 @@ WEB = config.ROOT / "web"
 class Store:
     def __init__(self, root: Path, token: str, use_api: bool = True):
         self.root, self.token, self.use_api = root, token, use_api
+        self.purge = os.environ.get("DATACACHE_KEEP_ORIGINALS") != "1"     # 원본은 처리하는 동안만 (끄려면 1)
         for d in ("sessions", "out", "status", "orders", "bundles"):
             (root / d).mkdir(parents=True, exist_ok=True)
         self.q: Queue = Queue()
@@ -119,6 +120,11 @@ class Store:
                                   calibration_store=self.root / "grip_calibration", people=self.people,
                                   extra_missions=self.requests.live_missions())
                 fin = self.set_status(sid, state="done" if "error" not in rep else "rejected", **rep)
+                if self.purge:                   # 처리가 끝나면(승인·반려) 원본은 바로 지운다. 서버 오류(failed)면 다시 처리하도록 둔다
+                    from ..jobs import purge_originals
+
+                    fin = self.set_status(sid, originals_deleted=purge_originals(self.root / "sessions" / sid, self.root / "out" / sid),
+                                          originals_deleted_at=datetime.now(timezone.utc).isoformat(timespec="seconds"))
             except Exception as e:
                 fin = self.set_status(sid, state="failed", error=f"{type(e).__name__}: {str(e)[:300]}")
             self.appeals.reprocessed(sid, fin)
@@ -375,6 +381,8 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
             raise HTTPException(400, "meta.json 이 필요함")
         calib = (json.loads((d / "meta.json").read_text()).get("mission") or {}).get("id") == "grip_calibration"
         if not calib and not (d / "video.mp4").exists():
+            if st.status(sid).get("originals_deleted"):
+                raise HTTPException(410, "원본은 처리가 끝나 지웠어요 — 폰에서 다시 올려야 다시 처리할 수 있어요")
             raise HTTPException(400, "video.mp4 가 필요함")
         st.q.put(sid)
         return st.set_status(sid, state="queued")

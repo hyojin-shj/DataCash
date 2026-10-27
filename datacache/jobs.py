@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 import cv2
 import numpy as np
@@ -101,7 +101,16 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
     if (meta.get("mission") or {}).get("id") == "grip_calibration":
         return run_calibration(sd, out, store)
     mission = _mission(meta, extra=extra_missions)
-    report = {"session_id": meta.get("session_id", sd.name), "mission": mission["id"], "skipped": []}
+    report = {"session_id": meta.get("session_id", sd.name), "mission": mission["id"], "skipped": [], "seconds": {}}
+    import time as _time
+
+    clock = [_time.time()]
+
+    def lap(name: str) -> None:            # 단계별 걸린 초 (어디가 느린지)
+        now = _time.time()
+        report["seconds"][name] = round(now - clock[0], 1)
+        clock[0] = now
+
     video = sd / "video.mp4"
     synthetic = bool(meta.get("synthetic"))
 
@@ -112,6 +121,7 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
 
         labels = extract_labels(video)
         log(f"[{sd.name}] 관절 {len(labels)}장면")
+        lap("joints")
 
         # 1-1. 공짜 검수 먼저 — 쓸 수 없는 녹화는 SAM·Spark 값을 쓰기 전에 반려
         from .pipeline import face_check_end_s
@@ -123,6 +133,7 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
             t_act = face_check_end_s(meta, int(ft[0])) if len(ft) else 0.0
         pc = precheck(video, labels, t_act)
         report["precheck"] = pc
+        lap("precheck")
         if not pc["ok"]:
             report["error"] = " · ".join(pc["reasons"])
             report["reward"] = 0
@@ -152,6 +163,7 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
             r = mask_video(video, out / "masked.mp4", manipulated=manip, hand_pts=pts, match=match, plan=plan)
             masked, objects, privacy = r.masked_video, r.objects, r.report
             log(f"[{sd.name}] 가리기: {json.dumps(r.report, ensure_ascii=False)[:300]}")
+            lap("mask")
         except BudgetExceeded as e:
             report["skipped"].append(f"privacy: {e}")
         except Exception as e:
@@ -173,6 +185,7 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
                                 family_donors={k: v for k, v in fam.items() if v})
                 masked = out / "masked_swap.mp4"
                 privacy = {**(privacy or {}), "face_swap": sr.to_dict()}
+                lap("face_swap")
         except Exception as e:
             report["skipped"].append(f"face_swap: {type(e).__name__}: {str(e)[:200]}")
     if masked is None and not synthetic:
@@ -187,6 +200,7 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
 
             sp = clean_audio(sd / "audio.wav", sd / "audio_clean.wav")
             privacy = {**(privacy or {}), "speech": sp}
+            lap("speech")
         except BudgetExceeded as e:
             report["skipped"].append(f"speech: {e}")
         except Exception as e:
@@ -245,6 +259,7 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
         objects = [{0: tuple(x["cup"])} for x in tr]
     key = calibration_key(meta)
     stored = json.loads((store / f"{key}.json").read_text()) if key and (store / f"{key}.json").exists() else None
+    lap("understand")
     cert = process(sd, out, level=lvl, masked_video=masked, labels=labels, objects=objects, steps=steps,
                    mistakes=mistakes, scene=scene, privacy=privacy, extract=False, grip_calibration=stored, **kw)
     minutes = cert["dataset"]["frames"] / cert["dataset"]["fps"] / 60
@@ -257,7 +272,25 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
         today = pricing.today_mission(ids, rec.date()) == mission.get("id")
     except (ValueError, KeyError):
         pass
+    lap("export")
     report.update(level=lvl, minutes=round(minutes, 2), reward=pricing.reward(minutes, lvl, today=today), today_bonus=today,
                   sync=cert["sync"]["chosen"], certificate=str(out / "certificate.md"))
     (out / "job.json").write_text(json.dumps(report, indent=2, ensure_ascii=False))
     return report
+
+
+ORIGINALS = ("video.mp4", "audio.wav", "watch_audio.wav")    # 녹화 폴더: 참여자 원래 얼굴·목소리
+INTERMEDIATE = ("masked.mp4", "understand_clip.mp4")         # 처리 폴더: 얼굴을 바꾸기 전 영상 등
+
+
+def purge_originals(session_dir, out_dir) -> List[str]:
+    """처리가 끝나면 원본 영상·소리와 중간 영상을 지운다 — 원본은 처리하는 동안만 서버에 있다.
+    남는 것: 얼굴을 바꾸고 가린 영상(masked_swap.mp4), 개인정보를 끈 소리(audio_clean.wav), 관절·센서 값, 데이터셋.
+    지운 파일 이름 목록."""
+    sd, out = Path(session_dir), Path(out_dir)
+    gone = []
+    for p in [sd / n for n in ORIGINALS] + [out / n for n in INTERMEDIATE] + sorted(out.glob("sam_input_*.mp4")):
+        if p.exists():
+            p.unlink()
+            gone.append(p.name)
+    return gone

@@ -89,3 +89,21 @@ def test_plan_skips_and_slows(tmp_path):
     assert max(sam.frames) <= 4                        # 60장면(2초) 중 초당 1~2장면만
     assert sam_frames(plan, 30.0, 3600) == 120 + 120 + 240  # 2분: 화면·거울 초당 1장면 + 컵 초당 2장면
     assert sam_plan(None)["person"] == 10.0          # 훑지 못하면 예전처럼 다 묻는다
+
+
+def test_fast_mask_decode_same_as_official():
+    """Numba 해독기 = 공식 meta_sam_parser 해독기 (비트 단위)."""
+    from types import SimpleNamespace
+
+    from meta_sam_parser._mask_codec import _encode_raster, decode_mask_to_raster
+
+    from datacache.meta.mask_fast import decode
+
+    rng = np.random.default_rng(0)
+    for w, h in ((37, 23), (120, 80)):
+        img = np.zeros((h, w), np.uint8)
+        cv2.ellipse(img, (w // 2, h // 2), (w // 3, h // 4), 20, 0, 360, 1, -1)
+        img[rng.random((h, w)) < 0.02] ^= 1
+        m = SimpleNamespace(encoding="one_bit", width=w, height=h, payload=_encode_raster(img.ravel().tolist(), w, h))
+        official = np.frombuffer(decode_mask_to_raster(m), np.uint8).reshape(h, w)
+        assert np.array_equal(decode(m), official) and np.array_equal(official, img)

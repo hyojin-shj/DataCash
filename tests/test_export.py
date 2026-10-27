@@ -93,3 +93,20 @@ def test_buy_by_sensor_pack(synth_session, synth_tracks, tmp_path):
     f = set(json.loads((ds / "meta" / "info.json").read_text())["features"])
     assert {"observation.hands", "observation.touch", "observation.touch.vibration", "annotation.primitive"} <= f
     assert not f & {"observation.physio", "observation.audio", "observation.imu.wrist"}
+
+
+def test_purge_originals(tmp_path):
+    """처리가 끝나면 원본 영상·소리와 얼굴을 바꾸기 전 영상은 지우고, 판매용·센서 값은 남긴다."""
+    from datacache.jobs import purge_originals
+
+    sd, out = tmp_path / "s", tmp_path / "o"
+    sd.mkdir()
+    out.mkdir()
+    for n in ("video.mp4", "audio.wav", "watch_audio.wav", "phone_imu.csv", "audio_clean.wav", "meta.json"):
+        (sd / n).write_text("x")
+    for n in ("masked.mp4", "masked_swap.mp4", "sam_input_3.mp4", "certificate.md"):
+        (out / n).write_text("x")
+    gone = purge_originals(sd, out)
+    assert set(gone) == {"video.mp4", "audio.wav", "watch_audio.wav", "masked.mp4", "sam_input_3.mp4"}
+    assert sorted(p.name for p in sd.iterdir()) == ["audio_clean.wav", "meta.json", "phone_imu.csv"]
+    assert sorted(p.name for p in out.iterdir()) == ["certificate.md", "masked_swap.mp4"]
