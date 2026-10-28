@@ -38,10 +38,15 @@ def test_dataset_eval_and_ready(tmp_path, monkeypatch):
         _recording(d)
     evolve.add_correction("r0", [{"start_s": 1, "end_s": 2, "was": "grasp", "action": "lift", "note": ""}], "pick cup")
     ds = evolve.build_dataset(dirs, log=lambda *a: None)
-    assert ds["recordings"] == 4 and ds["train_steps"] == 9 and ds["eval_steps"] == 3 and ds["from_appeals"] == 1
-    row = json.loads((tmp_path / "evolve" / "sft" / "train.jsonl").read_text().splitlines()[1])
-    assert [c["type"] for c in row["messages"][0]["content"]] == ["image", "image", "image", "text"]
-    assert json.loads(row["messages"][1]["content"]) == {"action": "lift"}          # 이의 신청에서 바로잡은 정답
+    # 학습용은 단계마다 AUGMENT 벌, 이의 신청에서 바로잡은 단계는 HARD_WEIGHT 배 더 · 평가용은 한 벌
+    hard = evolve.AUGMENT * evolve.HARD_WEIGHT
+    assert ds["recordings"] == 4 and ds["eval_steps"] == 3
+    assert ds["train_steps"] == 2 * evolve.AUGMENT + hard + 2 * 3 * evolve.AUGMENT and ds["from_appeals"] == hard
+    rows = [json.loads(l) for l in (tmp_path / "evolve" / "sft" / "train.jsonl").read_text().splitlines()]
+    assert [c["type"] for c in rows[0]["messages"][0]["content"]] == ["image", "image", "image", "text"]
+    assert sum(json.loads(r["messages"][1]["content"]) == {"action": "lift"} for r in rows) == hard   # 바로잡은 정답
+    fw = [json.loads(l) for l in evolve.export_fireworks("train").read_text().splitlines()]
+    assert fw[0]["messages"][0]["content"][0]["image_url"]["url"].startswith("data:image/jpeg;base64,")
     assert evolve.build_dataset(dirs, log=lambda *a: None)["version"] == 1           # 같으면 새로 안 만든다
 
     base = evolve.evaluate(client=FakeGlimmer(["reach", "other", "other"]), log=lambda *a: None)

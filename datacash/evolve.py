@@ -32,6 +32,8 @@ READY_EXAMPLES = 200      # 그리고 학습한 단계가 이만큼은 있어야
 EVAL_EVERY = 4            # 녹화 4개 중 1개는 평가용 (녹화 단위로 나눠야 점수가 부풀지 않는다)
 SIDE = 448                # 학습·평가 장면 크기 (긴 쪽)
 WINDOW_S = 1.0            # ④ 새 녹화를 이만큼씩 잘라 묻는다
+AUGMENT = 6               # 학습용 단계 하나에서 장면 3장을 뽑는 구간을 조금씩 바꿔 이만큼 만든다 (데이터가 적을 때 늘리기)
+HARD_WEIGHT = 3           # 이의 신청에서 바로잡은 단계(모델이 틀리기 쉬운 '어려운 문제')는 이만큼 더 넣는다
 
 QUESTION = """Frames from one step of a robot-learning video (start, middle, end), mission: "{mission}".
 Gray areas are privacy masks; ignore them. Which manipulation primitive is the hand doing in this step?
@@ -126,18 +128,24 @@ def build_dataset(out_dirs, log=print) -> Optional[dict]:
     for i, r in enumerate(recs):
         split = "eval" if (i % EVAL_EVERY == EVAL_EVERY - 1) else "train"
         for k, s in enumerate(r["steps"]):
-            paths = []
-            for j, f in enumerate(_frames(r["video"], s["start_s"], s["end_s"])):
-                p = img / f"{r['id']}_{k}_{j}.jpg"
-                cv2.imwrite(str(p), f, [cv2.IMWRITE_JPEG_QUALITY, 88])
-                paths.append(f"images/{p.name}")
-            if len(paths) < 3:
-                continue
-            rows[split].append({"messages": [
-                {"role": "user", "content": [{"type": "image", "path": p} for p in paths]
-                 + [{"type": "text", "text": QUESTION.format(mission=r["mission"], prims=q_prims)}]},
-                {"role": "assistant", "content": json.dumps({"action": s["action"]})}],
-                "meta": {"recording": r["id"], "step": k, "source": s["source"]}})
+            d = s["end_s"] - s["start_s"]
+            # 평가용은 한 번만, 학습용은 구간을 조금씩 옮겨 여러 벌 (같은 동작의 다른 순간) · 어려운 문제는 더
+            n = 1 if split == "eval" else AUGMENT * (HARD_WEIGHT if s["source"] == "appeal" else 1)
+            for v in range(n):
+                j0 = 0.0 if v == 0 else ((v * 37) % 11 - 5) / 50 * d          # -10% ~ +10% 이동
+                j1 = 0.0 if v == 0 else ((v * 53) % 11 - 5) / 50 * d
+                paths = []
+                for j, f in enumerate(_frames(r["video"], max(0.0, s["start_s"] + j0), s["end_s"] + j1)):
+                    p = img / f"{r['id']}_{k}_{v}_{j}.jpg"
+                    cv2.imwrite(str(p), f, [cv2.IMWRITE_JPEG_QUALITY, 88])
+                    paths.append(f"images/{p.name}")
+                if len(paths) < 3:
+                    continue
+                rows[split].append({"messages": [
+                    {"role": "user", "content": [{"type": "image", "path": p} for p in paths]
+                     + [{"type": "text", "text": QUESTION.format(mission=r["mission"], prims=q_prims)}]},
+                    {"role": "assistant", "content": json.dumps({"action": s["action"]})}],
+                    "meta": {"recording": r["id"], "step": k, "variant": v, "source": s["source"]}})
     for split, rs in rows.items():
         (sft / f"{split}.jsonl").write_text("".join(json.dumps(x, ensure_ascii=False) + "\n" for x in rs))
     counts = {}
@@ -244,10 +252,34 @@ def label_video(video, mission: str, t0: float = 0.0, client=None) -> List[dict]
     return [s for s in steps if s["action"] != "other"]
 
 
+def export_fireworks(split: str = "train") -> Path:
+    """Axolotl 형식(이미지 경로) → Fireworks 형식(이미지를 base64 data URI 로 안에 넣기). 파일 경로를 돌려준다."""
+    src, dst = ROOT / "sft" / f"{split}.jsonl", ROOT / "sft" / f"fireworks_{split}.jsonl"
+    with open(dst, "w") as out:
+        for line in src.read_text().splitlines():
+            x = json.loads(line)
+            parts = []
+            for c in x["messages"][0]["content"]:
+                if c["type"] == "image":
+                    b = base64.b64encode((ROOT / "sft" / c["path"]).read_bytes()).decode()
+                    parts.append({"type": "image_url", "image_url": {"url": "data:image/jpeg;base64," + b}})
+                else:
+                    parts.append(c)
+            out.write(json.dumps({"messages": [{"role": "user", "content": parts}, x["messages"][1]]}) + "\n")
+    return dst
+
+
+def record_training(entry: dict) -> None:
+    """클라우드 학습(③) 기록 — 운영자 화면에 보인다."""
+    reg = _registry()
+    reg["trainings"] = [t for t in reg.get("trainings", []) if t.get("job") != entry.get("job")] + [entry]
+    _save(reg)
+
+
 def _registry() -> dict:
     p = ROOT / "registry.json"
     r = json.loads(p.read_text()) if p.exists() else {}
-    return {"datasets": r.get("datasets", []), "evals": r.get("evals", [])}
+    return {"datasets": r.get("datasets", []), "evals": r.get("evals", []), "trainings": r.get("trainings", [])}
 
 
 def _save(reg: dict) -> None:
