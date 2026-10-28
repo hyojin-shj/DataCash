@@ -170,6 +170,9 @@ def build_dataset(out_dirs, log=print) -> Optional[dict]:
                     "meta": {"recording": r["id"], "mission_id": r.get("mission_id", ""), "step": k, "variant": v, "source": s["source"]}})
     for split, rs in rows.items():
         (sft / f"{split}.jsonl").write_text("".join(json.dumps(x, ensure_ascii=False) + "\n" for x in rs))
+    # 학습 전 모델은 어떤 녹화도 보지 않았으니 정답 단계 전체(늘린 벌 빼고 한 벌씩)로도 잰다 — 숫자가 덜 흔들린다
+    every = [x for x in rows["train"] + rows["eval"] if x["meta"].get("variant", 0) == 0]
+    (sft / "all.jsonl").write_text("".join(json.dumps(x, ensure_ascii=False) + "\n" for x in every))
     counts = {}
     for x in rows["train"]:
         a = json.loads(x["messages"][1]["content"])["action"]

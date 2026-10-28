@@ -58,6 +58,8 @@ python scripts/evolve.py eval --adapter data/evolve/adapters/glimmer-lora-v1.ggu
   평가가 12단계뿐이라 한 단계(8%p) 차이는 우연일 수 있다. 틀린 것은 대부분 '놓기→뻗기', '쥐기→뻗기'처럼 장면 3장으로는
   손이 다가가는지 떠나는지 모르는 경우 — 질문으로는 안 풀리고 우리 데이터로 학습해야 한다. 기본 질문은 힌트 방식으로 정했다
   (`evolve.STYLE = "hint"`, 학습 데이터·평가·쓰기 모두 같은 질문).
+- **학습 전 Glimmer, 정답 단계 전체로 (힌트 방식):** 학습 전 모델은 어떤 녹화도 보지 않았으니 정답 24단계 전부로 쟀다
+  (`python scripts/evolve.py eval --split all`) → **정확도 42%** (기준선 25%, macro F1 0.42). 이것이 학습(③) 전 출발점이다.
 - ③ 학습: **Fireworks 에서** 한다 (`scripts/fireworks_train.py`). Fireworks 의 `muse-glimmer-30b` 는 LoRA 지도 학습 가능·이미지 입력 지원,
   11/30 까지 학습 무료. 예상 비용이 $5 를 넘으면 스크립트가 바로 취소한다. 학습한 모델을 띄워 평가하는 것은 전용 GPU(유료)라 따로 한다.
   **10-28: Fireworks 계정의 데이터셋 업로드가 막혀 있다** ("dataset uploads are temporarily disabled, please contact Fireworks AI") → 권한을 받으면 바로 돌린다.

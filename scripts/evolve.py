@@ -1,7 +1,7 @@
 """모델 진화 명령 — ① 학습 데이터 만들기, ② Glimmer 실력 재기 (학습 전 또는 어댑터를 붙여서).
 
   python scripts/evolve.py build [--root data/server]
-  python scripts/evolve.py eval [--adapter data/evolve/adapters/glimmer-lora-v1.gguf] [--split eval]
+  python scripts/evolve.py eval [--adapter data/evolve/adapters/glimmer-lora-v1.gguf] [--split eval|all]
   python scripts/evolve.py show
 ③ 학습은 scripts/train_glimmer.sh (클라우드 GPU).
 """
