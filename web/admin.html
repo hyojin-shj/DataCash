@@ -151,7 +151,7 @@
       <div class="grid g3" id="cost-kpis"></div>
       <div class="grid g2" style="margin-top:12px">
         <div class="card"><b>모델별</b><div id="cost-models"></div></div>
-        <div class="card"><b>최근 호출</b><div id="cost-recent"></div></div>
+        <div class="card scroll"><b>최근 호출</b><div id="cost-recent"></div></div>
       </div>
     </section>
   </main>
@@ -359,7 +359,7 @@ function renderCosts() {
   const max = Math.max(...Object.values(C.by_model || {0: 1}));
   document.getElementById("cost-models").innerHTML = Object.entries(C.by_model || {}).map(([m, u]) => `<div style="margin:10px 0">
     <div class="top"><span>${esc(m)}</span><b>${usd(u)}</b></div><div class="bar" style="margin-top:4px"><i style="width:${100 * u / max}%"></i></div></div>`).join("");
-  document.getElementById("cost-recent").innerHTML = `<table><tbody>${(C.recent || []).map(r => `<tr><td class="meta">${esc((r.t || "").slice(5, 16).replace("T", " "))}</td>
+  document.getElementById("cost-recent").innerHTML = `<table><tbody>${(C.recent || []).map(r => `<tr><td class="meta nw">${esc((r.t || "").slice(5, 16).replace("T", " "))}</td>
     <td>${esc(r.model)}</td><td class="meta">${esc((r.what || "").slice(0, 40))}</td><td style="text-align:right">${"$" + (+r.usd || 0).toFixed(3)}</td></tr>`).join("")}</tbody></table>`;
 }
 
