@@ -29,7 +29,8 @@ Meta Global AI Developer Hackathon（Indie Developer · Push the Frontier）出�
 | **Muse Spark 1.3** | 隠した映像 → 手順・指示文・使う手・物体・ミス（構造化 JSON）、企業のふつうの言葉の依頼 → ミッション設計 | `datacash/understand/`、`datacash/requests.py` |
 | **Muse Image** | 実在しない 34 人（7 地域 × 男女 × 20〜60 代）—— 顔の置き換え用 | `scripts/make_donors.py`、`datacash/donors/` |
 | **Muse Voice Transcribe** | 録音の中で話された個人情報を見つけて消音 | `datacash/privacy/speech.py` |
-| **Muse Glimmer**（オープンウェイト） | 30B モデルをこの Mac で llama.cpp により実行 —— Spark の手順をフレームごとに再確認（API 費用なし） | `datacash/understand/glimmer.py` |
+| **Muse Glimmer**（オープンウェイト） | 30B モデルをこの Mac で llama.cpp により実行 —— Spark の手順をフレームごとに再確認（API 費用なし） | `datacash/understand/glimmer.py`, `datacash/evolve.py` ([docs/model_evolution.md](docs/model_evolution.md)) |
+| **Muse Spark Open**（オープンウェイト、816B） | 異議申し立てを見直す「より高いモデル」、すべてのラベルへのセカンドオピニオン（Fireworks）— 両モデルが一致した手順が Glimmer の学習の正解になる | `datacash/understand/spark_open.py`、`scripts/crosscheck.py` |
 
 API を呼ぶたびに費用を `data/api_ledger.jsonl` に記録し、上限を超えたらその段階だけをスキップします。
 

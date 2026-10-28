@@ -132,6 +132,7 @@
         <div class="card"><b>실력 (평가용 단계 정확도)</b><p class="meta">녹화 단위로 떼어 둔 평가용 단계를 맞힌 비율. 회색 선 = 가장 많은 동작만 찍었을 때, 검은 선 = Spark 대신 쓰는 기준.</p><div id="evals"></div></div>
         <div class="card scroll"><b>학습 데이터</b><p class="meta">처리가 끝날 때마다 자동으로 다시 만들어요. 단계마다 장면 3장 + 질문 → 정답 동작.</p><div id="datasets"></div></div>
       </div>
+      <div class="card scroll"><b>라벨 교차 검증 — Spark 1.3 ↔ Spark Open(816B)</b><p class="meta">같은 녹화를 두 모델이 따로 라벨. '센서로 검증 + 두 모델이 같은 동작'인 단계만 Glimmer 학습 정답이 돼요.</p><div id="cross"></div></div>
       <div class="card"><b>자주 헷갈리는 동작</b><p class="meta">가장 최근 평가에서 틀린 것 (정답 → Glimmer 답)</p><div id="confusions"></div></div>
     </section>
 
@@ -313,6 +314,13 @@ function renderEvolve() {
     ${E.datasets.slice().reverse().map(d => `<tr><td>v${d.version}</td><td>${d.recordings}</td><td>${d.train_steps}</td><td>${d.eval_steps}</td><td>${d.from_appeals}</td>
       <td class="meta">${Object.entries(d.train_actions || {}).slice(0, 4).map(([k, n]) => `${esc(k)} ${n}`).join(" · ")}</td></tr>`).join("")}</tbody></table>`
     : `<div class="empty">아직 없음 — 녹화가 처리되면 자동으로 만들어져요</div>`;
+  const cr = E.crosscheck || [];
+  const ct = cr.reduce((t, c) => t + c.steps, 0), ca = cr.reduce((t, c) => t + c.agree, 0), cg = cr.reduce((t, c) => t + c.gold, 0);
+  document.getElementById("cross").innerHTML = cr.length ? `<div class="row" style="margin:6px 0 10px"><span class="st ok">일치 ${ca}/${ct} (${pct(ca / ct)})</span><span class="st">학습 정답 ${cg}단계</span></div>
+    <table><thead><tr><th>녹화</th><th>미션</th><th>일치</th><th>정답</th><th>다르게 본 단계 (Spark 1.3 → Spark Open)</th></tr></thead><tbody>
+    ${cr.map(c => `<tr><td>${esc(c.recording)}</td><td class="nw">${esc(c.mission)}</td><td>${c.agree}/${c.steps}</td><td>${c.gold}</td>
+      <td class="meta">${c.diffs.map(d => `${d.t}초 ${esc(d.spark13)}→${esc(d.spark_open || "-")}`).join(" · ") || "없음"}</td></tr>`).join("")}</tbody></table>`
+    : `<div class="empty">아직 없음 — <code>python scripts/crosscheck.py</code></div>`;
   const conf = last?.confusions || [];
   document.getElementById("confusions").innerHTML = conf.length ? `<div class="row" style="margin-top:6px">${conf.map(c => `<span class="st">${esc(c.truth)} → ${esc(c.said)}</span>`).join("")}</div>`
     : `<div class="empty">없음</div>`;
@@ -345,6 +353,7 @@ function renderCosts() {
     ["쓴 돈", usd(C.total), `한도 ${usd(C.budget)}`],
     ["남은 돈", usd(C.budget - C.total), `${pct(1 - C.total / C.budget)} 남음`],
     ["호출", (C.calls || 0) + "번", Object.keys(C.by_day || {}).length + "일 동안"],
+    ["Fireworks", usd((C.fireworks || {}).total), `크레딧 ${usd((C.fireworks || {}).credit)} · 호출 ${(C.fireworks || {}).calls || 0}번 · 가격 추정`],
   ].map(([k, b, e]) => `<div class="card kpi"><span>${k}</span><b>${b}</b><em>${e}</em></div>`).join("")
     + `<div class="card" style="grid-column:1/-1"><div class="bar"><i style="width:${Math.min(100, 100 * C.total / C.budget)}%"></i></div></div>`;
   const max = Math.max(...Object.values(C.by_model || {0: 1}));

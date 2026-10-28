@@ -29,7 +29,8 @@ Built for the Meta Global AI Developer Hackathon (Indie Developer · Push the Fr
 | **Muse Spark 1.3** | Masked video → steps, instructions, active hand, objects, mistakes (structured JSON); a buyer's plain-language request → mission design | `datacash/understand/`, `datacash/requests.py` |
 | **Muse Image** | 34 people who don't exist (7 regions × women/men × 20s–60s) used for face replacement | `scripts/make_donors.py`, `datacash/donors/` |
 | **Muse Voice Transcribe** | Finds spoken personal information in the recording and mutes it | `datacash/privacy/speech.py` |
-| **Muse Glimmer** (open weights) | 30B model running locally on this Mac with llama.cpp — re-checks Spark's steps frame by frame (no API cost) | `datacash/understand/glimmer.py` |
+| **Muse Glimmer** (open weights) | 30B model running locally on this Mac with llama.cpp — re-checks Spark's steps frame by frame (no API cost) | `datacash/understand/glimmer.py`, `datacash/evolve.py` ([docs/model_evolution.md](docs/model_evolution.md)) |
+| **Muse Spark Open** (open weights, 816B) | Higher-tier reviewer for appeals and a second opinion on every label (served on Fireworks); steps both models agree on become Glimmer's training targets | `datacash/understand/spark_open.py`, `scripts/crosscheck.py` |
 
 Every API call is logged with its cost in `data/api_ledger.jsonl`; if the budget is hit, only that step is skipped.
 

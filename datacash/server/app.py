@@ -870,7 +870,12 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
             by_model[r["model"]] = round(by_model.get(r["model"], 0) + r.get("usd", 0), 4)
             d = str(r.get("t", ""))[:10]
             by_day[d] = round(by_day.get(d, 0) + r.get("usd", 0), 4)
-        return {"total": round(sum(r.get("usd", 0) for r in rows), 4), "budget": config.API_BUDGET_USD, "calls": len(rows),
+        from ..understand import spark_open
+
+        fw = [json.loads(l) for l in spark_open.LEDGER.read_text().splitlines() if l.strip()] if spark_open.LEDGER.exists() else []
+        fireworks = {"total": round(sum(r.get("usd", 0) for r in fw), 4), "calls": len(fw), "credit": 100.0, "estimated_price": True,
+                     "recent": [{k: r.get(k) for k in ("t", "model", "usd", "what")} for r in fw[-6:]][::-1]}
+        return {"fireworks": fireworks, "total": round(sum(r.get("usd", 0) for r in rows), 4), "budget": config.API_BUDGET_USD, "calls": len(rows),
                 "by_model": dict(sorted(by_model.items(), key=lambda kv: -kv[1])), "by_day": by_day,
                 "recent": [{k: r.get(k) for k in ("t", "model", "usd", "what")} for r in rows[-12:]][::-1]}
 
@@ -880,8 +885,13 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
         auth(token)
         from .. import evolve
 
+        cross = [json.loads(p.read_text()) for p in sorted((evolve.ROOT / "crosscheck").glob("*.json"))] \
+            if (evolve.ROOT / "crosscheck").exists() else []
         return {"ready_rule": {"accuracy": evolve.READY_ACCURACY, "train_steps": evolve.READY_EXAMPLES},
-                "in_use": evolve.ready_adapter(), **evolve._registry()}
+                "in_use": evolve.ready_adapter(), **evolve._registry(),
+                "crosscheck": [{k: c[k] for k in ("recording", "mission", "steps", "agree", "gold")}
+                               | {"diffs": [{"t": round(r["start_s"], 1), "spark13": r["spark13"], "spark_open": r["spark_open"]}
+                                            for r in c["rows"] if not r["agree"]]} for c in cross]}
 
     @app.get("/api/admin/appeals")
     def admin_appeals(token: str = Query("")):

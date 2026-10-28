@@ -29,7 +29,8 @@ Meta Global AI Developer Hackathon（Indie Developer · Push the Frontier）参�
 | **Muse Spark 1.3** | 遮盖后的视频 → 步骤、指令、使用的手、物体、失误（结构化 JSON）；企业的自然语言需求 → 任务设计 | `datacash/understand/`、`datacash/requests.py` |
 | **Muse Image** | 34 位不存在的人（7 个地区 × 男女 × 20–60 多岁），用于换脸 | `scripts/make_donors.py`、`datacash/donors/` |
 | **Muse Voice Transcribe** | 找出录音中说出的个人信息并静音 | `datacash/privacy/speech.py` |
-| **Muse Glimmer**（开放权重） | 30B 模型用 llama.cpp 在这台 Mac 本地运行 —— 逐帧复核 Spark 的步骤（无 API 费用） | `datacash/understand/glimmer.py` |
+| **Muse Glimmer**（开放权重） | 30B 模型用 llama.cpp 在这台 Mac 本地运行 —— 逐帧复核 Spark 的步骤（无 API 费用） | `datacash/understand/glimmer.py`, `datacash/evolve.py` ([docs/model_evolution.md](docs/model_evolution.md)) |
+| **Muse Spark Open**（开放权重，816B） | 申诉时的“更高级模型”，也为每个标签提供第二意见（Fireworks 托管）；两个模型一致的步骤成为 Glimmer 的训练标签 | `datacash/understand/spark_open.py`、`scripts/crosscheck.py` |
 
 每次 API 调用的费用都记录在 `data/api_ledger.jsonl`；超出预算时只跳过该步骤。
 

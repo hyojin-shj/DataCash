@@ -39,6 +39,14 @@ QUESTION = """Frames from one step of a robot-learning video (start, middle, end
 Gray areas are privacy masks; ignore them. Which manipulation primitive is the hand doing in this step?
 Answer JSON {{"action": one of: {prims}}}."""
 
+DEFINITIONS = """Definitions: reach = hand moves toward the object, not touching yet; grasp = fingers close on the object;
+lift = raise the held object; pull = draw it toward you or out of something (e.g. a tissue out of its box); push = move it away;
+twist = rotate it (e.g. a lid); press = push a button or surface down; squeeze; tear; wipe; insert = fit it into place;
+transport = carry the held object through the air; place = set the held object down on a surface; handover = pass it to the
+other hand or a person; release = fingers open and let go; other = none of these."""
+STYLES = {"basic": "", "defs": DEFINITIONS}
+STYLE = "basic"             # 학습·평가·쓰기에 같은 질문 (scripts/evolve.py styles 로 고른다)
+
 SCHEMA = {"type": "object", "additionalProperties": False, "required": ["action"],
           "properties": {"action": {"type": "string", "enum": PRIMITIVES}}}
 
@@ -128,7 +136,6 @@ def build_dataset(out_dirs, log=print) -> Optional[dict]:
     img = sft / "images"
     img.mkdir(parents=True, exist_ok=True)
     rows = {"train": [], "eval": []}
-    q_prims = ", ".join(PRIMITIVES)
     for i, r in enumerate(recs):
         split = "eval" if (i % EVAL_EVERY == EVAL_EVERY - 1) else "train"
         for k, s in enumerate(r["steps"]):
@@ -147,7 +154,7 @@ def build_dataset(out_dirs, log=print) -> Optional[dict]:
                     continue
                 rows[split].append({"messages": [
                     {"role": "user", "content": [{"type": "image", "path": p} for p in paths]
-                     + [{"type": "text", "text": QUESTION.format(mission=r["mission"], prims=q_prims)}]},
+                     + [{"type": "text", "text": question(r["mission"])}]},
                     {"role": "assistant", "content": json.dumps({"action": s["action"]})}],
                     "meta": {"recording": r["id"], "step": k, "variant": v, "source": s["source"]}})
     for split, rs in rows.items():
@@ -168,13 +175,18 @@ def build_dataset(out_dirs, log=print) -> Optional[dict]:
 
 # ---------- ② 실력 재기 ----------
 
-def _ask(client, images: List[np.ndarray], mission: str) -> Optional[str]:
+def question(mission: str, style: Optional[str] = None) -> str:
+    extra = STYLES.get(style or STYLE, "")
+    return QUESTION.format(mission=mission, prims=", ".join(PRIMITIVES)) + ("\n" + extra if extra else "")
+
+
+def _ask(client, images: List[np.ndarray], mission: str, style: Optional[str] = None, reasoning: str = "low") -> Optional[str]:
     parts = [{"type": "image_url", "image_url": {"url": "data:image/jpeg;base64," +
              base64.b64encode(cv2.imencode(".jpg", f, [cv2.IMWRITE_JPEG_QUALITY, 88])[1]).decode()}} for f in images]
-    parts.append({"type": "text", "text": QUESTION.format(mission=mission, prims=", ".join(PRIMITIVES))})
+    parts.append({"type": "text", "text": question(mission, style)})
     try:
-        r = client.chat.completions.create(model="muse-glimmer", max_tokens=300, temperature=0,
-                                           extra_body={"reasoning_effort": "low"},
+        r = client.chat.completions.create(model="muse-glimmer", max_tokens=300 if reasoning == "low" else 1500, temperature=0,
+                                           extra_body={"reasoning_effort": reasoning},
                                            response_format={"type": "json_schema", "json_schema": {"name": "step", "schema": SCHEMA}},
                                            messages=[{"role": "user", "content": parts}])
         a = json.loads(r.choices[0].message.content or "{}").get("action")
@@ -183,7 +195,8 @@ def _ask(client, images: List[np.ndarray], mission: str) -> Optional[str]:
         return None
 
 
-def evaluate(adapter: Optional[str] = None, split: str = "eval", client=None, log=print) -> Optional[dict]:
+def evaluate(adapter: Optional[str] = None, split: str = "eval", client=None, log=print, style: Optional[str] = None,
+             reasoning: str = "low", keep_running: bool = False) -> Optional[dict]:
     """Glimmer(어댑터를 붙이면 그 버전)가 평가용 단계를 맞히는 정도. 결과를 기록에 남긴다."""
     from openai import OpenAI
 
@@ -206,9 +219,9 @@ def evaluate(adapter: Optional[str] = None, split: str = "eval", client=None, lo
             imgs = [cv2.imread(str(ROOT / "sft" / c["path"])) for c in content if c["type"] == "image"]
             mission = content[-1]["text"].split('mission: "', 1)[-1].split('"', 1)[0]
             y.append(json.loads(x["messages"][1]["content"])["action"])
-            p.append(_ask(client, imgs, mission) or "none")
+            p.append(_ask(client, imgs, mission, style, reasoning) or "none")
     finally:
-        if started:
+        if started and not keep_running:
             glimmer.stop()
     yt, yp = np.array(y), np.array(p)
     f1s = []
@@ -220,6 +233,7 @@ def evaluate(adapter: Optional[str] = None, split: str = "eval", client=None, lo
     acc = float((yt == yp).mean())
     entry = {"version": len(reg["evals"]) + 1, "at": _now(),
              "model": "muse-glimmer-30b-q4" + (f" + {Path(adapter).name}" if adapter else " (학습 전)"),
+             "question": style or STYLE, "reasoning": reasoning,
              "adapter": str(adapter) if adapter else None, "dataset": reg["datasets"][-1]["version"] if reg["datasets"] else None,
              "split": split, "steps": len(y), "accuracy": round(acc, 3), "macro_f1": round(float(np.mean(f1s)), 3),
              "baseline_accuracy": round(float(max(np.mean(yt == a) for a in set(y))), 3),
