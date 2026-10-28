@@ -1,8 +1,9 @@
-"""이의 신청은 평소보다 높은 설정으로 다시 본다 — Muse Spark 1.3 최대 추론('max').
+"""이의 신청은 평소보다 높은 모델로 다시 본다.
 
-평소 라벨: 동작 구간을 640px 로 줄인 영상 + 기본 추론.
-이의 신청: 동작 구간 전체를 원래 해상도(긴 쪽 1280px)로, 참여자가 쓴 이의 내용과 함께, 추론 'max' 로.
-(Muse Wonder 가 가장 높지만 한국에서 쓸 수 없다. 사용자 영상이 Meta 학습에 쓰이는 contributor 모드는 쓰지 않는다.)
+평소 라벨: Muse Spark 1.3 (API), 동작 구간을 640px 로 줄인 영상 + 기본 추론.
+이의 신청: **Muse Spark Open** (Meta 오픈 웨이트 816B, Fireworks) — 동작 구간 장면 16장 + 참여자가 쓴 이의 내용, 추론 'high'.
+         Fireworks 키가 없으면 Muse Spark 1.3 최대 추론('max') · 1280px 영상으로.
+(Muse Wonder 는 한국에서 쓸 수 없다. 사용자 영상이 Meta 학습에 쓰이는 contributor 모드는 쓰지 않는다.)
 
   반려된 녹화 ('처리가 실패했어요', 상태 rejected)
       다시 본 결과 미션 동작 단계가 나오면 → 공짜 검수를 건너뛰고 다시 처리 (다시 처리한 결과대로 보상)
@@ -49,7 +50,7 @@ def corrections(old: List[dict], new: List[dict]) -> List[dict]:
             continue
         if best.get("action") and best["action"] != o.get("action") and best["action"] != "other":
             fixes.append({"start_s": o["start_s"], "end_s": o["end_s"], "was": o.get("action"), "action": best["action"],
-                          "note": best.get("instruction", "")[:120], "by": f"{MODEL} reasoning={REASONING}"})
+                          "note": best.get("instruction", "")[:120], "by": review_model_name()})
     return fixes
 
 
@@ -73,8 +74,8 @@ def judge(appeal: dict, status: dict, session_dir, out_dir, relabel=None, log=pr
         acts = [s for s in steps if s.get("action") not in (None, "other")]
         if acts:
             return {"decision": "reprocess", "extra": 0, "corrections": [],
-                    "note": f"Spark 1.3(최대 추론)이 미션 동작 {len(acts)}단계를 봤어요 → 검수를 건너뛰고 다시 처리"}
-        return {"decision": "review", "note": "Spark 1.3(최대 추론)도 미션 동작을 찾지 못했어요 → 검토자 확인", "extra": 0, "corrections": []}
+                    "note": f"{review_model_name()}이 미션 동작 {len(acts)}단계를 봤어요 → 검수를 건너뛰고 다시 처리"}
+        return {"decision": "review", "note": f"{review_model_name()}도 미션 동작을 찾지 못했어요 → 검토자 확인", "extra": 0, "corrections": []}
 
     cert = json.loads((out / "certificate.json").read_text()) if (out / "certificate.json").exists() else {}
     old = cert.get("steps") or []
@@ -82,15 +83,28 @@ def judge(appeal: dict, status: dict, session_dir, out_dir, relabel=None, log=pr
         return {"decision": "review", "note": "원래 단계 라벨이 없어 검토자에게 넘겼어요", "extra": 0, "corrections": []}
     fixes = corrections(old, steps)
     if not fixes:
-        return {"decision": "review", "note": "Spark 1.3(최대 추론)도 원래 라벨과 같다고 봤어요 → 검토자 확인", "extra": 0, "corrections": []}
+        return {"decision": "review", "note": f"{review_model_name()}도 원래 라벨과 같다고 봤어요 → 검토자 확인", "extra": 0, "corrections": []}
     extra = min(LABEL_FIX_MAX, LABEL_FIX_BONUS * len(fixes))
     listed = ", ".join(f"{f['start_s']:.1f}초 {f['was']}→{f['action']}" for f in fixes[:4])
     return {"decision": "accept", "extra": extra, "corrections": fixes,
-            "note": f"Spark 1.3(최대 추론)으로 다시 보니 단계 {len(fixes)}개가 달랐어요 ({listed}) — 바로잡고 +{extra:,}원"}
+            "note": f"{review_model_name()}으로 다시 보니 단계 {len(fixes)}개가 달랐어요 ({listed}) — 바로잡고 +{extra:,}원"}
+
+
+def review_model_name() -> str:
+    from .understand import spark_open
+
+    return "Muse Spark Open (Fireworks)" if spark_open.available() else f"Muse Spark 1.3 (추론 {REASONING})"
 
 
 def _spark_relabel(video, t0: float, t1, mission: str, detail: str) -> List[dict]:
     import cv2
+
+    from .understand import spark_open
+
+    ask = (f'The participant appealed the earlier labels and says: "{detail[:300]}". '
+           "Re-check carefully, frame by frame; do not simply agree with them.")
+    if spark_open.available():
+        return spark_open.label_frames(video, t0, None, mission, extra=ask)["steps"]
 
     from .media import clip_mp4
     from .understand.spark import understand_clip
@@ -101,9 +115,7 @@ def _spark_relabel(video, t0: float, t1, mission: str, detail: str) -> List[dict
     t0 = min(max(0.0, t0), max(0.0, dur - 2))
     clip = clip_mp4(video, Path(video).with_name("appeal_clip.mp4"), t0, min(dur - t0, 120), max_side=SIDE, audio=False)
     try:
-        u = understand_clip(clip, mission, min(dur - t0, 120), model=MODEL, reasoning=REASONING,
-                            extra=f'The participant appealed the earlier labels and says: "{detail[:300]}". '
-                                  "Re-check carefully, frame by frame; do not simply agree with them.")
+        u = understand_clip(clip, mission, min(dur - t0, 120), model=MODEL, reasoning=REASONING, extra=ask)
     finally:
         Path(clip).unlink(missing_ok=True)
     for s in u["steps"]:

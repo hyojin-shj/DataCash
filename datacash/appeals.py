@@ -4,7 +4,7 @@
   reward      보상이 적어요       자동: 받아들인 분량·등급·보너스로 보상을 다시 계산해 덜 줬으면 바로 차액 인정
   failed      처리가 실패했어요    자동: 처리를 다시 대기열에 넣는다 (다시 처리한 결과로 끝)
   privacy     가려야 할 게 보여요   자동: 그 녹화를 바로 판매에서 뺀다(withheld) → 검토자가 확인
-  label       라벨·단계가 틀려요   Muse Spark 1.3 최대 추론으로 다시 라벨 → 달라진 단계가 있으면 인정·바로잡음 (datacash/judge.py), 아니면 검토자
+  label       라벨·단계가 틀려요   Muse Spark Open(Fireworks, 없으면 Spark 1.3 최대 추론)으로 다시 라벨 → 달라진 단계가 있으면 인정·바로잡음 (datacash/judge.py), 아니면 검토자
   failed(반려)                    같은 모델로 다시 보고 미션 동작이 나오면 검수를 건너뛰고 다시 처리
   other       기타                검토자 확인
 저장: data/server/appeals/<id>.json — 기기 id, 녹화 id, 사유, 단계 기록, 상태, 인정된 추가 보상.
@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Callable, List, Optional
 
 from . import pricing
-from .judge import needs_review_model
+from .judge import needs_review_model, review_model_name
 
 DAILY_LIMIT = 5
 REASONS = {"reward": "보상이 적어요", "failed": "처리가 실패했어요", "privacy": "가려야 할 게 보여요",
@@ -73,7 +73,7 @@ class Appeals:
                 return self._finish(a, "accepted", f"자동 확인: 다시 계산하니 {want:,}원 — 차액 {want - got:,}원 인정", want - got)
             self._step(a, "auto", f"자동 확인: 다시 계산해도 {got:,}원 (분량 {status.get('minutes')}분 · {status.get('level')}) → 검토자 확인")
         elif review_model and needs_review_model(reason, status):
-            self._step(a, "auto", "더 높은 설정(Muse Spark 1.3 최대 추론)으로 영상을 다시 보고 있어요")
+            self._step(a, "auto", f"더 높은 모델({review_model_name()})로 영상을 다시 보고 있어요")
             a["state"] = "judging"
             return self.save(a)
         elif reason == "failed" and st in ("failed", "rejected"):

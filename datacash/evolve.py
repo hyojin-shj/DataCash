@@ -103,6 +103,10 @@ def labeled_steps(out_dir) -> Optional[dict]:
     mission = (m.get("title_en") or m.get("title") or m.get("id")) if isinstance(m, dict) else (m or "")
     steps = [{"start_s": s["start_s"], "end_s": s["end_s"], "action": s["action"], "source": "spark+sensors"}
              for s in c.get("steps") or [] if s.get("verified") and s.get("action") in PRIMITIVES]
+    cross = ROOT / "crosscheck" / f"{out.name}.json"
+    if cross.exists():                           # 교차 검증(scripts/crosscheck.py): 더 큰 Spark Open 도 같은 동작이라고 본 단계만
+        ok = {(round(r["start_s"], 3), r["spark13"]) for r in json.loads(cross.read_text())["rows"] if r["agree"]}
+        steps = [{**s, "source": "spark+sensors+spark_open"} for s in steps if (round(s["start_s"], 3), s["action"]) in ok]
     for f in corrections(out.name):              # 이의 신청에서 바로잡은 단계가 우선 (더 높은 모델로 다시 본 정답)
         steps = [s for s in steps if not (s["start_s"] < f["end_s"] and f["start_s"] < s["end_s"])]
         if f.get("action") in PRIMITIVES:

@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>DataCash 워치 시험</title>
+<style>
+  :root { --primary: #FF5F5F; --ok: #16A36B; --sub: #9A9AA0; }
+  html, body { margin: 0; background: #000; color: #fff; font-family: -apple-system, "Samsung One", sans-serif; text-align: center; }
+  .wrap { padding: 38px 30px 30px; }
+  h1 { font-size: 18px; margin: 0 0 6px; }
+  p { font-size: 13px; color: var(--sub); margin: 4px 0; line-height: 1.35; }
+  b.big { display: block; font-size: 34px; margin: 6px 0; }
+  button { display: block; width: 100%; border: 0; border-radius: 22px; padding: 12px; margin: 8px 0; font-size: 16px; font-weight: 700;
+           background: var(--primary); color: #fff; }
+  button.sub { background: #2A2A2E; }
+  .ok { color: var(--ok); } .bad { color: var(--primary); }
+</style>
+</head>
+<body><div class="wrap" id="v"></div>
+<script>
+// 워치3(타이젠) 브라우저로 GripSense 가 되는지 빠르게 보는 시험 페이지.
+// ① 센서·진동 확인  ② '놓기·가볍게·평소·꽉' 을 8초씩 두 번  ③ 서버가 쥐는 세기를 맞히는 정도를 계산
+var SERVER = "http://192.168.219.101:8800";   // 타이젠 앱: 서버 주소 (브라우저로 열면 같은 서버)
+if (location.protocol.indexOf("http") === 0) SERVER = "";
+var LEVELS = ["놓기", "가볍게 쥐기", "평소처럼 쥐기", "꽉 쥐기"];
+var HOLD_MS = 8000, PULSE_EVERY = 500, PULSE_MS = 50;
+var run = "w" + Date.now(), imu = [], motor = [], rec = false, plan = [], step = 0;
+var v = document.getElementById("v");
+function now() { return (window.performance && performance.now) ? performance.now() : Date.now(); }
+function show(h) { v.innerHTML = h; }
+
+// 타이젠 앱이면 타이젠 센서(최대 100Hz), 아니면 브라우저 devicemotion
+var tz = window.tizen && tizen.sensorservice, acc = null, gyr = null, lastA = [0, 0, 0];
+if (tz) {
+  try { tizen.power.request("SCREEN", "SCREEN_NORMAL"); } catch (e) {}
+  document.addEventListener("tizenhwkey", function (e) { if (e.keyName === "back") try { tizen.application.getCurrentApplication().exit(); } catch (x) {} });
+  try {
+    acc = tizen.sensorservice.getDefaultSensor("ACCELERATION");
+    gyr = tizen.sensorservice.getDefaultSensor("GYROSCOPE");
+    acc.start(function () { acc.setChangeListener(function (d) { lastA = [d.x, d.y, d.z]; }, 10); });
+    gyr.start(function () {
+      gyr.setChangeListener(function (d) {
+        if (rec) imu.push([now(), lastA[0], lastA[1], lastA[2], d.x * Math.PI / 180, d.y * Math.PI / 180, d.z * Math.PI / 180]);
+      }, 10);
+    });
+  } catch (e) { tz = null; }
+}
+window.addEventListener("devicemotion", function (e) {
+  if (tz) return;
+  if (!rec) return;
+  var a = e.accelerationIncludingGravity || {}, r = e.rotationRate || {};
+  var k = Math.PI / 180;
+  imu.push([now(), a.x || 0, a.y || 0, a.z || 0, (r.alpha || 0) * k, (r.beta || 0) * k, (r.gamma || 0) * k]);
+});
+
+function check() {
+  show("<h1>센서 확인 중…</h1><p>손목을 가만히 두세요</p>");
+  imu = []; rec = true;
+  var buzz = !!navigator.vibrate;
+  if (buzz) navigator.vibrate(200);
+  setTimeout(function () {
+    rec = false;
+    var n = imu.length, hz = n > 1 ? Math.round(1000 * (n - 1) / (imu[n - 1][0] - imu[0][0])) : 0;
+    var gyro = imu.some(function (x) { return x[4] || x[5] || x[6]; });
+    send("/api/watchtest/check", {run: run, hz: hz, samples: n, vibrate: buzz, gyro: gyro, ua: navigator.userAgent, tizen_sensor: !!tz});
+    show("<h1>센서</h1><b class='big " + (hz >= 50 ? "ok" : "bad") + "'>" + hz + " Hz</b>" +
+         "<p>자이로 " + (gyro ? "<span class=ok>있음</span>" : "<span class=bad>없음</span>") +
+         " · 진동 " + (buzz ? "<span class=ok>됨</span>" : "<span class=bad>안 됨</span>") + "</p>" +
+         (n ? "<button onclick='start()'>쥐는 세기 시험</button>" : "<p class=bad>센서 값이 안 들어와요</p>") +
+         "<button class='sub' onclick='check()'>다시 확인</button>");
+  }, 3000);
+}
+
+function start() {
+  plan = [];
+  for (var r = 0; r < 2; r++) for (var l = 0; l < 4; l++) plan.push({level: l, round: r});
+  step = 0; next();
+}
+function next() {
+  if (step >= plan.length) return result();
+  var s = plan[step];
+  show("<p>" + (step + 1) + " / " + plan.length + "</p><h1>" + LEVELS[s.level] + "</h1>" +
+       "<p>" + (s.level === 0 ? "손을 펴고 힘을 빼요" : "컵이나 폰을 이 세기로 쥐고 그대로 버텨요") + "</p>" +
+       "<button onclick='hold()'>시작 (8초)</button>");
+}
+function hold() {
+  var s = plan[step], left = 3;
+  var cd = setInterval(function () {
+    show("<h1>" + LEVELS[s.level] + "</h1><b class='big'>" + left + "</b><p>준비</p>");
+    if (--left < 0) { clearInterval(cd); go(); }
+  }, 1000);
+  function go() {
+    imu = []; motor = []; rec = true;
+    var t0 = now();
+    var pulse = setInterval(function () { motor.push(now()); if (navigator.vibrate) navigator.vibrate(PULSE_MS); }, PULSE_EVERY);
+    var tick = setInterval(function () {
+      var rest = Math.ceil((HOLD_MS - (now() - t0)) / 1000);
+      show("<h1>" + LEVELS[s.level] + "</h1><b class='big'>" + Math.max(0, rest) + "</b><p>그대로 버티세요</p>");
+    }, 250);
+    setTimeout(function () {
+      clearInterval(pulse); clearInterval(tick); rec = false;
+      show("<h1>보내는 중…</h1>");
+      send("/api/watchtest/segment", {run: run, level: s.level, round: s.round, imu: imu, motor: motor, pulse_ms: PULSE_MS}, function () {
+        step++; next();
+      });
+    }, HOLD_MS);
+  }
+}
+function result() {
+  show("<h1>계산 중…</h1>");
+  var x = new XMLHttpRequest();
+  x.open("GET", SERVER + "/api/watchtest/result?run=" + run);
+  x.onload = function () {
+    var r = {}; try { r = JSON.parse(x.responseText); } catch (e) {}
+    show("<h1>쥐는 세기</h1><b class='big " + ((r.round_accuracy || 0) >= 0.6 ? "ok" : "bad") + "'>" +
+         (r.round_accuracy == null ? "-" : Math.round(r.round_accuracy * 100) + "%") + "</b>" +
+         "<p>1회차로 배워 2회차를 맞힌 정확도 (4단계, 찍기 25%)</p><p>센서 " + (r.hz || "-") + "Hz · 창 " + (r.windows || 0) + "개</p>" +
+         "<button class='sub' onclick='start()'>다시 하기</button>");
+  };
+  x.send();
+}
+function send(url, body, done) {
+  var x = new XMLHttpRequest();
+  x.open("POST", SERVER + url); x.setRequestHeader("Content-Type", "text/plain");   // text/plain: 다른 출처 사전 확인 없이
+  x.onload = x.onerror = function () { if (done) done(); };
+  x.send(JSON.stringify(body));
+}
+check();
+</script>
+</body>
+</html>

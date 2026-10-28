@@ -143,7 +143,7 @@ class Store:
             self.settle(a["sid"])
 
     def judge_appeal(self, aid: str) -> None:
-        """이의 신청을 더 높은 설정(Muse Spark 1.3 최대 추론)으로 다시 본다 (datacash/judge.py). 한 번에 하나씩."""
+        """이의 신청을 더 높은 모델(Spark Open, 없으면 Spark 1.3 최대 추론)로 다시 본다 (datacash/judge.py). 한 번에 하나씩."""
         from ..judge import judge
 
         with self.judge_lock:
@@ -621,6 +621,36 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
     @app.get("/", response_class=HTMLResponse)
     def home():
         return (WEB / "index.html").read_text()
+
+    # ---- 워치 시험 (워치3 타이젠 브라우저로 GripSense 가 되는지) — 토큰 없이 같은 와이파이에서만, 시험 데이터만 받는다 ----
+    @app.get("/w", response_class=HTMLResponse)
+    def watchtest_page():
+        return (WEB / "watchtest.html").read_text()
+
+    @app.post("/api/watchtest/{kind}")
+    async def watchtest_post(kind: str, request: Request):
+        if kind not in ("check", "segment"):
+            raise HTTPException(404)
+        body = await request.body()
+        if len(body) > 20_000_000:
+            raise HTTPException(413)
+        d = json.loads(body)
+        run = str(d.get("run", ""))
+        if not re.match(r"^w\d{6,20}$", run):
+            raise HTTPException(400)
+        out = root / "watchtest" / run
+        out.mkdir(parents=True, exist_ok=True)
+        name = "check.json" if kind == "check" else f"seg_r{int(d['round'])}_l{int(d['level'])}.json"
+        (out / name).write_text(json.dumps(d))
+        return JSONResponse({"ok": True}, headers={"Access-Control-Allow-Origin": "*"})
+
+    @app.get("/api/watchtest/result")
+    def watchtest_result(run: str = Query("")):
+        from ..touch.watchtest import evaluate_run
+
+        if not re.match(r"^w\d{6,20}$", run):
+            raise HTTPException(400)
+        return JSONResponse(evaluate_run(root / "watchtest" / run), headers={"Access-Control-Allow-Origin": "*"})
 
     @app.get("/admin", response_class=HTMLResponse)
     def admin_page():
