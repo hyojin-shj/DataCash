@@ -951,7 +951,7 @@ def advertise(port: int):
 
     if not shutil.which("dns-sd"):
         return None
-    return subprocess.Popen(["dns-sd", "-R", "DataCash", SERVICE, "local", str(port)],
+    return subprocess.Popen(["dns-sd", "-R", "DataCash", SERVICE, "local", str(port), "app=datacash"],   # 빈 TXT 면 안드로이드가 오류를 남긴다
                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
