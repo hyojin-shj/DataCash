@@ -308,7 +308,7 @@ function renderEvolve() {
     <div class="top"><span><b>v${e.version}</b> ${esc(e.model)}</span><b>${pct(e.accuracy)}</b></div>
     <div class="bar" style="margin-top:6px"><i style="width:${e.accuracy * 100}%"></i>
       <span class="mark" style="left:${e.baseline_accuracy * 100}%;background:#AEAEB2"></span><span class="mark" style="left:${(rule.accuracy || .8) * 100}%"></span></div>
-    <div class="meta">평가 ${e.steps}단계 · 기준선 ${pct(e.baseline_accuracy)} · macro F1 ${e.macro_f1} · ${esc((e.at || "").slice(0, 16).replace("T", " "))}</div></div>`).join("")
+    <div class="meta">평가 ${e.steps}단계 · 기준선 ${pct(e.baseline_accuracy)} · macro F1 ${e.macro_f1}${e.question ? ` · 질문 ${esc(e.question)} · 추론 ${esc(e.reasoning)}` : ""} · ${esc((e.at || "").slice(0, 16).replace("T", " "))}</div></div>`).join("")
     : `<div class="empty">아직 평가 전 — <code>python scripts/evolve.py eval</code></div>`;
   document.getElementById("datasets").innerHTML = (E.datasets || []).length ? `<table><thead><tr><th>버전</th><th>녹화</th><th>학습</th><th>평가</th><th>이의 신청</th><th>많은 동작</th></tr></thead><tbody>
     ${E.datasets.slice().reverse().map(d => `<tr><td>v${d.version}</td><td>${d.recordings}</td><td>${d.train_steps}</td><td>${d.eval_steps}</td><td>${d.from_appeals}</td>

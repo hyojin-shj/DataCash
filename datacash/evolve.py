@@ -44,8 +44,18 @@ lift = raise the held object; pull = draw it toward you or out of something (e.g
 twist = rotate it (e.g. a lid); press = push a button or surface down; squeeze; tear; wipe; insert = fit it into place;
 transport = carry the held object through the air; place = set the held object down on a surface; handover = pass it to the
 other hand or a person; release = fingers open and let go; other = none of these."""
-STYLES = {"basic": "", "defs": DEFINITIONS}
-STYLE = "basic"             # 학습·평가·쓰기에 같은 질문 (scripts/evolve.py styles 로 고른다)
+STYLES = {"basic": "", "defs": DEFINITIONS, "hint": "", "hint_defs": DEFINITIONS}
+STYLE = "hint"              # 학습·평가·쓰기에 같은 질문 — 미션 동작 순서 힌트 (Spark 에게 주는 것과 같은 정보, 10-29 평가에서 가장 좋음)
+HINT = "Expected primitive order in this mission (a hint, not a rule; repetitions are normal): {order}."
+
+
+def mission_primitives(mission_id: str) -> List[str]:
+    """미션의 예상 동작 순서 (missions.json) — Spark 에게도 주는 힌트. 모르면 빈 목록."""
+    try:
+        ms = json.loads((Path(__file__).with_name("missions.json")).read_text())["missions"]
+        return next((m.get("primitives") or [] for m in ms if m["id"] == mission_id), [])
+    except Exception:
+        return []
 
 SCHEMA = {"type": "object", "additionalProperties": False, "required": ["action"],
           "properties": {"action": {"type": "string", "enum": PRIMITIVES}}}
@@ -120,7 +130,8 @@ def labeled_steps(out_dir) -> Optional[dict]:
         if f.get("action") in PRIMITIVES:
             steps.append({"start_s": f["start_s"], "end_s": f["end_s"], "action": f["action"], "source": "appeal"})
     steps = sorted((s for s in steps if s["end_s"] - s["start_s"] >= 0.2), key=lambda s: s["start_s"])
-    return {"id": out.name, "mission": mission, "video": video, "steps": steps} if steps else None
+    mid = m.get("id") if isinstance(m, dict) else ""
+    return {"id": out.name, "mission": mission, "mission_id": mid, "video": video, "steps": steps} if steps else None
 
 
 def build_dataset(out_dirs, log=print) -> Optional[dict]:
@@ -154,9 +165,9 @@ def build_dataset(out_dirs, log=print) -> Optional[dict]:
                     continue
                 rows[split].append({"messages": [
                     {"role": "user", "content": [{"type": "image", "path": p} for p in paths]
-                     + [{"type": "text", "text": question(r["mission"])}]},
+                     + [{"type": "text", "text": question(r["mission"], order=mission_primitives(r.get("mission_id", "")))}]},
                     {"role": "assistant", "content": json.dumps({"action": s["action"]})}],
-                    "meta": {"recording": r["id"], "step": k, "variant": v, "source": s["source"]}})
+                    "meta": {"recording": r["id"], "mission_id": r.get("mission_id", ""), "step": k, "variant": v, "source": s["source"]}})
     for split, rs in rows.items():
         (sft / f"{split}.jsonl").write_text("".join(json.dumps(x, ensure_ascii=False) + "\n" for x in rs))
     counts = {}
@@ -175,15 +186,20 @@ def build_dataset(out_dirs, log=print) -> Optional[dict]:
 
 # ---------- ② 실력 재기 ----------
 
-def question(mission: str, style: Optional[str] = None) -> str:
-    extra = STYLES.get(style or STYLE, "")
-    return QUESTION.format(mission=mission, prims=", ".join(PRIMITIVES)) + ("\n" + extra if extra else "")
+def question(mission: str, style: Optional[str] = None, order: Optional[List[str]] = None) -> str:
+    style = style or STYLE
+    extra = STYLES.get(style, "")
+    q = QUESTION.format(mission=mission, prims=", ".join(PRIMITIVES))
+    if style.startswith("hint") and order:
+        q += "\n" + HINT.format(order=" -> ".join(order))
+    return q + ("\n" + extra if extra else "")
 
 
-def _ask(client, images: List[np.ndarray], mission: str, style: Optional[str] = None, reasoning: str = "low") -> Optional[str]:
+def _ask(client, images: List[np.ndarray], mission: str, style: Optional[str] = None, reasoning: str = "low",
+         order: Optional[List[str]] = None) -> Optional[str]:
     parts = [{"type": "image_url", "image_url": {"url": "data:image/jpeg;base64," +
              base64.b64encode(cv2.imencode(".jpg", f, [cv2.IMWRITE_JPEG_QUALITY, 88])[1]).decode()}} for f in images]
-    parts.append({"type": "text", "text": question(mission, style)})
+    parts.append({"type": "text", "text": question(mission, style, order)})
     try:
         r = client.chat.completions.create(model="muse-glimmer", max_tokens=300 if reasoning == "low" else 1500, temperature=0,
                                            extra_body={"reasoning_effort": reasoning},
@@ -219,7 +235,8 @@ def evaluate(adapter: Optional[str] = None, split: str = "eval", client=None, lo
             imgs = [cv2.imread(str(ROOT / "sft" / c["path"])) for c in content if c["type"] == "image"]
             mission = content[-1]["text"].split('mission: "', 1)[-1].split('"', 1)[0]
             y.append(json.loads(x["messages"][1]["content"])["action"])
-            p.append(_ask(client, imgs, mission, style, reasoning) or "none")
+            order = mission_primitives((x.get("meta") or {}).get("mission_id", ""))
+            p.append(_ask(client, imgs, mission, style, reasoning, order) or "none")
     finally:
         if started and not keep_running:
             glimmer.stop()
@@ -253,7 +270,7 @@ def ready_adapter() -> Optional[str]:
     return good[-1]["adapter"] if good else None
 
 
-def label_video(video, mission: str, t0: float = 0.0, client=None) -> List[dict]:
+def label_video(video, mission: str, t0: float = 0.0, client=None, order: Optional[List[str]] = None) -> List[dict]:
     """학습한 Glimmer 로 새 녹화에 단계 라벨: WINDOW_S 마다 장면 3장을 묻고 같은 동작이 이어지면 한 단계로."""
     cap = cv2.VideoCapture(str(video))
     dur = cap.get(7) / (cap.get(5) or 30)
@@ -261,7 +278,7 @@ def label_video(video, mission: str, t0: float = 0.0, client=None) -> List[dict]
     steps: List[dict] = []
     t = t0
     while t < dur - 0.2:
-        a = _ask(client, _frames(video, t, min(dur, t + WINDOW_S)), mission) or "other"
+        a = _ask(client, _frames(video, t, min(dur, t + WINDOW_S)), mission, order=order) or "other"
         if steps and steps[-1]["action"] == a:
             steps[-1]["end_s"] = min(dur, t + WINDOW_S)
         else:

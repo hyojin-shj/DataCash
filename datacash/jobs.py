@@ -309,7 +309,8 @@ def _model_steps(sd: Path, out: Path, masked, labels, objects) -> Optional[dict]
             return None
         from openai import OpenAI
 
-        steps = evolve.label_video(masked, m.get("title_en") or m.get("title") or "", client=OpenAI(base_url=glimmer.URL, api_key="local"))
+        steps = evolve.label_video(masked, m.get("title_en") or m.get("title") or "", client=OpenAI(base_url=glimmer.URL, api_key="local"),
+                                   order=evolve.mission_primitives(m.get("id", "")))
     except Exception:
         return None
     finally:
