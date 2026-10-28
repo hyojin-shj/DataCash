@@ -41,6 +41,22 @@ public class DevicesActivity extends Activity {
             Store.setServer(this, url.getText().toString(), tok.getText().toString());
             check();
         }));
+        srv.addView(Ui.button(this, "같은 와이파이에서 자동으로 찾기", false, v -> {
+            status.setText("서버 찾는 중…");
+            new Thread(() -> {
+                String found = Discover.find(this);
+                runOnUiThread(() -> {
+                    if (found == null) {
+                        status.setText("못 찾았어요 · 서버가 켜져 있고 같은 와이파이인지 확인해 주세요");
+                        status.setTextColor(Ui.PRIMARY_DARK);
+                        return;
+                    }
+                    url.setText(found);
+                    Store.setServer(this, found, tok.getText().toString());
+                    check();
+                });
+            }).start();
+        }), Ui.margins(this, -1, -2, 0, 8, 0, 0, 0));
         status = Ui.text(this, "", 13, Ui.SUB, false);
         status.setPadding(Ui.dp(this, 4), Ui.dp(this, 10), 0, 0);
         srv.addView(status);

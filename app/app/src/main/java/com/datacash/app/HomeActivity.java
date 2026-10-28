@@ -87,6 +87,7 @@ public class HomeActivity extends Activity {
         render();
         new Thread(() -> {
             try {
+                Discover.ensure(this);           // 맥 IP 가 바뀌었으면 서버를 다시 찾는다
                 JSONArray ms = Uploader.missions(this);
                 Map<String, Integer> b = new HashMap<>();
                 String t = null;

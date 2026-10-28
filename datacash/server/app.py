@@ -932,7 +932,27 @@ def main():
     warm()                               # SAM 마스크 해독기를 미리 컴파일 (처리 중 첫 컴파일이 멈추지 않게)
     token = os.environ.get("DATACASH_TOKEN") or secrets.token_urlsafe(12)
     print(f"DataCash 서버 토큰: {token}  (앱 X-DC-Token, 운영자 /admin?token=)")
-    uvicorn.run(create_app(a.root, token, not a.no_api), host=a.host, port=a.port)
+    beacon = advertise(a.port)
+    try:
+        uvicorn.run(create_app(a.root, token, not a.no_api), host=a.host, port=a.port)
+    finally:
+        if beacon:
+            beacon.terminate()
+
+
+SERVICE = "_datacash._tcp"
+
+
+def advertise(port: int):
+    """같은 와이파이에 'DataCash 서버가 여기 있다'를 알린다 (mDNS) — 맥 IP 가 바뀌어도 앱·워치가 이 이름으로 찾는다.
+    맥에 있는 dns-sd 를 쓴다 (설치할 것 없음). 다른 운영체제면 건너뛴다 (앱 설정에서 주소를 직접 넣는다)."""
+    import shutil
+    import subprocess
+
+    if not shutil.which("dns-sd"):
+        return None
+    return subprocess.Popen(["dns-sd", "-R", "DataCash", SERVICE, "local", str(port)],
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 if __name__ == "__main__":

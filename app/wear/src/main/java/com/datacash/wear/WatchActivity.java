@@ -94,6 +94,7 @@ public class WatchActivity extends Activity {
                 } else if ("recording".equals(st)) {
                     begin(live.getString("sid"));
                 } else {
+                    if (live == null) Discover.ensure(this);      // 맥 IP 가 바뀌었으면 서버를 다시 찾는다
                     ui.post(() -> state.setText(live == null ? "서버에 연결 안 됨\n" + server() : "폰에서 녹화를 시작하면\n손목 기록이 같이 시작돼요"));
                 }
                 Thread.sleep(500);
