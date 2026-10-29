@@ -125,15 +125,11 @@
     </section>
 
     <section data-p="evolve" hidden>
-      <h1>모델 진화 — Muse Glimmer</h1>
-      <p class="lead">검증된 라벨과 이의 신청에서 바로잡은 라벨로 Meta 오픈 웨이트 Glimmer 를 키워요. 준비되면 Spark 대신 Glimmer 가 라벨을 붙여요(API 비용 0).</p>
+      <h1>모델 진화 — Spark 1.3 × Spark Open</h1>
+      <p class="lead">모든 녹화를 Spark 1.3 이 먼저 라벨하고, 더 큰 Spark Open(816B)이 따로 다시 봐요. 같게 본 단계는 정답이 되고, 다르게 본 단계는 Spark Open 동작으로 바로잡아요. 정답과 바로잡음은 다음 녹화부터 Spark 1.3 질문에 예시로 붙어요 — 가중치를 바꾸지 않고 쓸수록 정확해져요.</p>
       <div class="pipe" id="pipe"></div>
-      <div class="grid g2" style="margin-top:12px">
-        <div class="card"><b>실력 (평가용 단계 정확도)</b><p class="meta">녹화 단위로 떼어 둔 평가용 단계를 맞힌 비율. 회색 선 = 가장 많은 동작만 찍었을 때, 검은 선 = Spark 대신 쓰는 기준.</p><div id="evals"></div></div>
-        <div class="card scroll"><b>학습 데이터</b><p class="meta">처리가 끝날 때마다 자동으로 다시 만들어요. 단계마다 장면 3장 + 질문 → 정답 동작.</p><div id="datasets"></div></div>
-      </div>
-      <div class="card scroll"><b>라벨 교차 검증 — Spark 1.3 ↔ Spark Open(816B)</b><p class="meta">같은 녹화를 두 모델이 따로 라벨. '센서로 검증 + 두 모델이 같은 동작'인 단계만 Glimmer 학습 정답이 돼요.</p><div id="cross"></div></div>
-      <div class="card"><b>자주 헷갈리는 동작</b><p class="meta">가장 최근 평가에서 틀린 것 (정답 → Glimmer 답)</p><div id="confusions"></div></div>
+      <div class="card" style="margin-top:12px"><b>일치율 변화</b><p class="meta">녹화마다 Spark 1.3 이 Spark Open 과 같은 동작으로 본 단계 비율 (처리한 순서대로). 검은 선 = 최근 5개 평균.</p><div id="agree"></div></div>
+      <div class="card scroll"><b>2차 검증 — Spark 1.3 ↔ Spark Open(816B)</b><p class="meta">'센서로 검증 + 두 모델이 같은 동작'인 단계가 정답이 돼요. 다르게 본 단계는 Spark Open 쪽으로 바로잡아요.</p><div id="cross"></div></div>
     </section>
 
     <section data-p="orders" hidden>
@@ -215,12 +211,13 @@ async function refresh() {
 function badge(id, n) { const b = document.getElementById(id); b.hidden = !n; b.textContent = n; }
 
 function renderHome() {
-  const S = D.sessions, done = S.filter(x => x.state === "done"), ev = (D.evolve.evals || []).slice(-1)[0];
+  const S = D.sessions, done = S.filter(x => x.state === "done"), ag = D.evolve.agreement || [];
   const paid = done.reduce((t, x) => t + (x.reward || 0) + (x.appeal_extra || 0), 0);
   document.getElementById("kpis").innerHTML = [
     ["녹화", S.length, `승인 ${done.length} · 반려 ${S.filter(x => x.state === "rejected").length} · 처리 중 ${S.filter(x => ["processing", "queued"].includes(x.state)).length}`],
     ["참여자 보상", won(paid), "승인된 녹화 + 이의 신청 추가 보상"],
-    ["Glimmer 실력", ev ? pct(ev.accuracy) : "-", ev ? `${esc(ev.model)} · 기준선 ${pct(ev.baseline_accuracy)}` : "아직 평가 전"],
+    ["두 모델 일치", ag.length ? pct(ag.slice(-5).reduce((t, a) => t + a.agree, 0) / Math.max(1, ag.slice(-5).reduce((t, a) => t + a.steps, 0))) : "-",
+      ag.length ? `최근 녹화 5개 · Spark 1.3 ↔ Spark Open · 검증 ${ag.length}편` : "아직 2차 검증 전"],
     ["API 비용", usd(D.costs.total), `한도 ${usd(D.costs.budget)} · 호출 ${D.costs.calls || 0}번`],
   ].map(([k, b, e]) => `<div class="card kpi"><span>${k}</span><b>${b}</b><em>${e}</em></div>`).join("");
   document.getElementById("home-sessions").innerHTML = S.slice(0, 5).map(x => `<div class="top" style="padding:8px 0;border-bottom:1px solid var(--line)">
@@ -280,7 +277,7 @@ function renderAppeals() {
     <ol class="steps">${a.steps.map(s => `<li>${s.stage === "review_model" ? "🔎 " : ""}${esc(s.note)} <span style="opacity:.6">${esc((s.at || "").slice(11, 16))}</span></li>`).join("")}</ol>
     ${fixes.length ? `<table style="margin-top:10px"><thead><tr><th>구간</th><th>원래 라벨</th><th>바로잡은 라벨</th><th>근거</th></tr></thead><tbody>
       ${fixes.map(f => `<tr><td>${(+f.start_s).toFixed(1)}~${(+f.end_s).toFixed(1)}초</td><td>${esc(f.was)}</td><td><b>${esc(f.action)}</b></td><td class="meta">${esc(f.note || f.by || "")}</td></tr>`).join("")}
-      </tbody></table><div class="meta">→ Glimmer 학습 데이터의 정답 · Spark 프롬프트의 '지난 바로잡음' 예시로 쓰여요</div>` : ""}
+      </tbody></table><div class="meta">→ 정답 · 다음 녹화의 Spark 1.3 질문에 '지난 바로잡음' 예시로 쓰여요</div>` : ""}
     ${a.state === "review" ? `<div class="row"><input id="note-${esc(a.id)}" placeholder="결정 이유"><input id="won-${esc(a.id)}" type="number" min="0" step="10" placeholder="추가 보상(원)" style="width:130px">
       <button class="btn" onclick="decide('${esc(a.id)}', true)">인정</button><button class="btn no" onclick="decide('${esc(a.id)}', false)">인정 안 함</button></div>` : ""}</div>`;
   }).join("") : `<div class="card empty">이의 신청이 없어요</div>`;
@@ -293,37 +290,29 @@ async function decide(id, accept) {
 }
 
 function renderEvolve() {
-  const E = D.evolve, ds = (E.datasets || []).slice(-1)[0], evs = E.evals || [], last = evs.slice(-1)[0];
-  const tuned = evs.filter(e => e.adapter), rule = E.ready_rule || {};
+  const E = D.evolve, ag = E.agreement || [], cr = E.crosscheck || [], fx = E.fixes || {};
+  const ct = cr.reduce((t, c) => t + c.steps, 0), ca = cr.reduce((t, c) => t + c.agree, 0), cg = cr.reduce((t, c) => t + c.gold, 0);
+  const rate = a => a.reduce((t, x) => t + x.agree, 0) / Math.max(1, a.reduce((t, x) => t + x.steps, 0));
   const steps = [
-    ["① 데이터 쌓기", "이 맥", ds ? `v${ds.version} · 학습 ${ds.train_steps} · 평가 ${ds.eval_steps}단계` : "아직 없음", ds ? "ok" : "", "검증된 라벨 + 이의 신청에서 바로잡은 라벨"],
-    ["② 실력 재기", "이 맥 · llama.cpp", last ? `${pct(last.accuracy)} (${esc(last.model)})` : "아직 평가 전", last ? "ok" : "", "평가용 단계를 녹화 단위로 떼어 둠"],
-    ["③ 학습 (LoRA)", "Fireworks", (E.trainings || []).length ? `${esc((E.trainings.slice(-1)[0].state || "").replace("JOB_STATE_", ""))}` : (tuned.length ? `어댑터 ${tuned.length}개` : "업로드 권한 기다리는 중"),
-      (E.trainings || []).some(t => t.state === "JOB_STATE_COMPLETED") || tuned.length ? "ok" : "wait", "scripts/fireworks_train.py (Glimmer SFT 11/30까지 무료)"],
-    ["④ Spark 대신 쓰기", "이 맥", E.in_use ? "사용 중" : `기준: 정확도 ${pct(rule.accuracy)} · 학습 ${rule.train_steps}단계`, E.in_use ? "ok" : "", "준비되면 새 녹화 라벨을 Glimmer 가 (API 0원)"],
+    ["① 1차 라벨", "Muse Spark 1.3 · Meta API", `녹화 ${D.sessions.filter(x => x.state === "done").length}편`, "ok", "영상을 직접 보고 단계·손·쥐는 방식"],
+    ["② 2차 검증", `Muse Spark Open 816B · ${esc(E.reviewer || "키 없음")}`, `${ag.length}편 · 바로잡음 ${fx.review || 0}단계`, E.reviewer ? "ok" : "wait", "장면 16장을 따로 라벨해 맞대 봄"],
+    ["③ 정답 예시", "data/evolve", `정답 ${cg}단계 · 이의 신청 ${fx.appeal || 0}`, cg ? "ok" : "", "다음 녹화의 Spark 1.3 질문에 붙음"],
+    ["④ 일치율", "운영자 화면", ag.length ? `처음 ${pct(rate(ag.slice(0, 5)))} → 최근 ${pct(rate(ag.slice(-5)))}` : "아직 없음", ag.length ? "ok" : "", "오르면 바로잡을 단계·검증 비용이 줄어요"],
   ];
   document.getElementById("pipe").innerHTML = steps.map(([h, w, s, c, p]) => `<div class="s"><b>${h}</b><span class="meta">${w}</span>
     <div style="margin-top:8px"><span class="st ${c}">${s}</span></div><p>${p}</p></div>`).join("");
-  document.getElementById("evals").innerHTML = evs.length ? evs.map(e => `<div style="margin:12px 0">
-    <div class="top"><span><b>v${e.version}</b> ${esc(e.model)}</span><b>${pct(e.accuracy)}</b></div>
-    <div class="bar" style="margin-top:6px"><i style="width:${e.accuracy * 100}%"></i>
-      <span class="mark" style="left:${e.baseline_accuracy * 100}%;background:#AEAEB2"></span><span class="mark" style="left:${(rule.accuracy || .8) * 100}%"></span></div>
-    <div class="meta">평가 ${e.steps}단계 · 기준선 ${pct(e.baseline_accuracy)} · macro F1 ${e.macro_f1}${e.question ? ` · 질문 ${esc(e.question)} · 추론 ${esc(e.reasoning)}` : ""} · ${esc((e.at || "").slice(0, 16).replace("T", " "))}</div></div>`).join("")
-    : `<div class="empty">아직 평가 전 — <code>python scripts/evolve.py eval</code></div>`;
-  document.getElementById("datasets").innerHTML = (E.datasets || []).length ? `<table><thead><tr><th>버전</th><th>녹화</th><th>학습</th><th>평가</th><th>이의 신청</th><th>많은 동작</th></tr></thead><tbody>
-    ${E.datasets.slice().reverse().map(d => `<tr><td>v${d.version}</td><td>${d.recordings}</td><td>${d.train_steps}</td><td>${d.eval_steps}</td><td>${d.from_appeals}</td>
-      <td class="meta">${Object.entries(d.train_actions || {}).slice(0, 4).map(([k, n]) => `${esc(k)} ${n}`).join(" · ")}</td></tr>`).join("")}</tbody></table>`
-    : `<div class="empty">아직 없음 — 녹화가 처리되면 자동으로 만들어져요</div>`;
-  const cr = E.crosscheck || [];
-  const ct = cr.reduce((t, c) => t + c.steps, 0), ca = cr.reduce((t, c) => t + c.agree, 0), cg = cr.reduce((t, c) => t + c.gold, 0);
-  document.getElementById("cross").innerHTML = cr.length ? `<div class="row" style="margin:6px 0 10px"><span class="st ok">일치 ${ca}/${ct} (${pct(ca / ct)})</span><span class="st">학습 정답 ${cg}단계</span></div>
+  document.getElementById("agree").innerHTML = ag.length ? `<div style="display:flex;align-items:flex-end;gap:3px;height:120px;margin-top:10px">${ag.map((a, k) => {
+      const avg = rate(ag.slice(Math.max(0, k - 4), k + 1));
+      return `<div title="${esc(a.sid)} · ${esc(MISSION[a.mission] || a.mission)} · ${a.agree}/${a.steps}" style="flex:1;position:relative;height:100%">
+        <i style="position:absolute;bottom:0;left:0;right:0;height:${(a.rate || 0) * 100}%;background:var(--primary);opacity:.55;border-radius:3px 3px 0 0"></i>
+        <i style="position:absolute;left:0;right:0;bottom:${avg * 100}%;height:2px;background:var(--ink)"></i></div>`; }).join("")}</div>
+    <div class="meta" style="margin-top:6px">${ag.length}편 · 전체 ${pct(rate(ag))} · 처음 5편 ${pct(rate(ag.slice(0, 5)))} → 최근 5편 ${pct(rate(ag.slice(-5)))}</div>`
+    : `<div class="empty">아직 없음 — 녹화가 처리되면 쌓여요</div>`;
+  document.getElementById("cross").innerHTML = cr.length ? `<div class="row" style="margin:6px 0 10px"><span class="st ok">일치 ${ca}/${ct} (${pct(ca / ct)})</span><span class="st">정답 ${cg}단계</span></div>
     <table><thead><tr><th>녹화</th><th>미션</th><th>일치</th><th>정답</th><th>다르게 본 단계 (Spark 1.3 → Spark Open)</th></tr></thead><tbody>
-    ${cr.map(c => `<tr><td>${esc(c.recording)}</td><td class="nw">${esc(c.mission)}</td><td>${c.agree}/${c.steps}</td><td>${c.gold}</td>
+    ${cr.slice().reverse().map(c => `<tr><td>${esc(c.recording)}</td><td class="nw">${esc(c.mission)}</td><td>${c.agree}/${c.steps}</td><td>${c.gold}</td>
       <td class="meta">${c.diffs.map(d => `${d.t}초 ${esc(d.spark13)}→${esc(d.spark_open || "-")}`).join(" · ") || "없음"}</td></tr>`).join("")}</tbody></table>`
-    : `<div class="empty">아직 없음 — <code>python scripts/crosscheck.py</code></div>`;
-  const conf = last?.confusions || [];
-  document.getElementById("confusions").innerHTML = conf.length ? `<div class="row" style="margin-top:6px">${conf.map(c => `<span class="st">${esc(c.truth)} → ${esc(c.said)}</span>`).join("")}</div>`
-    : `<div class="empty">없음</div>`;
+    : `<div class="empty">아직 없음</div>`;
 }
 
 function renderOrders() {

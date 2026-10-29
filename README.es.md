@@ -29,8 +29,7 @@ Proyecto para el Meta Global AI Developer Hackathon (Indie Developer · Push the
 | **Muse Spark 1.3** | Video ocultado → pasos, instrucciones, mano activa, objetos, errores (JSON estructurado); petición en lenguaje natural → diseño de misiones | `datacash/understand/`, `datacash/requests.py` |
 | **Muse Image** | 34 personas que no existen (7 regiones × mujeres/hombres × 20–60 años) para reemplazar rostros | `scripts/make_donors.py`, `datacash/donors/` |
 | **Muse Voice Transcribe** | Detecta información personal hablada en la grabación y la silencia | `datacash/privacy/speech.py` |
-| **Muse Glimmer** (pesos abiertos) | Modelo de 30B ejecutado localmente en este Mac con llama.cpp — revisa los pasos de Spark fotograma a fotograma (sin costo de API) | `datacash/understand/glimmer.py`, `datacash/evolve.py` ([docs/model_evolution.md](docs/model_evolution.md)) |
-| **Muse Spark Open** (pesos abiertos, 816B) | Revisor de nivel superior para apelaciones y segunda opinión sobre cada etiqueta (en Fireworks); los pasos en que ambos modelos coinciden se usan para entrenar Glimmer | `datacash/understand/spark_open.py`, `scripts/crosscheck.py` |
+| **Muse Spark Open** (pesos abiertos, 816B) | Segunda opinión sobre cada grabación y revisor de apelaciones (Baseten, con Fireworks de respaldo). Si los dos modelos difieren, corrige el paso; los pasos en que coinciden y que los sensores verifican se vuelven ejemplos que se añaden a las siguientes consultas de Spark 1.3 — las etiquetas mejoran con el uso sin cambiar pesos | `datacash/understand/spark_open.py`, `datacash/evolve.py` ([docs/model_evolution.md](docs/model_evolution.md)) |
 
 Cada llamada a la API se registra con su costo en `data/api_ledger.jsonl`; si se alcanza el presupuesto, solo se omite ese paso.
 
@@ -88,7 +87,7 @@ LivePortrait no se incluye — descarga [KwaiVGI/LivePortrait](https://github.co
 | `web/` | Web para compradores (peticiones en lenguaje natural, línea de tiempo de sensores, presupuestos, pedidos, descargas) y consola del operador |
 | `datacash/privacy` | Ocultación con SAM · reemplazo de rostro · privacidad del habla · revisión previa |
 | `datacash/sync` · `touch` · `labels` | Sincronización · tacto · pose de manos y cuerpo |
-| `datacash/understand` | Comprensión con Muse Spark · revisión con Glimmer · verificación con sensores |
+| `datacash/understand` | Comprensión con Muse Spark · segunda opinión con Spark Open · verificación con sensores |
 | `datacash/export` · `jobs.py` | Exportación LeRobot · certificado · flujo de procesamiento |
 | `datacash/server` | Servidor de recolección + API para compradores |
 

@@ -59,27 +59,28 @@ Also list mistakes (drops, slips, misses, re-grasps, tearing too much) with time
 environment (place type, tools, materials, lighting). Only describe what is visible. Do not guess identities."""
 
 
-def _hints() -> str:
-    """이의 신청에서 바로잡은 라벨을 예시로 붙인다 (evolve.correction_hints)."""
+def _hints(mission_id: str = "") -> str:
+    """모델 진화: 같은 미션의 정답 예시(evolve.gold_examples) + 지난 바로잡음(evolve.correction_hints)을 붙인다."""
     try:
-        from ..evolve import correction_hints
+        from ..evolve import correction_hints, gold_examples
 
-        h = correction_hints()
-        return "\n" + h if h else ""
+        h = [x for x in (gold_examples(mission_id), correction_hints()) if x]
+        return ("\n" + "\n".join(h)) if h else ""
     except Exception:
         return ""
 
 
 def understand_clip(clip, mission: str, duration_s: float, client: Optional[MetaClient] = None,
                     model: str = MODEL, primitives: Optional[list] = None, reasoning: Optional[str] = None,
-                    extra: str = "") -> dict:
-    """reasoning: 추론 세기 ('max' 는 이의 신청 다시 보기용 — 느리고 비싸지만 가장 꼼꼼하다). extra: 프롬프트 끝에 붙일 말."""
+                    extra: str = "", mission_id: str = "") -> dict:
+    """reasoning: 추론 세기 ('max' 는 이의 신청 다시 보기용 — 느리고 비싸지만 가장 꼼꼼하다). extra: 프롬프트 끝에 붙일 말.
+    mission_id: 같은 미션의 정답 예시를 붙인다 (모델 진화)."""
     c = client or MetaClient()
     kw = {"reasoning_effort": reasoning} if reasoning else {}
     out = c.chat_json(model, [{"role": "user", "content": [
         {"type": "text", "text": PROMPT.format(mission=mission, dur=duration_s,
                                                primitives=" -> ".join(primitives) if primitives else "not given")
-                 + _hints() + (("\n" + extra) if extra else "")},
+                 + _hints(mission_id) + (("\n" + extra) if extra else "")},
         {"type": "video_url", "video_url": {"url": data_url(clip)}}]}],
         SCHEMA, "manipulation_labels", f"spark understand{' ' + reasoning if reasoning else ''} {Path(clip).name}",
         estimate_usd=0.3 if reasoning == "max" else 0.05, **kw)

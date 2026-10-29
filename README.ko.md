@@ -29,8 +29,7 @@ Meta Global AI Developer Hackathon (Indie Developer · Push the Frontier) 출품
 | **Muse Spark 1.3** | 가린 영상 → 단계·지시문·쓰는 손·물체·실수 (구조화 JSON), 기업의 말 의뢰 → 미션 설계 | `datacash/understand/`, `datacash/requests.py` |
 | **Muse Image** | 실존하지 않는 가상 인물 34명 (7개 지역 × 남녀 × 20대~60대) — 얼굴 치환용 | `scripts/make_donors.py`, `datacash/donors/` |
 | **Muse Voice Transcribe** | 녹화 소리에서 개인정보가 들린 구간 끄기 | `datacash/privacy/speech.py` |
-| **Muse Glimmer** (오픈 웨이트) | 30B 모델을 이 맥에서 llama.cpp 로 — Spark 단계를 장면으로 다시 확인 (API 비용 없음) | `datacash/understand/glimmer.py`, `datacash/evolve.py` ([docs/model_evolution.md](docs/model_evolution.md)) |
-| **Muse Spark Open** (오픈 웨이트, 816B) | 이의 신청을 다시 보는 '더 높은 모델', 모든 라벨의 두 번째 의견 (Fireworks) — 두 모델이 같은 동작이라 본 단계가 Glimmer 학습 정답 | `datacash/understand/spark_open.py`, `scripts/crosscheck.py` |
+| **Muse Spark Open** (오픈 웨이트, 816B) | 모든 녹화의 2차 검증과 이의 신청을 다시 보는 '더 높은 모델' (Baseten, 안 되면 Fireworks). 두 모델이 다르게 본 단계는 바로잡고, 같게 보고 센서로 검증된 단계는 정답 예시가 되어 다음 녹화의 Spark 1.3 질문에 붙어요 — 가중치를 바꾸지 않고 쓸수록 정확해져요 | `datacash/understand/spark_open.py`, `datacash/evolve.py` ([docs/model_evolution.md](docs/model_evolution.md)) |
 
 API 호출마다 비용을 장부(`data/api_ledger.jsonl`)에 적고, 한도를 넘으면 그 단계만 건너뜁니다.
 
@@ -88,7 +87,7 @@ LivePortrait 는 저장소에 넣지 않습니다 — [KwaiVGI/LivePortrait](htt
 | `web/` | 구매 기업 웹(말로 의뢰·4감 타임라인·견적·주문·내려받기), 운영자 화면 |
 | `datacash/privacy` | SAM 가리기 · 얼굴 치환 · 소리 개인정보 · 미리 훑기 |
 | `datacash/sync` · `touch` · `labels` | 4감 동기화 · 촉각 · 손·몸 관절 |
-| `datacash/understand` | Muse Spark 이해 · Glimmer 확인 · 감각으로 검증 |
+| `datacash/understand` | Muse Spark 이해 · Spark Open 2차 검증 · 감각으로 검증 |
 | `datacash/export` · `jobs.py` | LeRobot 내보내기 · 인증서 · 처리 순서 |
 | `datacash/server` | 수집 서버 + 구매 기업 API |
 

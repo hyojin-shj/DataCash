@@ -29,8 +29,7 @@ Built for the Meta Global AI Developer Hackathon (Indie Developer · Push the Fr
 | **Muse Spark 1.3** | Masked video → steps, instructions, active hand, objects, mistakes (structured JSON); a buyer's plain-language request → mission design | `datacash/understand/`, `datacash/requests.py` |
 | **Muse Image** | 34 people who don't exist (7 regions × women/men × 20s–60s) used for face replacement | `scripts/make_donors.py`, `datacash/donors/` |
 | **Muse Voice Transcribe** | Finds spoken personal information in the recording and mutes it | `datacash/privacy/speech.py` |
-| **Muse Glimmer** (open weights) | 30B model running locally on this Mac with llama.cpp — re-checks Spark's steps frame by frame (no API cost) | `datacash/understand/glimmer.py`, `datacash/evolve.py` ([docs/model_evolution.md](docs/model_evolution.md)) |
-| **Muse Spark Open** (open weights, 816B) | Higher-tier reviewer for appeals and a second opinion on every label (served on Fireworks); steps both models agree on become Glimmer's training targets | `datacash/understand/spark_open.py`, `scripts/crosscheck.py` |
+| **Muse Spark Open** (open weights, 816B) | Second opinion on every recording and reviewer for appeals (Baseten, falls back to Fireworks). Where the two models disagree it relabels the step; agreed + sensor-verified steps become gold examples that are added to Spark 1.3's next prompts — the labels get better with use, without changing weights | `datacash/understand/spark_open.py`, `datacash/evolve.py` ([docs/model_evolution.md](docs/model_evolution.md)) |
 
 Every API call is logged with its cost in `data/api_ledger.jsonl`; if the budget is hit, only that step is skipped.
 
@@ -88,7 +87,7 @@ LivePortrait is not vendored — get [KwaiVGI/LivePortrait](https://github.com/K
 | `web/` | Buyer web (plain-language requests, multi-sensor timeline, quotes, orders, downloads) and operator console |
 | `datacash/privacy` | SAM masking · face replacement · speech privacy · pre-scan |
 | `datacash/sync` · `touch` · `labels` | Sensor sync · touch · hand and body pose |
-| `datacash/understand` | Muse Spark understanding · Glimmer checks · sensor-based verification |
+| `datacash/understand` | Muse Spark understanding · Spark Open second opinion · sensor-based verification |
 | `datacash/export` · `jobs.py` | LeRobot export · certificate · processing pipeline |
 | `datacash/server` | Collection server + buyer API |
 

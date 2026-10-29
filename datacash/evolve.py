@@ -1,15 +1,15 @@
-"""모델 진화 — Meta 오픈 웨이트 Muse Glimmer 를 우리 라벨로 키운다.
+"""모델 진화 — 가중치 학습 없이, 쓸수록 정답 예시가 쌓여 Spark 1.3 라벨이 정확해진다.
 
-  ① 데이터 쌓기 (이 맥)   검증된 Spark 단계 + 이의 신청에서 Spark 1.3 최대 추론이 바로잡은 단계 →
-                         단계마다 장면 3장(처음·가운데·끝) + 질문 → 정답 동작. Glimmer 공식 학습 형식(Axolotl messages JSONL).
-                         녹화가 처리될 때마다 서버가 다시 만든다. 학습용·평가용은 녹화 단위로 나눈다.
-  ② 실력 재기 (이 맥)     llama.cpp 로 띄운 Glimmer(학습 전, 또는 어댑터를 붙인 것)가 평가용 단계를 얼마나 맞히나.
-  ③ 학습 (클라우드 GPU)   QLoRA — 공식 문서 기준 H100 1장 (train/glimmer_qlora.yaml, scripts/train_glimmer.sh).
-                         맥에서는 학습하지 않는다 (공식 학습 도구가 CUDA 전용).
-  ④ 쓰기 (이 맥)          학습한 어댑터(GGUF)를 llama.cpp 에 붙여 띄우고 ②로 다시 잰다.
-                         평가 정확도가 READY_ACCURACY 이상이고 학습 단계가 READY_EXAMPLES 개 이상이면
-                         새 녹화의 단계 라벨을 Spark 대신 Glimmer 가 붙인다 (API 비용 0).
-기록: data/evolve/registry.json (데이터셋·평가 버전), data/evolve/sft/ (학습 데이터), data/evolve/adapters/ (어댑터)
+  ① 1차 라벨        Muse Spark 1.3 (Meta API, 영상을 직접 본다) — 모든 녹화
+  ② 2차 검증        Muse Spark Open 816B (Baseten → Fireworks) 가 같은 동작 구간의 장면 16장을 따로 라벨 → second_opinion
+                    두 모델이 같은 동작 + 센서로 검증 = 정답(gold). 다르게 본 단계는 더 큰 Spark Open 의 동작으로 바로잡고
+                    '어려운 예시'(feedback/, source=review)로 남긴다. 이의 신청은 Spark Open 추론 high 가 다시 본다 (judge.py).
+  ③ 진화            다음 녹화부터 Spark 1.3 질문에 같은 미션의 정답 예시(gold_examples)와 지난 바로잡음(correction_hints)을 붙인다.
+                    API 모델은 가중치를 바꿀 수 없으니 예시로 배운다.
+  ④ 증명            녹화마다 'Spark 1.3 이 Spark Open 과 같은 동작으로 본 비율'을 기록 (agreement) → 운영자 화면의 선.
+                    일치율이 오르면 바로잡을 단계가 줄어 2차 검증 비용도 준다.
+기록: data/evolve/crosscheck/<녹화>.json (2차 검증), feedback/ (바로잡음), registry.json (agreement·데이터셋)
+Glimmer(오픈 웨이트 30B) 학습 데이터 만들기(build_dataset)·평가는 남겨 둔다 — Fireworks 업로드가 풀리면 scripts/fireworks_train.py.
 """
 
 from __future__ import annotations
@@ -81,6 +81,26 @@ def corrections(sid: str) -> List[dict]:
     return json.loads(p.read_text())["fixes"] if p.exists() else []
 
 
+def gold_examples(mission_id: str, limit: int = 3) -> str:
+    """Spark 1.3 프롬프트에 붙일 같은 미션의 정답 예시 — 두 모델이 같게 보고 센서로 검증된 단계 순서 (최근 녹화부터)."""
+    d = ROOT / "crosscheck"
+    if not mission_id or not d.exists():
+        return ""
+    lines = []
+    for p in sorted(d.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True):
+        r = json.loads(p.read_text())
+        if r.get("mission_id") != mission_id:
+            continue
+        seq = [x for x in r["rows"] if x["agree"] and x["verified"]]
+        if len(seq) < 2:
+            continue
+        lines.append("- " + " -> ".join(f'{x["spark13"]} {x["end_s"] - x["start_s"]:.1f}s' for x in seq[:14]))
+        if len(lines) >= limit:
+            break
+    return ("Verified step sequences from past recordings of this same mission (action and duration; "
+            "use them as a guide to granularity, not as the answer):\n" + "\n".join(lines)) if lines else ""
+
+
 def correction_hints(limit: int = 6) -> str:
     """Spark 프롬프트에 붙일 '지난 바로잡음' (가중치를 바꿀 수 없는 API 모델은 예시로 배운다). 없으면 빈 문자열."""
     d = ROOT / "feedback"
@@ -92,7 +112,87 @@ def correction_hints(limit: int = 6) -> str:
         for f in r["fixes"]:
             lines.append(f'- in a "{r.get("mission") or "manipulation"}" video, a step labeled "{f["was"]}" was actually "{f["action"]}"'
                          + (f' ({f["note"]})' if f.get("note") else ""))
-    return ("Past corrections confirmed on appeal (avoid repeating them):\n" + "\n".join(lines[:limit])) if lines else ""
+    return ("Past corrections (confirmed on appeal or by a larger reviewer model; avoid repeating them):\n"
+            + "\n".join(lines[:limit])) if lines else ""
+
+
+# ---------- ② 2차 검증 (Spark Open) ----------
+
+def compare(steps: List[dict], so_steps: List[dict], tol: float) -> List[dict]:
+    """Spark 1.3 단계마다: 그 구간 ± tol(Spark Open 장면 간격) 안에 Spark Open 도 같은 동작을 봤는가.
+    (Spark Open 은 장면 16장만 봐 경계가 0.5~1초 거칠다 — 가장 많이 겹치는 단계 하나만 보면 같은 동작도 어긋난다.)"""
+    def overlap(a, b):
+        return max(0.0, min(a["end_s"], b["end_s"]) - max(a["start_s"], b["start_s"]))
+
+    rows = []
+    for s in steps:
+        win = {"start_s": s["start_s"] - tol, "end_s": s["end_s"] + tol}
+        near = [n for n in so_steps if overlap(win, n) > 0]
+        best = max(near, key=lambda n: overlap(s, n), default=None)
+        same = any(n["action"] == s["action"] for n in near)
+        rows.append({"start_s": s["start_s"], "end_s": s["end_s"], "spark13": s["action"],
+                     "spark_open": s["action"] if same else (best["action"] if best else None), "agree": same,
+                     "verified": bool(s.get("verified"))})
+    return rows
+
+
+def summarize(name: str, mission: str, rows: List[dict], so_steps: List[dict], mission_id: str = "") -> dict:
+    return {"recording": name, "mission": mission, "mission_id": mission_id, "steps": len(rows), "agree": sum(x["agree"] for x in rows),
+            "gold": sum(x["agree"] and x["verified"] for x in rows), "rows": rows, "spark_open_steps": so_steps}
+
+
+def second_opinion(sid: str, video, t0: float, mission: str, mission_id: str, steps: List[dict], log=print) -> Optional[dict]:
+    """Spark Open 이 같은 구간을 따로 라벨 → 단계마다 같은 동작인지.
+    다르게 본 단계는 Spark Open 이 그 구간 안 장면 4장을 촘촘히 다시 보고(adjudicate) 정한다 — 16장 훑기는 짧은 단계(쥐기·들기)를
+    놓치기 쉬워서, 훑은 답으로 바로 바꾸지 않는다. 판단이 Spark 1.3 과 같으면 유지(정답 후보), 다르면 그 동작으로 바로잡는다
+    (steps 를 그 자리에서 고친다: action · labeled_by · relabeled_from · spark_open). 결과 crosscheck/<녹화>.json, 바로잡음 feedback/.
+    Spark Open 을 부를 수 없으면 None (Spark 1.3 라벨 그대로)."""
+    from .understand import spark_open
+
+    if not steps or not spark_open.available():
+        return None
+    order = mission_primitives(mission_id)
+    so = spark_open.label_frames(video, t0, None, mission, primitives=order)
+    fr = so.get("frames") or []
+    tol = (fr[-1] - fr[0]) / max(1, len(fr) - 1) if len(fr) > 1 else 0.7
+    rows = compare(steps, so["steps"], tol)
+    first = sum(r["agree"] for r in rows)
+    disputes = [k for k, r in enumerate(rows) if not r["agree"] and r["spark_open"]]
+    verdicts = spark_open.adjudicate(video, [{"start_s": steps[k]["start_s"], "end_s": steps[k]["end_s"],
+                                              "options": [rows[k]["spark13"], rows[k]["spark_open"]]} for k in disputes],
+                                     mission, order) if disputes else []
+    fixes = []
+    for k, v in zip(disputes, verdicts):
+        r, st = rows[k], steps[k]
+        r["verdict"] = v
+        if v == r["spark13"]:                 # 다시 보니 Spark 1.3 이 맞음 → 유지, 두 번 본 정답 후보
+            r["agree"], r["upheld"] = True, True
+        elif v:
+            fixes.append({"start_s": st["start_s"], "end_s": st["end_s"], "was": st["action"], "action": v,
+                          "note": f"2nd-pass review (scan said {r['spark_open']})", "source": "review"})
+            st.update(action=v, labeled_by=so.get("model"), relabeled_from=r["spark13"])
+    for st, r in zip(steps, rows):
+        st["spark_open"] = {"action": r.get("verdict") or r["spark_open"], "agree": r["agree"], "model": so.get("model")}
+    rep = {**summarize(sid, mission, rows, so["steps"], mission_id), "first_pass_agree": first}
+    (ROOT / "crosscheck").mkdir(parents=True, exist_ok=True)
+    (ROOT / "crosscheck" / f"{sid}.json").write_text(json.dumps(rep, ensure_ascii=False, indent=1))
+    if fixes:
+        add_correction(sid, fixes, mission)
+    record_agreement(sid, mission_id, rep["steps"], first, so.get("model", ""))
+    log(f"[{sid}] 2차 검증 {so.get('model')}: 처음 같은 동작 {first}/{rep['steps']} · 다시 본 {len(disputes)}단계 중 "
+        f"유지 {sum(1 for k in disputes if rows[k].get('upheld'))} · 바로잡음 {len(fixes)}")
+    return {"model": so.get("model"), "steps": rep["steps"], "agree": first, "disputed": len(disputes),
+            "upheld": sum(1 for k in disputes if rows[k].get("upheld")), "relabeled": len(fixes)}
+
+
+def record_agreement(sid: str, mission_id: str, steps: int, agree: int, model: str) -> None:
+    """④ 녹화마다 Spark 1.3 ↔ Spark Open 일치 — 붙인 정답 예시 수와 함께 (예시가 늘수록 오르는지 본다)."""
+    reg = _registry()
+    hints = sum(1 for p in (ROOT / "crosscheck").glob("*.json")) if (ROOT / "crosscheck").exists() else 0
+    reg["agreement"] = [a for a in reg.get("agreement", []) if a["sid"] != sid] + [
+        {"sid": sid, "mission": mission_id, "steps": steps, "agree": agree, "rate": round(agree / steps, 3) if steps else None,
+         "examples_before": max(0, hints - 1), "reviewer": model, "at": _now()}]
+    _save(reg)
 
 
 # ---------- ① 데이터 쌓기 ----------
@@ -128,7 +228,7 @@ def labeled_steps(out_dir) -> Optional[dict]:
     for f in corrections(out.name):              # 이의 신청에서 바로잡은 단계가 우선 (더 높은 모델로 다시 본 정답)
         steps = [s for s in steps if not (s["start_s"] < f["end_s"] and f["start_s"] < s["end_s"])]
         if f.get("action") in PRIMITIVES:
-            steps.append({"start_s": f["start_s"], "end_s": f["end_s"], "action": f["action"], "source": "appeal"})
+            steps.append({"start_s": f["start_s"], "end_s": f["end_s"], "action": f["action"], "source": f.get("source", "appeal")})
     steps = sorted((s for s in steps if s["end_s"] - s["start_s"] >= 0.2), key=lambda s: s["start_s"])
     mid = m.get("id") if isinstance(m, dict) else ""
     return {"id": out.name, "mission": mission, "mission_id": mid, "video": video, "steps": steps} if steps else None
@@ -152,7 +252,7 @@ def build_dataset(out_dirs, log=print) -> Optional[dict]:
         for k, s in enumerate(r["steps"]):
             d = s["end_s"] - s["start_s"]
             # 평가용은 한 번만, 학습용은 구간을 조금씩 옮겨 여러 벌 (같은 동작의 다른 순간) · 어려운 문제는 더
-            n = 1 if split == "eval" else AUGMENT * (HARD_WEIGHT if s["source"] == "appeal" else 1)
+            n = 1 if split == "eval" else AUGMENT * (HARD_WEIGHT if s["source"] in ("appeal", "review") else 1)
             for v in range(n):
                 j0 = 0.0 if v == 0 else ((v * 37) % 11 - 5) / 50 * d          # -10% ~ +10% 이동
                 j1 = 0.0 if v == 0 else ((v * 53) % 11 - 5) / 50 * d
@@ -317,7 +417,8 @@ def record_training(entry: dict) -> None:
 def _registry() -> dict:
     p = ROOT / "registry.json"
     r = json.loads(p.read_text()) if p.exists() else {}
-    return {"datasets": r.get("datasets", []), "evals": r.get("evals", []), "trainings": r.get("trainings", [])}
+    return {"datasets": r.get("datasets", []), "evals": r.get("evals", []), "trainings": r.get("trainings", []),
+            "agreement": r.get("agreement", [])}
 
 
 def _save(reg: dict) -> None:

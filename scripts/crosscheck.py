@@ -1,4 +1,5 @@
-"""라벨 교차 검증 — 평소 라벨(Muse Spark 1.3)을 더 큰 Muse Spark Open(Fireworks)으로 다시 붙여 단계마다 맞대 본다.
+"""라벨 교차 검증 (예전 녹화를 한꺼번에) — 평소 라벨(Muse Spark 1.3)을 더 큰 Muse Spark Open 으로 다시 붙여 단계마다 맞대 본다.
+새 녹화는 처리 중에 같은 비교를 한다 (datacash/evolve.py second_opinion).
 
   python scripts/crosscheck.py [--root data/server]
 녹화마다 data/evolve/crosscheck/<녹화>.json: Spark Open 단계, Spark 1.3 단계마다 '같은 동작인가'(시간이 가장 많이 겹치는 단계로).
@@ -15,28 +16,7 @@ from datacash import evolve  # noqa: E402
 from datacash.understand import spark_open  # noqa: E402
 
 
-def overlap(a, b):
-    return max(0.0, min(a["end_s"], b["end_s"]) - max(a["start_s"], b["start_s"]))
-
-
-def compare(steps, so_steps, tol: float) -> list:
-    """Spark 1.3 단계마다: 그 구간 ± tol(Spark Open 장면 간격) 안에 Spark Open 도 같은 동작을 봤는가.
-    (Spark Open 은 장면 16장만 봐 경계가 0.5~1초 거칠다 — 가장 많이 겹치는 단계 하나만 보면 같은 동작도 어긋난다.)"""
-    rows = []
-    for s in steps:
-        win = {"start_s": s["start_s"] - tol, "end_s": s["end_s"] + tol}
-        near = [n for n in so_steps if overlap(win, n) > 0]
-        best = max(near, key=lambda n: overlap(s, n), default=None)
-        same = any(n["action"] == s["action"] for n in near)
-        rows.append({"start_s": s["start_s"], "end_s": s["end_s"], "spark13": s["action"],
-                     "spark_open": s["action"] if same else (best["action"] if best else None), "agree": same,
-                     "verified": bool(s.get("verified"))})
-    return rows
-
-
-def summarize(name: str, mission: str, rows: list, so_steps: list) -> dict:
-    return {"recording": name, "mission": mission, "steps": len(rows), "agree": sum(x["agree"] for x in rows),
-            "gold": sum(x["agree"] and x["verified"] for x in rows), "rows": rows, "spark_open_steps": so_steps}
+compare, summarize = evolve.compare, evolve.summarize      # 처리 중 2차 검증(evolve.second_opinion)과 같은 비교
 
 
 def main():
@@ -81,7 +61,7 @@ def main():
         agree += r["agree"]
         print(f"{out.name} {mission}: 같은 동작 {r['agree']}/{r['steps']} · 정답(검증+일치) {r['gold']}", flush=True)
     if total:
-        print(f"전체 일치 {agree}/{total} ({agree / total:.0%}) · Fireworks 누적 ${spark_open.spent_usd():.2f}")
+        print(f"전체 일치 {agree}/{total} ({agree / total:.0%}) · Spark Open 누적 ${spark_open.spent_usd():.2f}")
 
 
 if __name__ == "__main__":

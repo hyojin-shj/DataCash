@@ -77,16 +77,60 @@ def test_missions_use_known_primitives():
         assert m["primitives"][0] == "reach" and m["primitives"][-1] == "release" and set(m["primitives"]) <= set(PRIMITIVES)
 
 
-def test_glimmer_answer_counts_as_evidence():
-    """이 맥의 Muse Glimmer 대답이 단계 검증의 증거 하나가 된다 (서버 없이, 대답만 흉내)."""
+def test_review_answer_counts_as_evidence():
+    """2차 검증(Spark Open)이 같은 동작이라고 본 것이 단계 검증의 증거 하나가 된다. 바로잡은 단계는 증거에서 뺀다."""
     import numpy as np
 
     from datacash.understand.verify import verify_steps
 
     t = np.arange(0, 10, 0.1)
-    steps = [{"start_s": 1, "end_s": 3, "action": "other", "glimmer": {"agree": True}},
-             {"start_s": 4, "end_s": 6, "action": "other", "glimmer": {"agree": False}},
-             {"start_s": 7, "end_s": 9, "action": "other"}]
+    steps = [{"start_s": 1, "end_s": 3, "action": "other", "spark_open": {"agree": True}},
+             {"start_s": 4, "end_s": 6, "action": "other", "spark_open": {"agree": False}},
+             {"start_s": 7, "end_s": 9, "action": "other", "spark_open": {"agree": False}, "relabeled_from": "grasp"}]
     v = verify_steps(steps, t)
-    assert v[0]["evidence"] == {"glimmer": True} and v[0]["verified"] is True
+    assert v[0]["evidence"] == {"review": True} and v[0]["verified"] is True
     assert v[1]["verified"] is False and v[2]["verified"] == "unverifiable"
+
+
+def test_second_opinion_relabels_and_feeds_examples(tmp_path, monkeypatch):
+    """2차 검증: 다르게 본 단계는 Spark Open 동작으로 바로잡고(바로잡음 = 어려운 예시), 같게 본 순서는 다음 질문의 정답 예시가 된다."""
+    from datacash import evolve
+    from datacash.understand import spark_open
+
+    monkeypatch.setattr(evolve, "ROOT", tmp_path)
+    monkeypatch.setattr(spark_open, "available", lambda: True)
+    so = [{"start_s": 0.0, "end_s": 1.0, "action": "reach"}, {"start_s": 1.0, "end_s": 2.0, "action": "grasp"},
+          {"start_s": 2.0, "end_s": 3.0, "action": "tear"}, {"start_s": 3.0, "end_s": 4.0, "action": "release"}]
+    monkeypatch.setattr(spark_open, "label_frames", lambda *a, **k: {"steps": so, "frames": [0.1 * i for i in range(40)],
+                                                                    "model": "muse-spark-open (test)"})
+    steps = [{"start_s": 0.0, "end_s": 1.0, "action": "reach", "verified": True},
+             {"start_s": 1.0, "end_s": 2.0, "action": "grasp", "verified": True},
+             {"start_s": 2.0, "end_s": 3.0, "action": "pull", "verified": True},
+             {"start_s": 3.0, "end_s": 4.0, "action": "release", "verified": True}]
+    asked = []
+    monkeypatch.setattr(spark_open, "adjudicate", lambda v, d, *a, **k: asked.extend(d) or ["tear"])   # 다시 보니 tear
+    r = evolve.second_opinion("20261029_120000", "v.mp4", 0.0, "Pull a tissue", "pull_tissue", steps, log=lambda *_: None)
+    assert asked[0]["options"] == ["pull", "tear"]                   # 다르게 본 단계만, 두 답을 보기로 다시 묻는다
+    assert r["agree"] == 3 and r["disputed"] == 1 and r["relabeled"] == 1
+    assert steps[2]["action"] == "tear" and steps[2]["relabeled_from"] == "pull"
+    assert evolve.corrections("20261029_120000")[0]["source"] == "review"
+    assert "reach 1.0s -> grasp 1.0s" in evolve.gold_examples("pull_tissue") and evolve.gold_examples("twist_cap") == ""
+    assert "was actually \"tear\"" in evolve.correction_hints()
+    assert evolve._registry()["agreement"][-1]["rate"] == 0.75
+    monkeypatch.setattr(spark_open, "adjudicate", lambda *a, **k: ["pull"])                 # 다시 보니 Spark 1.3 이 맞으면 유지
+    steps[2].update(action="pull", relabeled_from=None)
+    r = evolve.second_opinion("20261029_120001", "v.mp4", 0.0, "Pull a tissue", "pull_tissue", steps, log=lambda *_: None)
+    assert r["upheld"] == 1 and r["relabeled"] == 0 and steps[2]["action"] == "pull" and steps[2]["spark_open"]["agree"]
+
+
+def test_spark_open_packs_frames_for_image_limit():
+    """Baseten 은 이미지 8장까지 — 장면 16장은 2장씩 나란히 붙여 8장으로, 위치와 시각을 글로 알려 준다."""
+    import numpy as np
+
+    from datacash.understand.spark_open import _frame_parts
+
+    frames = [(0.5 * k, np.zeros((60, 80, 3), np.uint8)) for k in range(16)]
+    full, packed = _frame_parts(frames, None), _frame_parts(frames, 8)
+    imgs = lambda p: [x for x in p if x["type"] == "image_url"]  # noqa: E731
+    assert len(imgs(full)) == 16 and len(imgs(packed)) == 8
+    assert "left t=0.00s, right t=0.50s" in packed[0]["text"]

@@ -29,8 +29,7 @@ Meta Global AI Developer Hackathon（Indie Developer · Push the Frontier）参�
 | **Muse Spark 1.3** | 遮盖后的视频 → 步骤、指令、使用的手、物体、失误（结构化 JSON）；企业的自然语言需求 → 任务设计 | `datacash/understand/`、`datacash/requests.py` |
 | **Muse Image** | 34 位不存在的人（7 个地区 × 男女 × 20–60 多岁），用于换脸 | `scripts/make_donors.py`、`datacash/donors/` |
 | **Muse Voice Transcribe** | 找出录音中说出的个人信息并静音 | `datacash/privacy/speech.py` |
-| **Muse Glimmer**（开放权重） | 30B 模型用 llama.cpp 在这台 Mac 本地运行 —— 逐帧复核 Spark 的步骤（无 API 费用） | `datacash/understand/glimmer.py`, `datacash/evolve.py` ([docs/model_evolution.md](docs/model_evolution.md)) |
-| **Muse Spark Open**（开放权重，816B） | 申诉时的“更高级模型”，也为每个标签提供第二意见（Fireworks 托管）；两个模型一致的步骤成为 Glimmer 的训练标签 | `datacash/understand/spark_open.py`、`scripts/crosscheck.py` |
+| **Muse Spark Open**（开放权重，816B） | 每段录像的第二意见，也是申诉时的“更高级模型”（Baseten，不行就用 Fireworks）。两个模型看法不同的步骤会被改正；看法一致且经传感器验证的步骤成为正确示例，加进之后 Spark 1.3 的提问 —— 不改权重，越用越准 | `datacash/understand/spark_open.py`、`datacash/evolve.py`（[docs/model_evolution.md](docs/model_evolution.md)） |
 
 每次 API 调用的费用都记录在 `data/api_ledger.jsonl`；超出预算时只跳过该步骤。
 
@@ -88,7 +87,7 @@ cd app && ./gradlew assembleDebug                     # 安卓 App + 手表 App
 | `web/` | 企业网页（自然语言需求、多传感器时间轴、报价、订单、下载）和运营后台 |
 | `datacash/privacy` | SAM 遮盖 · 换脸 · 语音隐私 · 预扫描 |
 | `datacash/sync` · `touch` · `labels` | 传感器同步 · 触觉 · 手和身体姿态 |
-| `datacash/understand` | Muse Spark 理解 · Glimmer 复核 · 传感器验证 |
+| `datacash/understand` | Muse Spark 理解 · Spark Open 第二意见 · 传感器验证 |
 | `datacash/export` · `jobs.py` | LeRobot 导出 · 证书 · 处理流程 |
 | `datacash/server` | 采集服务器 + 企业 API |
 

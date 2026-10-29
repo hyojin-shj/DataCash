@@ -136,7 +136,7 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
         report["precheck"] = pc
         lap("precheck")
         if skip_precheck and not pc["ok"]:
-            pc["overridden"] = "이의 신청: Muse Glimmer 가 미션을 했다고 봄"
+            pc["overridden"] = "이의 신청: 더 높은 모델이 미션을 했다고 봄"
         elif not pc["ok"]:
             report["error"] = " · ".join(pc["reasons"])
             report["reward"] = 0
@@ -216,14 +216,9 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
         except Exception as e:
             report["skipped"].append(f"speech: {type(e).__name__}: {str(e)[:200]}")
 
-    # 3. 단계 라벨 — 우리 동작 모델이 준비됐고 확신하면 그것으로 (Spark 를 부르지 않는다), 아니면 Muse Spark
+    # 3. 단계 라벨 — 1차 Muse Spark 1.3 (같은 미션 정답 예시를 붙여서) → 2차 Muse Spark Open 이 따로 보고 다르면 바로잡는다
     steps, mistakes, scene = None, None, None
-    auto = _model_steps(sd, out, masked, labels, objects) if not synthetic else None
-    if auto:
-        steps, mistakes = auto["steps"], []
-        report["labels_by"] = auto["model"]
-        log(f"[{sd.name}] 단계 라벨: {auto['model']} — Spark 생략")
-    elif use_api:
+    if use_api:
         try:
             from .media import clip_mp4
             from .understand.spark import understand_clip
@@ -240,23 +235,25 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
                 t0 = min(face_check_end_s(meta, int(ft[0])), max(0.0, dur - 2)) if len(ft) else 0.0
             clip = clip_mp4(src, out / "understand_clip.mp4", t0, min(dur - t0, 90), max_side=640, audio=False)
             u = understand_clip(clip, f"{mission.get('title_en')} ({mission.get('title')})", min(dur - t0, 90),
-                               primitives=mission.get("primitives"))
+                               primitives=mission.get("primitives"), mission_id=mission.get("id", ""))
             for st_ in u["steps"]:            # 자른 구간만큼 녹화 시각으로 되돌린다
                 st_["start_s"] += t0
                 st_["end_s"] += t0
             for m_ in u["mistakes"]:
                 m_["t_s"] += t0
             steps, mistakes = u["steps"], u["mistakes"]
-            from .understand import glimmer
-
-            if steps and glimmer.available():     # 이 맥의 Muse Glimmer 로 단계를 장면으로 다시 확인 (API 비용 없음)
-                checks = glimmer.check_steps(src, steps, log=log)
-                for st_, ck in zip(steps, checks):
-                    if ck is not None:
-                        st_["glimmer"] = ck
-                report["glimmer_checked"] = sum(c is not None for c in checks)
             scene = {"task": u["task"], "completed": u["completed"], "environment": u["environment"], "model": u["model"]}
             clip.unlink()
+            lap("understand")
+            try:                                  # 2차 검증 (Baseten → Fireworks 크레딧, Meta API 한도와 따로)
+                from . import evolve
+
+                so = evolve.second_opinion(sd.name, src, t0, mission.get("title_en") or mission.get("title") or "",
+                                           mission.get("id", ""), steps, log=log)
+                if so:
+                    report["review"] = so
+            except Exception as e:
+                report["skipped"].append(f"review: {type(e).__name__}: {str(e)[:200]}")
         except BudgetExceeded as e:
             report["skipped"].append(f"understand: {e}")
         except Exception as e:
@@ -274,7 +271,7 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
         objects = [{0: tuple(x["cup"])} for x in tr]
     key = calibration_key(meta)
     stored = json.loads((store / f"{key}.json").read_text()) if key and (store / f"{key}.json").exists() else None
-    lap("understand")
+    lap("review")
     cert = process(sd, out, level=lvl, masked_video=masked, labels=labels, objects=objects, steps=steps,
                    mistakes=mistakes, scene=scene, privacy=privacy, extract=False, grip_calibration=stored, **kw)
     minutes = cert["dataset"]["frames"] / cert["dataset"]["fps"] / 60
@@ -292,35 +289,6 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
                   sync=cert["sync"]["chosen"], certificate=str(out / "certificate.md"))
     (out / "job.json").write_text(json.dumps(report, indent=2, ensure_ascii=False))
     return report
-
-
-def _model_steps(sd: Path, out: Path, masked, labels, objects) -> Optional[dict]:
-    """모델 진화(datacash/evolve.py): 준비된 Glimmer 어댑터가 있으면 Spark 대신 그것으로 단계 라벨 (이 맥, API 비용 0)."""
-    from . import evolve
-    from .understand import glimmer
-
-    adapter = evolve.ready_adapter()
-    if adapter is None or masked is None:
-        return None
-    meta = json.loads((sd / "meta.json").read_text())
-    m = meta.get("mission") or {}
-    try:
-        if not glimmer.ensure(lora=adapter):
-            return None
-        from openai import OpenAI
-
-        steps = evolve.label_video(masked, m.get("title_en") or m.get("title") or "", client=OpenAI(base_url=glimmer.URL, api_key="local"),
-                                   order=evolve.mission_primitives(m.get("id", "")))
-    except Exception:
-        return None
-    finally:
-        glimmer.stop()
-    if not steps:
-        return None
-    name = f"muse-glimmer-30b + {Path(adapter).name}"
-    for st_ in steps:
-        st_.update(instruction=st_["action"], hand="unknown", objects=[], grasp_type="unclear", success="unknown", labeled_by=name)
-    return {"model": name, "confidence": None, "steps": steps}
 
 
 ORIGINALS = ("video.mp4", "audio.wav", "watch_audio.wav")    # 녹화 폴더: 참여자 원래 얼굴·목소리

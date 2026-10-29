@@ -29,8 +29,7 @@ Meta Global AI Developer Hackathon（Indie Developer · Push the Frontier）出�
 | **Muse Spark 1.3** | 隠した映像 → 手順・指示文・使う手・物体・ミス（構造化 JSON）、企業のふつうの言葉の依頼 → ミッション設計 | `datacash/understand/`、`datacash/requests.py` |
 | **Muse Image** | 実在しない 34 人（7 地域 × 男女 × 20〜60 代）—— 顔の置き換え用 | `scripts/make_donors.py`、`datacash/donors/` |
 | **Muse Voice Transcribe** | 録音の中で話された個人情報を見つけて消音 | `datacash/privacy/speech.py` |
-| **Muse Glimmer**（オープンウェイト） | 30B モデルをこの Mac で llama.cpp により実行 —— Spark の手順をフレームごとに再確認（API 費用なし） | `datacash/understand/glimmer.py`, `datacash/evolve.py` ([docs/model_evolution.md](docs/model_evolution.md)) |
-| **Muse Spark Open**（オープンウェイト、816B） | 異議申し立てを見直す「より高いモデル」、すべてのラベルへのセカンドオピニオン（Fireworks）— 両モデルが一致した手順が Glimmer の学習の正解になる | `datacash/understand/spark_open.py`、`scripts/crosscheck.py` |
+| **Muse Spark Open**（オープンウェイト、816B） | すべての録画のセカンドオピニオンと、異議申し立てを見直す「より高いモデル」（Baseten、だめなら Fireworks）。2 つのモデルの見方が違う手順は直し、一致してセンサーでも確かめた手順は正解例として次の録画の Spark 1.3 への質問に付く —— 重みを変えずに使うほど正確になる | `datacash/understand/spark_open.py`、`datacash/evolve.py`（[docs/model_evolution.md](docs/model_evolution.md)） |
 
 API を呼ぶたびに費用を `data/api_ledger.jsonl` に記録し、上限を超えたらその段階だけをスキップします。
 
@@ -88,7 +87,7 @@ LivePortrait はリポジトリに含めていません —— [KwaiVGI/LivePort
 | `web/` | 企業向け Web（ふつうの言葉の依頼・センサーのタイムライン・見積もり・注文・ダウンロード）と運営画面 |
 | `datacash/privacy` | SAM で隠す · 顔の置き換え · 音声のプライバシー · 事前スキャン |
 | `datacash/sync` · `touch` · `labels` | センサー同期 · 触覚 · 手と体の姿勢 |
-| `datacash/understand` | Muse Spark による理解 · Glimmer による確認 · センサーによる検証 |
+| `datacash/understand` | Muse Spark による理解 · Spark Open によるセカンドオピニオン · センサーによる検証 |
 | `datacash/export` · `jobs.py` | LeRobot 出力 · 証明書 · 処理の流れ |
 | `datacash/server` | 収集サーバー + 企業向け API |
 

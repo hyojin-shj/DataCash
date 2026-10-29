@@ -133,7 +133,7 @@ class Store:
                 fin = self.set_status(sid, state="failed", error=f"{type(e).__name__}: {str(e)[:300]}")
             self.appeals.reprocessed(sid, fin)
             self.settle(sid)
-            if fin.get("state") == "done":           # 모델 진화: 검증된 라벨이 늘었으니 Glimmer 학습 데이터를 뒤에서 다시 만든다
+            if fin.get("state") == "done":           # 모델 진화: 검증된 라벨이 늘었으니 (Fireworks 가 풀리면 쓸) 오픈 웨이트 학습 데이터를 뒤에서 다시 만든다
                 threading.Thread(target=self.retrain, daemon=True).start()
 
     def keep(self, sid: str) -> dict:
@@ -177,7 +177,7 @@ class Store:
                 self.q.put(sid)
             elif res["decision"] == "accept":
                 self.credit(a)
-                if res.get("corrections"):              # 바로잡은 라벨 → 모델 진화(Glimmer 학습 데이터)의 정답 · Spark 예시
+                if res.get("corrections"):              # 바로잡은 라벨 → 모델 진화: 정답 · 다음 Spark 1.3 질문의 예시
                     from .. import evolve
 
                     evolve.add_correction(sid, res["corrections"], self.status(sid).get("mission", ""))
@@ -190,7 +190,7 @@ class Store:
             try:
                 evolve.build_dataset(sorted(p for p in (self.root / "out").iterdir() if p.is_dir()), log=print)
             except Exception as e:
-                print(f"Glimmer 학습 데이터 만들기 실패: {type(e).__name__}: {e}")
+                print(f"오픈 웨이트 학습 데이터 만들기 실패: {type(e).__name__}: {e}")
 
     def settle(self, sid: str) -> dict:
         """승인된 녹화의 보상을 입금 기록으로 (계좌가 없으면 기다림)."""
@@ -910,14 +910,19 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
 
     @app.get("/api/admin/evolve")
     def admin_evolve(token: str = Query("")):
-        """모델 진화: Glimmer 학습 데이터 버전 · 평가 기록(학습 전·어댑터별 정확도) · Spark 대신 쓰는 어댑터."""
+        """모델 진화: 녹화마다 Spark 1.3 ↔ Spark Open 일치(agreement) · 2차 검증 표 · 바로잡음 · 정답 예시 수."""
         auth(token)
         from .. import evolve
 
         cross = [json.loads(p.read_text()) for p in sorted((evolve.ROOT / "crosscheck").glob("*.json"))] \
             if (evolve.ROOT / "crosscheck").exists() else []
-        return {"ready_rule": {"accuracy": evolve.READY_ACCURACY, "train_steps": evolve.READY_EXAMPLES},
-                "in_use": evolve.ready_adapter(), **evolve._registry(),
+        fb = [json.loads(p.read_text()) for p in sorted((evolve.ROOT / "feedback").glob("*.json"))] \
+            if (evolve.ROOT / "feedback").exists() else []
+        fixes = [f for r in fb for f in r["fixes"]]
+        from ..understand import spark_open
+
+        return {**evolve._registry(), "reviewer": spark_open.provider_name() or None,
+                "fixes": {"review": sum(f.get("source") == "review" for f in fixes), "appeal": sum(f.get("source", "appeal") == "appeal" for f in fixes)},
                 "crosscheck": [{k: c[k] for k in ("recording", "mission", "steps", "agree", "gold")}
                                | {"diffs": [{"t": round(r["start_s"], 1), "spark13": r["spark13"], "spark_open": r["spark_open"]}
                                             for r in c["rows"] if not r["agree"]]} for c in cross]}
