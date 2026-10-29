@@ -33,10 +33,20 @@ PRICE = (1.25e-6, 4.25e-6)       # 달러/토큰 (입력·출력) — 가격표 
 LEDGER = config.DATA / "fireworks_ledger.jsonl"
 
 
+ALIASES = {"BASETEN_API_KEY": ["baseten_api", "BASETEN_API"]}    # .env 에 다른 이름으로 넣었을 때
+
+
+def _key(name: str) -> str:
+    config.load_env()
+    for k in [name] + ALIASES.get(name, []):
+        if os.environ.get(k):
+            return os.environ[k]
+    return ""
+
+
 def providers() -> list:
     """키가 있는 곳들 (쓰는 순서)."""
-    config.load_env()
-    return [p for p in PROVIDERS if os.environ.get(p[1])]
+    return [p for p in PROVIDERS if _key(p[1])]
 
 
 def available() -> bool:
@@ -61,7 +71,7 @@ def _ask(prompt_parts: list):
 
     err = None
     for name, key, url, model in providers():
-        c = OpenAI(base_url=url, api_key=os.environ[key], timeout=600)
+        c = OpenAI(base_url=url, api_key=_key(key), timeout=600)
         kw = {"response_format": {"type": "json_object"}, "reasoning_effort": REASONING}
         for _ in range(3):              # 받지 않는 선택지가 있으면 빼고 다시
             try:
