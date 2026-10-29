@@ -151,7 +151,7 @@ class Store:
         """모아 둔 녹화 [(미션, 녹화)] — 아직 처리하지 않은 것만."""
         base = self.root / "collected"
         return [(m.name, l.name) for m in sorted(base.iterdir()) if m.is_dir() for l in sorted(m.iterdir())
-                if self.status(l.name).get("state") == "collected"] if base.exists() else []
+                if self.status(l.name).get("state") in ("collected", "uploading")] if base.exists() else []   # uploading: 예전 서버가 늦은 워치 파일로 덮어쓴 것
 
     def credit(self, a: dict) -> None:
         """인정된 추가 보상 → 그 녹화의 입금에 더한다."""
@@ -437,7 +437,8 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
                     raise HTTPException(413, "파일이 너무 큼")
                 f.write(chunk)
         tmp.replace(d / name)
-        st.set_status(sid, state="uploading")
+        if st.status(sid).get("state") in ("none", "uploading", "upload_failed", None):   # 폰이 올리는 중일 때만 — 뒤늦은 워치 파일이 보관됨·처리 중을 덮지 않게
+            st.set_status(sid, state="uploading")
         return {"ok": True, "bytes": n}
 
     @app.post("/api/sessions/{sid}/process")

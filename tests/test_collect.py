@@ -26,3 +26,15 @@ def test_collect_keeps_by_mission_then_processes(tmp_path):
     app2 = create_app(tmp_path, "t", use_api=False, process_collected=True)
     assert app2.state.store.status("20261029_200000")["state"] in ("queued", "processing", "failed", "rejected", "done")
     assert app2.state.store.collected() == [] or app2.state.store.status("20261029_200000")["state"] != "collected"
+
+
+def test_late_watch_upload_keeps_collected(tmp_path):
+    """폰이 보관됨이 된 뒤 워치 파일이 늦게 올라와도 보관됨 그대로 (한꺼번에 처리에서 빠지지 않게)."""
+    from fastapi.testclient import TestClient
+
+    from datacash.server.app import create_app
+
+    c = TestClient(create_app(tmp_path, "t", use_api=False, collect=True))
+    assert _upload(c, "20261029_210000", "twist_cap")["state"] == "collected"
+    c.put("/api/sessions/20261029_210000/files/watch_imu.csv", content=b"t_ns\n", headers={"X-DC-Token": "t"})
+    assert c.app.state.store.status("20261029_210000")["state"] == "collected"

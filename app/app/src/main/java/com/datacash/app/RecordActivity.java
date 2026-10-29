@@ -57,7 +57,7 @@ import java.util.concurrent.Executors;
 public class RecordActivity extends Activity implements TextureView.SurfaceTextureListener {
     private static final int[] TIMERS = {0, 3, 5, 10};
     private static final int FACE_STREAK = 5;              // 0.2초 × 5 = 1초 이어서
-    private static final long FACE_SKIP_MS = 10_000, FACE_MISMATCH_MS = 4_000;
+    private static final long FACE_MISMATCH_MS = 4_000;
 
     private final Handler ui = new Handler(Looper.getMainLooper());
     private final ExecutorService faceWorker = Executors.newSingleThreadExecutor();
@@ -87,7 +87,7 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
     private FrameLayout faceLayer;
     private FaceOval faceOval;
     private TextView faceTitle, faceSub, faceSkip;
-    private boolean faceChecking, facePassed;
+    private boolean faceChecking, facePassed, noPerson;
     private int faceStreak;
     private long faceStartMs, faceEndNs, lastIdMs;
     private String identity = "pending";   // pending · checked · mismatch · no_registry · offline
@@ -149,11 +149,11 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
         faceSub = shadowText(15, false);
         faceSub.setPadding(0, Ui.dp(this, 6), 0, 0);
         box.addView(faceSub);
-        faceSkip = Ui.text(this, "얼굴 없이 진행", 14, Color.WHITE, true);
+        faceSkip = Ui.text(this, "사람이 나오지 않는 영상입니다", 14, Color.WHITE, true);   // 삼각대로 손·물건만 찍을 때
         faceSkip.setPadding(Ui.dp(this, 18), Ui.dp(this, 10), Ui.dp(this, 18), Ui.dp(this, 10));
         faceSkip.setBackground(Ui.round(0x88000000, Ui.dp(this, 20)));
         faceSkip.setVisibility(View.GONE);
-        faceSkip.setOnClickListener(v -> endFaceCheck(false));
+        faceSkip.setOnClickListener(v -> { noPerson = true; endFaceCheck(false); });
         box.addView(faceSkip, Ui.margins(this, -2, -2, 0, 0, 14, 0, 0));
         FrameLayout.LayoutParams bp = new FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM);
         bp.bottomMargin = Ui.dp(this, 150);
@@ -446,6 +446,7 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
     private void startFaceCheck() {
         faceChecking = true;
         facePassed = false;
+        noPerson = false;
         faceStreak = 0;
         faceEndNs = 0;
         identity = "pending";
@@ -454,7 +455,7 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
         faceStartMs = System.currentTimeMillis();
         faceOval.setOk(false);
         faceOval.setVisibility(View.VISIBLE);
-        faceSkip.setVisibility(View.GONE);
+        faceSkip.setVisibility(View.VISIBLE);              // 처음부터: 사람이 안 나오는 영상이면 바로 건너뛴다
         faceTitle.setText("1단계 · 얼굴 확인");
         faceSub.setText("카메라 가까이에서 정면을 봐 주세요\n얼굴이 동그라미 안에 오게");
         faceLayer.setVisibility(View.VISIBLE);
@@ -466,7 +467,6 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
     /** 미리보기를 작게 떠서(0.2초마다) 폰 안에서 정면 얼굴을 찾고, 찾으면 1초에 한 번 서버에 본인인지 묻는다. */
     private void faceLoop() {
         if (!faceChecking || !recording) return;
-        if (System.currentTimeMillis() - faceStartMs > FACE_SKIP_MS) faceSkip.setVisibility(View.VISIBLE);
         int w = 480, h = preview.getWidth() > 0 ? Math.round(480f * preview.getHeight() / preview.getWidth()) : 640;
         Bitmap bm = preview.getBitmap(w, h & ~1);
         if (bm == null) { ui.postDelayed(this::faceLoop, 200); return; }
@@ -543,8 +543,9 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
         faceEndNs = Clock.now();
         faceSkip.setVisibility(View.GONE);
         faceOval.setVisibility(passed ? View.VISIBLE : View.GONE);
-        faceTitle.setText(!passed ? "얼굴 없이 진행해요" : identity.equals("checked") ? "✓ 본인 확인됐어요" : "✓ 얼굴 확인됐어요");
-        faceSub.setText(passed ? "2단계 · 이제 동작을 시작하세요"
+        faceTitle.setText(noPerson ? "얼굴 확인 없이 찍어요" : !passed ? "얼굴 없이 진행해요"
+                : identity.equals("checked") ? "✓ 본인 확인됐어요" : "✓ 얼굴 확인됐어요");
+        faceSub.setText(passed || noPerson ? "2단계 · 이제 동작을 시작하세요"
                 : "등록된 본인으로 알아보지 못하면 영상에서 가려질 수 있어요\n2단계 · 동작을 시작하세요");
         markBtn.setVisibility(View.VISIBLE);
         ui.postDelayed(() -> faceOval.setVisibility(View.GONE), 700);
@@ -557,7 +558,7 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
     }
 
     private JSONObject faceCheckInfo() throws Exception {
-        JSONObject f = new JSONObject().put("passed", facePassed).put("start_ns", startNs).put("clock", "BOOTTIME")
+        JSONObject f = new JSONObject().put("passed", facePassed).put("no_person", noPerson).put("start_ns", startNs).put("clock", "BOOTTIME")
                 .put("detector", "android.media.FaceDetector").put("identity", identity);
         if (faceEndNs > 0) f.put("end_ns", faceEndNs);
         if (identityScore >= 0) f.put("identity_score", Math.round(identityScore * 1000) / 1000.0);
