@@ -275,21 +275,30 @@ public class HomeActivity extends Activity {
 
     private View pager() throws Exception {
         pager = new HorizontalScrollView(this) {
+            private float downX, downY;
+            private int downScroll;
+
+            @Override
+            public boolean onInterceptTouchEvent(MotionEvent e) {
+                if (e.getAction() == MotionEvent.ACTION_DOWN) { downX = e.getX(); downY = e.getY(); downScroll = getScrollX(); }
+                else if (e.getAction() == MotionEvent.ACTION_MOVE
+                        && Math.abs(e.getX() - downX) > Math.abs(e.getY() - downY)) getParent().requestDisallowInterceptTouchEvent(true);  // 옆으로 밀면 위아래 스크롤이 가로채지 않게
+                return super.onInterceptTouchEvent(e);
+            }
+
             @Override
             public boolean onTouchEvent(MotionEvent e) {
+                if (e.getAction() == MotionEvent.ACTION_DOWN) { downX = e.getX(); downY = e.getY(); downScroll = getScrollX(); }
                 boolean r = super.onTouchEvent(e);
-                if (e.getAction() == MotionEvent.ACTION_UP || e.getAction() == MotionEvent.ACTION_CANCEL) post(HomeActivity.this::snap);
+                if (e.getAction() == MotionEvent.ACTION_UP || e.getAction() == MotionEvent.ACTION_CANCEL) {
+                    int moved = getScrollX() - downScroll;
+                    post(() -> snapFrom(downScroll, moved));
+                }
                 return r;
             }
 
             @Override
-            public void fling(int vx) {   // 휙 넘기면 그 방향으로 한 장
-                int step = pageWidth() + Ui.dp(HomeActivity.this, 12);
-                int cur = Math.round((float) getScrollX() / step);
-                int to = Math.max(0, Math.min(pages.getChildCount() - 1, cur + (vx > 0 ? 1 : -1)));
-                smoothScrollTo(to * step, 0);
-                showDots(to);
-            }
+            public void fling(int vx) {}   // 손을 뗄 때 snapFrom 이 정한다 (여기서 움직이면 snap 과 겹쳐 제자리로 돌아갔다)
         };
         pager.setHorizontalScrollBarEnabled(false);
         pager.setClipToPadding(false);
@@ -304,9 +313,13 @@ public class HomeActivity extends Activity {
         return pager;
     }
 
-    private void snap() {
+    /** 손을 뗐을 때: 처음 장에서 조금(장 너비의 12% 또는 32dp)만 밀어도 민 쪽으로 한 장. */
+    private void snapFrom(int startScroll, int moved) {
         int step = pageWidth() + Ui.dp(this, 12);
-        int to = Math.round((float) pager.getScrollX() / step);
+        int cur = Math.round((float) startScroll / step);
+        int need = Math.min(Ui.dp(this, 32), step * 12 / 100);
+        int to = Math.abs(moved) >= need ? cur + (moved > 0 ? 1 : -1) : cur;
+        to = Math.max(0, Math.min(pages.getChildCount() - 1, to));
         pager.smoothScrollTo(to * step, 0);
         showDots(to);
     }
