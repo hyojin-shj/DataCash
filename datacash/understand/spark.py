@@ -15,7 +15,7 @@ MODEL = "muse-spark-1.3"
 
 # 로봇 조작 기본 동작 (라벨 단위). 미션마다 예상 순서는 missions.json 의 primitives.
 PRIMITIVES = ["reach", "grasp", "lift", "pull", "push", "twist", "press", "squeeze", "tear", "wipe", "insert", "transport",
-              "place", "handover", "release", "other"]
+              "place", "handover", "release", "pour", "fold", "other"]
 GRASP_TYPES = ["power", "precision", "pinch", "lateral", "two_hand", "none", "unclear"]
 
 SCHEMA = {

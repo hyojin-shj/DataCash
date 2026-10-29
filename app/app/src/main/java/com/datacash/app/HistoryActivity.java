@@ -92,6 +92,8 @@ public class HistoryActivity extends Activity {
             if (py != null) sub += py.optString("status").equals("sent") ? "\n입금 완료 · " + py.optString("label")
                     : "\n계좌를 연결하면 바로 입금돼요";
             if (st.optInt("appeal_extra") > 0) sub += String.format(Locale.KOREA, "\n이의 신청 인정 +%,d원", st.optInt("appeal_extra"));
+        } else if (s.equals("collected")) {
+            sub += "\n보관됨 · 검수는 나중에";
         } else if (s.equals("rejected")) {
             sub += "\n이유: " + st.optString("error", "검수 기준에 맞지 않아요");
         }

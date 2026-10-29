@@ -73,9 +73,10 @@ public class ResultActivity extends Activity {
     private void show(JSONObject st) {
         String s = st.optString("state");
         state.setText(Uploader.stateKo(s));
-        bar.setProgress(s.equals("done") ? 100 : s.equals("processing") ? 60 : s.equals("queued") ? 40 : bar.getProgress());
+        bar.setProgress(s.equals("done") || s.equals("collected") ? 100 : s.equals("processing") ? 60 : s.equals("queued") ? 40 : bar.getProgress());
         StringBuilder b = new StringBuilder();
         if (s.equals("processing") || s.equals("queued")) b.append("가리기 · 라벨 · 4감 동기화 중이에요. 앱을 닫아도 서버가 계속해요.");
+        if (s.equals("collected")) b.append("원본 그대로 미션별로 보관했어요. 가리기 · 라벨 · 검수 · 보상은 나중에 한꺼번에 해요.");
         if (s.equals("done") && st.optJSONObject("calibration") != null) {      // 쥐는 세기 맞추기
             JSONObject cal = st.optJSONObject("calibration");
             state.setText("쥐는 세기를 배웠어요");

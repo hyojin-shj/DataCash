@@ -106,7 +106,7 @@ public class ProcessService extends Service {
                 JSONObject st = Uploader.status(this, dir);
                 String s = st.optString("state");
                 boolean paid = st.optJSONObject("payout") != null;
-                if (s.equals("done") && paid || s.equals("rejected") || s.equals("failed")) { result(dir, title, st); return; }
+                if (s.equals("done") && paid || s.equals("rejected") || s.equals("failed") || s.equals("collected")) { result(dir, title, st); return; }
                 progress(title + " 녹화 · 검수 중", "가리기 · 라벨 · 4감 맞추기 — 끝나면 알려 드릴게요");
                 Thread.sleep(20_000);
             }
@@ -130,6 +130,8 @@ public class ProcessService extends Service {
             boolean sent = py != null && py.optString("status").equals("sent");
             note(CH_REWARD, String.format(Locale.KOREA, "띠링! %s 미션 %,d원 적립", title, won),
                     sent ? py.optString("label") + " 으로 입금됐어요" : "계좌를 연결하면 바로 입금돼요", false, dir.getName().hashCode());
+        } else if (s.equals("collected")) {
+            note(CH_REWARD, title + " 녹화를 보관했어요", "검수·보상은 나중에 한꺼번에 해요", false, dir.getName().hashCode());
         } else if (s.equals("rejected")) {
             note(CH_REWARD, title + " 미션 검수 결과", st.optString("error", "반려됐어요") + " · 이의 신청할 수 있어요", false, dir.getName().hashCode());
         }

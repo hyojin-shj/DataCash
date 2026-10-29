@@ -15,6 +15,8 @@
     "place": "놓기",
     "handover": "건네기",
     "release": "손 떼기",
+    "pour": "따르기",
+    "fold": "접기",
     "other": "기타"
   },
   "missions": [
@@ -404,6 +406,375 @@
         "놓쳤다가 다시 (실수 표시 누르기)",
         "다른 물건·다른 장소에서"
       ]
+    },
+    {
+      "id": "pack_box",
+      "title": "상자에 물건 포장하기",
+      "title_en": "Pack items into a box",
+      "guide": "물건 3~4개를 상자에 차례로 담고 날개를 접어 닫기 · 30초~1분 · 5번 반복 · 상자와 손이 다 보이게",
+      "purpose": "물류·이커머스 포장 로봇 — 크기가 다른 물건을 집어 상자 안에 빈틈없이 놓기",
+      "objects": [
+        "box",
+        "cup",
+        "book",
+        "bottle"
+      ],
+      "primitives": [
+        "reach",
+        "grasp",
+        "lift",
+        "transport",
+        "place",
+        "fold",
+        "push",
+        "release"
+      ],
+      "situations": [
+        "작은 상자",
+        "큰 상자",
+        "깨지기 쉬운 물건 (컵)",
+        "부드러운 물건 (옷·수건)",
+        "오른손으로",
+        "왼손으로",
+        "삼각대 정면 (손·물건이 화면 가운데)",
+        "삼각대 옆에서",
+        "위에서 내려다보기 (삼각대 높게)",
+        "천천히 또렷하게",
+        "평소 속도로",
+        "놓쳤다가 다시 (실수 표시 누르기)",
+        "다른 물건으로"
+      ],
+      "industry": true
+    },
+    {
+      "id": "tape_box",
+      "title": "상자 테이프로 봉하기",
+      "title_en": "Seal a box with tape",
+      "guide": "닫은 상자 윗면을 테이프로 한 줄 붙이고 끊기 · 30초~1분 · 3~5번 · 테이프 끝과 손끝이 보이게",
+      "purpose": "물류 출고 — 테이프를 당겨 붙이고 눌러 문지르고 끊는 양손 협응",
+      "objects": [
+        "box",
+        "tape"
+      ],
+      "primitives": [
+        "reach",
+        "grasp",
+        "pull",
+        "press",
+        "wipe",
+        "tear",
+        "release"
+      ],
+      "situations": [
+        "박스 테이프 (커터 있는 것)",
+        "손으로 끊는 테이프",
+        "양손으로",
+        "오른손으로",
+        "왼손으로",
+        "삼각대 정면 (손·물건이 화면 가운데)",
+        "삼각대 옆에서",
+        "위에서 내려다보기 (삼각대 높게)",
+        "천천히 또렷하게",
+        "평소 속도로",
+        "놓쳤다가 다시 (실수 표시 누르기)",
+        "다른 물건으로"
+      ],
+      "industry": true
+    },
+    {
+      "id": "restock_shelf",
+      "title": "선반에 물건 채우고 줄 맞추기",
+      "title_en": "Restock and face a shelf",
+      "guide": "바구니의 물건을 선반에 옮겨 앞줄을 맞춰 세우기 · 30초~1분 · 5번 · 선반 한 칸이 화면에 다 보이게",
+      "purpose": "편의점·마트 진열 로봇 — 집어 옮겨 놓고, 밀어서 줄 맞추기",
+      "objects": [
+        "shelf",
+        "bottle",
+        "box",
+        "can"
+      ],
+      "primitives": [
+        "reach",
+        "grasp",
+        "lift",
+        "transport",
+        "place",
+        "push",
+        "release"
+      ],
+      "situations": [
+        "병·캔",
+        "작은 상자",
+        "선반 높이 (허리)",
+        "선반 높이 (눈높이)",
+        "오른손으로",
+        "왼손으로",
+        "삼각대 정면 (손·물건이 화면 가운데)",
+        "삼각대 옆에서",
+        "위에서 내려다보기 (삼각대 높게)",
+        "천천히 또렷하게",
+        "평소 속도로",
+        "놓쳤다가 다시 (실수 표시 누르기)",
+        "다른 물건으로"
+      ],
+      "industry": true
+    },
+    {
+      "id": "pick_from_bin",
+      "title": "통에서 물건 하나씩 꺼내기 (피킹)",
+      "title_en": "Pick items from a bin",
+      "guide": "물건이 섞인 통·바구니에서 정해진 것을 하나씩 꺼내 옆에 놓기 · 30초~1분 · 10번 · 통 안이 보이게",
+      "purpose": "물류 창고 피킹 — 겹쳐 있는 물건 사이에서 하나만 집기",
+      "objects": [
+        "bin",
+        "bottle",
+        "box",
+        "toy"
+      ],
+      "primitives": [
+        "reach",
+        "grasp",
+        "lift",
+        "transport",
+        "place",
+        "release"
+      ],
+      "situations": [
+        "물건이 듬성듬성",
+        "물건이 빽빽하게",
+        "작은 물건 (펜·지우개)",
+        "무거운 물건",
+        "오른손으로",
+        "왼손으로",
+        "삼각대 정면 (손·물건이 화면 가운데)",
+        "삼각대 옆에서",
+        "위에서 내려다보기 (삼각대 높게)",
+        "천천히 또렷하게",
+        "평소 속도로",
+        "놓쳤다가 다시 (실수 표시 누르기)",
+        "다른 물건으로"
+      ],
+      "industry": true
+    },
+    {
+      "id": "fold_cloth",
+      "title": "수건·티셔츠 개기",
+      "title_en": "Fold a towel or T-shirt",
+      "guide": "책상 위에 펼친 수건이나 티셔츠를 접어 쌓기 · 1분 · 3~5번 · 천 전체가 화면에 보이게",
+      "purpose": "세탁·의류 물류·가사 로봇 — 모양이 바뀌는 천을 잡고 접고 펴서 누르기",
+      "objects": [
+        "towel",
+        "t-shirt"
+      ],
+      "primitives": [
+        "reach",
+        "grasp",
+        "lift",
+        "fold",
+        "press",
+        "place",
+        "release"
+      ],
+      "situations": [
+        "수건",
+        "티셔츠",
+        "반으로 두 번",
+        "3단 접기",
+        "오른손으로",
+        "왼손으로",
+        "삼각대 정면 (손·물건이 화면 가운데)",
+        "삼각대 옆에서",
+        "위에서 내려다보기 (삼각대 높게)",
+        "천천히 또렷하게",
+        "평소 속도로",
+        "놓쳤다가 다시 (실수 표시 누르기)",
+        "다른 물건으로"
+      ],
+      "industry": true
+    },
+    {
+      "id": "hang_clothes",
+      "title": "옷걸이에 옷 걸기",
+      "title_en": "Hang clothes on a hanger",
+      "guide": "티셔츠를 옷걸이에 끼우고 봉·문고리에 걸기 · 1분 · 3~5번 · 옷과 옷걸이가 다 보이게",
+      "purpose": "의류 매장·세탁 — 천을 벌려 옷걸이를 끼우는 양손 협응",
+      "objects": [
+        "t-shirt",
+        "hanger"
+      ],
+      "primitives": [
+        "reach",
+        "grasp",
+        "lift",
+        "insert",
+        "transport",
+        "place",
+        "release"
+      ],
+      "situations": [
+        "티셔츠",
+        "셔츠·후드",
+        "걸기",
+        "옷걸이에서 빼기",
+        "오른손으로",
+        "왼손으로",
+        "삼각대 정면 (손·물건이 화면 가운데)",
+        "삼각대 옆에서",
+        "위에서 내려다보기 (삼각대 높게)",
+        "천천히 또렷하게",
+        "평소 속도로",
+        "놓쳤다가 다시 (실수 표시 누르기)",
+        "다른 물건으로"
+      ],
+      "industry": true
+    },
+    {
+      "id": "pour_water",
+      "title": "컵에 물 따르기",
+      "title_en": "Pour water into a cup",
+      "guide": "병이나 주전자로 컵에 물을 반쯤 따르고 내려놓기 · 30초~1분 · 5번 · 병 입구와 컵이 보이게",
+      "purpose": "식음료·서빙·조리 로봇 — 기울기와 속도를 조절해 흘리지 않고 따르기",
+      "objects": [
+        "bottle",
+        "cup",
+        "kettle"
+      ],
+      "primitives": [
+        "reach",
+        "grasp",
+        "lift",
+        "transport",
+        "pour",
+        "place",
+        "release"
+      ],
+      "situations": [
+        "페트병",
+        "주전자",
+        "투명한 컵",
+        "머그컵",
+        "가득 / 반만",
+        "오른손으로",
+        "왼손으로",
+        "삼각대 정면 (손·물건이 화면 가운데)",
+        "삼각대 옆에서",
+        "위에서 내려다보기 (삼각대 높게)",
+        "천천히 또렷하게",
+        "평소 속도로",
+        "놓쳤다가 다시 (실수 표시 누르기)",
+        "다른 물건으로"
+      ],
+      "industry": true
+    },
+    {
+      "id": "plug_cable",
+      "title": "충전 케이블 꽂고 빼기",
+      "title_en": "Plug and unplug a cable",
+      "guide": "충전기·멀티탭에 USB·전원 케이블을 꽂았다 빼기 · 30초~1분 · 5~10번 · 꽂는 구멍이 보이게",
+      "purpose": "전자 조립·검사 — 작은 커넥터의 방향을 맞춰 끼우는 정밀 동작",
+      "objects": [
+        "cable",
+        "charger",
+        "power strip"
+      ],
+      "primitives": [
+        "reach",
+        "grasp",
+        "transport",
+        "insert",
+        "push",
+        "pull",
+        "release"
+      ],
+      "situations": [
+        "USB-C",
+        "USB-A (방향 맞추기)",
+        "전원 플러그",
+        "멀티탭",
+        "오른손으로",
+        "왼손으로",
+        "삼각대 정면 (손·물건이 화면 가운데)",
+        "삼각대 옆에서",
+        "위에서 내려다보기 (삼각대 높게)",
+        "천천히 또렷하게",
+        "평소 속도로",
+        "놓쳤다가 다시 (실수 표시 누르기)",
+        "다른 물건으로"
+      ],
+      "industry": true
+    },
+    {
+      "id": "screw_bolt",
+      "title": "드라이버로 나사 조이고 풀기",
+      "title_en": "Drive a screw with a screwdriver",
+      "guide": "나사를 구멍에 끼우고 드라이버로 조였다 풀기 · 1분 · 3~5번 · 나사 머리와 드라이버 끝이 보이게",
+      "purpose": "제조 조립 — 공구를 쥐고 돌리는 힘과 방향",
+      "objects": [
+        "screwdriver",
+        "screw",
+        "board"
+      ],
+      "primitives": [
+        "reach",
+        "grasp",
+        "insert",
+        "twist",
+        "release"
+      ],
+      "situations": [
+        "십자 드라이버",
+        "일자 드라이버",
+        "손으로 돌리기 (볼트·너트)",
+        "조이기 / 풀기",
+        "오른손으로",
+        "왼손으로",
+        "삼각대 정면 (손·물건이 화면 가운데)",
+        "삼각대 옆에서",
+        "위에서 내려다보기 (삼각대 높게)",
+        "천천히 또렷하게",
+        "평소 속도로",
+        "놓쳤다가 다시 (실수 표시 누르기)",
+        "다른 물건으로"
+      ],
+      "industry": true
+    },
+    {
+      "id": "open_drawer",
+      "title": "서랍 열고 꺼내고 닫기",
+      "title_en": "Open a drawer, take out, close",
+      "guide": "서랍을 당겨 열고 물건을 꺼내 위에 놓고 서랍을 밀어 닫기 · 30초~1분 · 5번 · 서랍 손잡이가 보이게",
+      "purpose": "가정·사무 서비스 로봇 — 가구를 당기고 미는 동작과 물건 꺼내기",
+      "objects": [
+        "drawer",
+        "cup",
+        "box"
+      ],
+      "primitives": [
+        "reach",
+        "grasp",
+        "pull",
+        "lift",
+        "transport",
+        "place",
+        "push",
+        "release"
+      ],
+      "situations": [
+        "손잡이 있는 서랍",
+        "손잡이 없는 서랍",
+        "문 달린 수납장 (여닫기)",
+        "냉장고 문",
+        "오른손으로",
+        "왼손으로",
+        "삼각대 정면 (손·물건이 화면 가운데)",
+        "삼각대 옆에서",
+        "위에서 내려다보기 (삼각대 높게)",
+        "천천히 또렷하게",
+        "평소 속도로",
+        "놓쳤다가 다시 (실수 표시 누르기)",
+        "다른 물건으로"
+      ],
+      "industry": true
     }
   ]
 }

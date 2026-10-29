@@ -78,8 +78,9 @@ WEB = config.ROOT / "web"
 
 
 class Store:
-    def __init__(self, root: Path, token: str, use_api: bool = True):
+    def __init__(self, root: Path, token: str, use_api: bool = True, collect: bool = False):
         self.root, self.token, self.use_api = root, token, use_api
+        self.collect = collect        # 모으기만: 올라온 녹화를 처리하지 않고 미션별로 보관 (나중에 --process-collected 로 한꺼번에)
         for d in ("sessions", "out", "status", "orders", "bundles"):
             (root / d).mkdir(parents=True, exist_ok=True)
         self.q: Queue = Queue()
@@ -134,6 +135,23 @@ class Store:
             self.settle(sid)
             if fin.get("state") == "done":           # 모델 진화: 검증된 라벨이 늘었으니 Glimmer 학습 데이터를 뒤에서 다시 만든다
                 threading.Thread(target=self.retrain, daemon=True).start()
+
+    def keep(self, sid: str) -> dict:
+        """모으기만 모드: 처리(가리기·라벨·학습) 없이 원본 그대로 두고 collected/<미션>/<녹화> 로 미션별 목록을 만든다."""
+        meta = json.loads((self.root / "sessions" / sid / "meta.json").read_text())
+        mid = (meta.get("mission") or {}).get("id") or "unknown"
+        d = self.root / "collected" / mid
+        d.mkdir(parents=True, exist_ok=True)
+        link = d / sid
+        if not link.exists():
+            link.symlink_to(Path("../../sessions") / sid)
+        return self.set_status(sid, state="collected", mission=mid, collected_at=datetime.now(timezone.utc).isoformat(timespec="seconds"))
+
+    def collected(self) -> list:
+        """모아 둔 녹화 [(미션, 녹화)] — 아직 처리하지 않은 것만."""
+        base = self.root / "collected"
+        return [(m.name, l.name) for m in sorted(base.iterdir()) if m.is_dir() for l in sorted(m.iterdir())
+                if self.status(l.name).get("state") == "collected"] if base.exists() else []
 
     def credit(self, a: dict) -> None:
         """인정된 추가 보상 → 그 녹화의 입금에 더한다."""
@@ -363,10 +381,15 @@ class OrderIn(QuoteIn):
     note: str = ""
 
 
-def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api: bool = True) -> FastAPI:
+def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api: bool = True, collect: bool = False,
+               process_collected: bool = False) -> FastAPI:
     root = Path(root or config.DATA / "server")
     token = token or os.environ.get("DATACASH_TOKEN") or secrets.token_urlsafe(12)
-    st = Store(root, token, use_api)
+    st = Store(root, token, use_api, collect)
+    if process_collected:                     # 모아 둔 녹화를 한꺼번에 처리 (미션 순서대로)
+        for _, sid in st.collected():
+            st.set_status(sid, state="queued")
+            st.q.put(sid)
     app = FastAPI(title="DataCash")
     app.state.store = st
 
@@ -428,6 +451,8 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
             if st.status(sid).get("originals_deleted"):
                 raise HTTPException(410, "원본은 처리가 끝나 지웠어요 — 폰에서 다시 올려야 다시 처리할 수 있어요")
             raise HTTPException(400, "video.mp4 가 필요함")
+        if st.collect and not calib:          # 모으기만: 처리하지 않고 미션별로 보관 (보정은 바로 처리 — API 를 안 쓴다)
+            return st.keep(sid)
         st.q.put(sid)
         return st.set_status(sid, state="queued")
 
@@ -928,6 +953,8 @@ def main():
     ap.add_argument("--host", default="0.0.0.0")
     ap.add_argument("--root", default=None)
     ap.add_argument("--no-api", action="store_true", help="Meta API 를 부르지 않는다 (시험용)")
+    ap.add_argument("--collect", action="store_true", help="모으기만: 올라온 녹화를 처리하지 않고 미션별로 보관")
+    ap.add_argument("--process-collected", action="store_true", help="모아 둔 녹화를 한꺼번에 처리")
     a = ap.parse_args()
     config.load_env()
     from ..meta.mask_fast import warm
@@ -937,7 +964,7 @@ def main():
     print(f"DataCash 서버 토큰: {token}  (앱 X-DC-Token, 운영자 /admin?token=)")
     beacon = advertise(a.port)
     try:
-        uvicorn.run(create_app(a.root, token, not a.no_api), host=a.host, port=a.port)
+        uvicorn.run(create_app(a.root, token, not a.no_api, a.collect, a.process_collected), host=a.host, port=a.port)
     finally:
         if beacon:
             beacon.terminate()

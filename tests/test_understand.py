@@ -62,7 +62,7 @@ def test_primitive_channel_in_lerobot(synth_session, synth_tracks, tmp_path):
 
 
 def test_missions_use_known_primitives():
-    """미션 12개의 예상 순서가 Spark 라벨 단위 안에 있고, 앱 안의 미션 목록이 서버와 같다."""
+    """미션 22개(회사용 10개 포함)의 예상 순서가 Spark 라벨 단위 안에 있고, 앱 안의 미션 목록이 서버와 같다."""
     import json
     from pathlib import Path
 
@@ -71,7 +71,7 @@ def test_missions_use_known_primitives():
     root = Path(__file__).parents[1]
     srv = json.loads((root / "datacash" / "missions.json").read_text())
     app = json.loads((root / "app" / "app" / "src" / "main" / "assets" / "missions.json").read_text())
-    assert srv == app and len(srv["missions"]) == 12
+    assert srv == app and len(srv["missions"]) == 22
     assert set(srv["primitives_ko"]) == set(PRIMITIVES)
     for m in srv["missions"]:
         assert m["primitives"][0] == "reach" and m["primitives"][-1] == "release" and set(m["primitives"]) <= set(PRIMITIVES)

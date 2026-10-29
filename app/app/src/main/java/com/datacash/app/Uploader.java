@@ -161,6 +161,7 @@ final class Uploader {
             case "rejected": return "반려";
             case "failed": return "실패";
             case "upload_failed": return "다시 올리기";
+            case "collected": return "보관됨";
             default: return "저장됨";
         }
     }
