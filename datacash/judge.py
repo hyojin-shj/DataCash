@@ -93,7 +93,7 @@ def judge(appeal: dict, status: dict, session_dir, out_dir, relabel=None, log=pr
 def review_model_name() -> str:
     from .understand import spark_open
 
-    return "Muse Spark Open (Fireworks)" if spark_open.available() else f"Muse Spark 1.3 (추론 {REASONING})"
+    return f"Muse Spark Open ({spark_open.provider_name()})" if spark_open.available() else f"Muse Spark 1.3 (추론 {REASONING})"
 
 
 def _spark_relabel(video, t0: float, t1, mission: str, detail: str) -> List[dict]:

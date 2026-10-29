@@ -354,6 +354,7 @@ function renderCosts() {
     ["남은 돈", usd(C.budget - C.total), `${pct(1 - C.total / C.budget)} 남음`],
     ["호출", (C.calls || 0) + "번", Object.keys(C.by_day || {}).length + "일 동안"],
     ["Fireworks", usd((C.fireworks || {}).total), `크레딧 ${usd((C.fireworks || {}).credit)} · 호출 ${(C.fireworks || {}).calls || 0}번 · 가격 추정`],
+    ["Baseten", usd((C.baseten || {}).total), `Spark Open 전용 크레딧 ${usd((C.baseten || {}).credit)} · 호출 ${(C.baseten || {}).calls || 0}번 · 가격 추정`],
   ].map(([k, b, e]) => `<div class="card kpi"><span>${k}</span><b>${b}</b><em>${e}</em></div>`).join("")
     + `<div class="card" style="grid-column:1/-1"><div class="bar"><i style="width:${Math.min(100, 100 * C.total / C.budget)}%"></i></div></div>`;
   const max = Math.max(...Object.values(C.by_model || {0: 1}));

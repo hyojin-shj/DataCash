@@ -873,9 +873,12 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
         from ..understand import spark_open
 
         fw = [json.loads(l) for l in spark_open.LEDGER.read_text().splitlines() if l.strip()] if spark_open.LEDGER.exists() else []
-        fireworks = {"total": round(sum(r.get("usd", 0) for r in fw), 4), "calls": len(fw), "credit": 100.0, "estimated_price": True,
-                     "recent": [{k: r.get(k) for k in ("t", "model", "usd", "what")} for r in fw[-6:]][::-1]}
-        return {"fireworks": fireworks, "total": round(sum(r.get("usd", 0) for r in rows), 4), "budget": config.API_BUDGET_USD, "calls": len(rows),
+        def credit(name):          # Spark Open 을 부른 곳마다 (예전 기록은 provider 가 없어 Fireworks)
+            rs = [r for r in fw if r.get("provider", "fireworks") == name]
+            return {"total": round(sum(r.get("usd", 0) for r in rs), 4), "calls": len(rs), "credit": 100.0, "estimated_price": True,
+                    "recent": [{k: r.get(k) for k in ("t", "model", "usd", "what")} for r in rs[-6:]][::-1]}
+
+        return {"fireworks": credit("fireworks"), "baseten": credit("baseten"), "total": round(sum(r.get("usd", 0) for r in rows), 4), "budget": config.API_BUDGET_USD, "calls": len(rows),
                 "by_model": dict(sorted(by_model.items(), key=lambda kv: -kv[1])), "by_day": by_day,
                 "recent": [{k: r.get(k) for k in ("t", "model", "usd", "what")} for r in rows[-12:]][::-1]}
 
