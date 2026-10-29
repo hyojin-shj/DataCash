@@ -35,7 +35,7 @@ def to_markdown(c: dict) -> str:
           f"- 쥐는 세기: 워치 능동 진동 + GripSense 방식(UIST 2012) 특징, 펄스 {t.get('pulses', 0)}개 (유효 {t.get('pulses_valid', 0)}), "
           f"사람별 모델 {'있음 — 교차 검증 ' + _fmt((t.get('grip_model') or {}).get('accuracy_cv'), 2) + ', 창 ' + str((t.get('grip_model') or {}).get('n_windows')) + '개' if t.get('grip_model') else '없음 (GripSense 특징만 판매)'}",
           f"- 영상 접촉 사건: {len(t.get('contact_events', []))}개 · 확인된 접촉음(소리 + 손목 충격): {len(t.get('confirmed_sounds', []))}개",
-          "- 판매 이름: '접촉 이벤트 + 워치로 잰 쥐는 세기 단계(0~3)' (촉각 센서 데이터가 아님). 손끝 압력 분포는 제공하지 않는다"]
+          "- 판매 이름: '접촉 이벤트 + 워치로 잰 쥐는 세기 하·중·상 (0~100 점수)' (촉각 센서 데이터가 아님). 손끝 압력 분포는 제공하지 않는다"]
     h = c.get("human_state")
     if h:
         L += ["", "## 몸 감각 (생체 동의)", "", "- " + ", ".join(f"{k} {v}" for k, v in h.get("physio", {}).items()),

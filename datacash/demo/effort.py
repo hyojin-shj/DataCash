@@ -40,7 +40,7 @@ def windows(fps, touch, phys, motion, step_s=0.5):
     for i in range(w, len(touch) - hz, max(1, int(step_s * fps))):
         if not (phys[i, 3] and phys[i + hz, 3]):
             continue
-        g = touch[i - w:i, 2] * touch[i - w:i, 3]     # 쥐는 세기 점수(0~3) × 있음
+        g = touch[i - w:i, 2] * 0.03 * touch[i - w:i, 3]     # 쥐는 세기 점수(0~100 → 예전 눈금 0~3) × 있음
         X.append([g.mean(), float(np.mean(touch[i - w:i, 4] == 3)), motion[i - w:i].mean(), phys[i, 2], 1.0])
         y.append(phys[i + hz, 2] - phys[i, 2])
         idx.append(i)

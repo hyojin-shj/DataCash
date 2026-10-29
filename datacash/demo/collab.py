@@ -79,7 +79,7 @@ def render(dataset, model_json, out_mp4, episode: int = 0):
     w = int(WINDOW_S * fps)
     pred, share = np.full(len(sel), np.nan), np.full(len(sel), 0.5)
     for i in range(w, len(sel)):
-        g = touch[i - w:i, 2] * touch[i - w:i, 3]     # 쥐는 세기 점수(0~3) × 있음
+        g = touch[i - w:i, 2] * 0.03 * touch[i - w:i, 3]     # 쥐는 세기 점수(0~100 → 예전 눈금 0~3) × 있음
         x = [g.mean(), float(np.mean(touch[i - w:i, 4] == 3)), motion[i - w:i].mean(), phys[i, 2], 1.0]
         pred[i] = phys[i, 2] + float(np.dot(coef, x))          # 몇 초 뒤 예상 HRR (지금 + 예상 상승)
         carrying = touch[i, 4] in (3, 4) or (touch[i, 3] > 0 and touch[i, 1] >= 2)

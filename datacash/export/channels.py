@@ -8,7 +8,7 @@
   observation.imu.phone          6  폰 가속(m/s²)·자이로(rad/s)
   observation.imu.wrist          6  손목 가속·자이로 (워치 → 폰 시계로 옮김)
   observation.audio              3  소리 세기(dBFS) · 소리 사건 시작 · 확인된 접촉음(손목 충격과 겹침)
-  observation.touch              6  접촉(0~1) · 쥐는 세기 단계(0 안 쥠·1 가볍게·2 평소처럼·3 꽉, -1 모름) · 쥐는 세기 점수(0~3 연속)
+  observation.touch              6  접촉(0~1) · 쥐는 세기 단계(0 안 쥠·1 하·2 중·3 상, -1 모름) · 쥐는 세기 점수(쥔 동안 0~100 연속, 하 0~33·중 34~66·상 67~100)
                                     · 쥐는 세기 있음 · 접촉 단계(0~5) · 물체 칸   — GripSense 방식 (UIST 2012), 사람마다 학습
   observation.touch.vibration    7  GripSense 특징: 자이로·가속도 고주파 90%값 · 울림/쉼 비율 · 4~12Hz 떨림 분산 · 있음
   observation.physio             6  심박(bpm) · 있음 · HRR(%) · 있음 · 피부온도 변화(°C) · 있음
@@ -143,7 +143,7 @@ def object_rows(objects, src, size) -> np.ndarray:
 
 
 def touch_rows(contact_frames, src, grid, grip_events, vib_events) -> tuple:
-    """grip_events: [(폰 ns, 단계 0~3, 점수)] 창(0.25초)마다. 0.5초 안에 창이 있었을 때만 쥐는 세기 있음.
+    """grip_events: [(폰 ns, 단계 0~3, 점수 0~100)] 창(0.25초)마다. 0.5초 안에 창이 있었을 때만 쥐는 세기 있음.
     vib_events: [(폰 ns, GripSense 특징 6개)]."""
     T = np.zeros((len(src), 6), np.float32)
     V = np.zeros((len(src), 7), np.float32)

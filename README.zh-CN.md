@@ -46,7 +46,7 @@ Meta Global AI Developer Hackathon（Indie Developer · Push the Frontier）参�
 无需拍手：手机↔手表时钟往返、18–20 kHz 声学信标、手表振动脉冲。在真实手机 + 手表录制中残差为 0.5–2.3 毫秒（`datacash/sync/`）。
 
 ### 3. 不用手套的触觉 —— 戴在手腕上的 GripSense
-我们把 Goel、Wobbrock、Patel 的 *GripSense*（UIST 2012）移到了手腕上。手表短暂振动；握得越紧，手吸收的振动越多 —— 陀螺仪高频能量下降，手指 4–12 Hz 的抖动上升。每个人用自评的力度（松开 · 轻 · 平常 · 紧，无需秤）训练一棵决策树，输出握力等级 0–3（`datacash/touch/`）。 在 Galaxy Watch4 上实测（IMU 最高 100 Hz，校准 1 次，用第 1 轮训练测第 2 轮，再反过来）：25 棵树的随机森林加 2 秒平滑，4 级 59%（随机 25%，紧握 100%）；视频看到手接触物体期间，轻 · 平常 · 紧 3 级为 79%。
+我们把 Goel、Wobbrock、Patel 的 *GripSense*（UIST 2012）移到了手腕上。手表短暂振动；握得越紧，手吸收的振动越多 —— 陀螺仪高频能量下降，手指 4–12 Hz 的抖动上升。每个人用自评的力度（松开 · 轻 · 平常 · 紧，无需秤）训练一棵决策树，输出握力等级 0–3（`datacash/touch/`）。 在 Galaxy Watch4 上实测（IMU 最高 100 Hz，校准 1 次，用第 1 轮训练测第 2 轮，再反过来）：25 棵树的随机森林加 2 秒平滑，4 级 59%（随机 25%，紧握 100%）；视频看到手接触物体期间，50 棵回归树给出 0–100 的握力分数（例如“中 (57)”），切成 低 · 中 · 高 准确率 88%，分数平均误差 15 分。
 心率、心跳间隔和皮肤温度来自 Samsung Health Sensor SDK（`docs/samsung_health_sdk.md`）。
 
 ### 4. 自然语言需求 → 任务
@@ -61,7 +61,7 @@ Meta Global AI Developer Hackathon（Indie Developer · Push the Frontier）参�
 ## 数据集（LeRobot v3.0）
 
 `observation.images.ego`（遮盖 + 换脸后的视频）· `observation.hands` · `observation.body` · `observation.imu.phone` · `observation.imu.wrist` ·
-`observation.audio` · **`observation.touch`**（接触、握力等级 0–3）· `observation.touch.vibration` · **`observation.physio`**（心率、皮肤温度；仅限生物信息同意者）·
+`observation.audio` · **`observation.touch`**（接触、握力 低 · 中 · 高 + 0–100 分）· `observation.touch.vibration` · **`observation.physio`**（心率、皮肤温度；仅限生物信息同意者）·
 `observation.objects` · `annotation.step` · `annotation.primitive`（reach · grasp · … · release）· `sync.error_ms` + 质量证书。
 可用真实的 `lerobot` 0.6.1 读取（`scripts/validate_lerobot.py`）。
 

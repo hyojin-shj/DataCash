@@ -46,7 +46,7 @@ Every API call is logged with its cost in `data/api_ledger.jsonl`; if the budget
 No clapping required: phone↔watch clock round-trips, an 18–20 kHz acoustic beacon, and watch vibration pulses. Residual 0.5–2.3 ms on real phone + watch recordings (`datacash/sync/`).
 
 ### 3. Touch without a glove — GripSense on the wrist
-We moved Goel, Wobbrock & Patel's *GripSense* (UIST 2012) to the wrist. The watch buzzes briefly; the tighter you grip, the more the hand absorbs it — high-frequency gyro energy drops while 4–12 Hz finger tremor rises. A per-person decision tree, trained on self-rated levels (release · light · normal · tight, no scale needed), outputs grip level 0–3 (`datacash/touch/`). Measured on a Galaxy Watch4 (IMU capped at 100 Hz, 1 calibration, train on round 1 → test on round 2 and back): a 25-tree forest with 2-second smoothing reaches 59% on 4 levels (chance 25%, tight 100%); while the video sees the hand touching an object, light · normal · tight reach 79%.
+We moved Goel, Wobbrock & Patel's *GripSense* (UIST 2012) to the wrist. The watch buzzes briefly; the tighter you grip, the more the hand absorbs it — high-frequency gyro energy drops while 4–12 Hz finger tremor rises. A per-person decision tree, trained on self-rated levels (release · light · normal · tight, no scale needed), outputs grip level 0–3 (`datacash/touch/`). Measured on a Galaxy Watch4 (IMU capped at 100 Hz, 1 calibration, train on round 1 → test on round 2 and back): a 25-tree forest with 2-second smoothing reaches 59% on 4 levels (chance 25%, tight 100%); while the video sees the hand touching an object, a 50-tree regression forest gives grip as a 0–100 score (shown as e.g. “mid (57)”) — cut into low · mid · high it is right 88% of the time, mean score error 15 points.
 Heart rate, beat-to-beat intervals and skin temperature come from the Samsung Health Sensor SDK (`docs/samsung_health_sdk.md`).
 
 ### 4. Plain-language requests → missions
@@ -61,7 +61,7 @@ A buyer types what they need; Muse Spark (structured output) designs the mission
 ## The dataset (LeRobot v3.0)
 
 `observation.images.ego` (masked + face-replaced video) · `observation.hands` · `observation.body` · `observation.imu.phone` · `observation.imu.wrist` ·
-`observation.audio` · **`observation.touch`** (contact, grip level 0–3) · `observation.touch.vibration` · **`observation.physio`** (heart rate, skin temperature; biometric consent only) ·
+`observation.audio` · **`observation.touch`** (contact, grip low · mid · high + 0–100 score) · `observation.touch.vibration` · **`observation.physio`** (heart rate, skin temperature; biometric consent only) ·
 `observation.objects` · `annotation.step` · `annotation.primitive` (reach · grasp · … · release) · `sync.error_ms` + a quality certificate.
 Loads with the real `lerobot` 0.6.1 (`scripts/validate_lerobot.py`).
 

@@ -46,7 +46,7 @@ API 호출마다 비용을 장부(`data/api_ledger.jsonl`)에 적고, 한도를 
 사용자가 손뼉 칠 필요 없이: 폰↔워치 시계 왕복, 18~20kHz 음향 비콘, 워치 진동 펄스. 실제 폰+워치 녹화에서 잔차 0.5~2.3ms (`datacash/sync/`).
 
 ### 3. 장갑 없는 촉각 — GripSense 방식
-Goel·Wobbrock·Patel, *GripSense* (UIST 2012)를 손목에 옮겼습니다. 워치가 짧게 떨리면, 세게 쥘수록 손이 떨림을 흡수해 자이로 고주파가 줄고 손가락이 버티는 4~12Hz 떨림이 커집니다. 사람마다 저울 없이 스스로 구분한 세기(놓기·가볍게·평소·꽉)로 학습한 결정 트리가 쥐는 세기 단계 0~3을 냅니다 (`datacash/touch/`). 갤럭시 워치4 실측(IMU 최대 100Hz, 보정 1회, 1회차로 배워 2회차를 맞히고 반대로도): 트리 25그루 + 2초 묶기로 4단계 59%(찍기 25%, 꽉 100%), 영상이 손-물건 닿음을 본 동안의 가볍게·평소·꽉 3단계는 79%입니다.
+Goel·Wobbrock·Patel, *GripSense* (UIST 2012)를 손목에 옮겼습니다. 워치가 짧게 떨리면, 세게 쥘수록 손이 떨림을 흡수해 자이로 고주파가 줄고 손가락이 버티는 4~12Hz 떨림이 커집니다. 사람마다 저울 없이 스스로 구분한 세기(놓기·가볍게·평소·꽉)로 학습한 결정 트리가 쥐는 세기 단계 0~3을 냅니다 (`datacash/touch/`). 갤럭시 워치4 실측(IMU 최대 100Hz, 보정 1회, 1회차로 배워 2회차를 맞히고 반대로도): 트리 25그루 + 2초 묶기로 4단계 59%(찍기 25%, 꽉 100%), 영상이 손-물건 닿음을 본 동안은 회귀 트리 50그루가 세기를 0~100 점수로 내고(예: "중 (57)"), 하·중·상으로 끊으면 88%, 점수 평균 오차 15점입니다.
 워치 심박·박동 간격·피부온도는 Samsung Health Sensor SDK 로 (`docs/samsung_health_sdk.md`).
 
 ### 4. 말로 의뢰 → 미션
@@ -61,7 +61,7 @@ Goel·Wobbrock·Patel, *GripSense* (UIST 2012)를 손목에 옮겼습니다. 워
 ## 판매 데이터 (LeRobot v3.0)
 
 `observation.images.ego` (가린·치환 영상) · `observation.hands` · `observation.body` · `observation.imu.phone` · `observation.imu.wrist` ·
-`observation.audio` · **`observation.touch`** (접촉·쥐는 세기 0~3) · `observation.touch.vibration` · **`observation.physio`** (심박·피부온도, 생체 동의만) ·
+`observation.audio` · **`observation.touch`** (접촉·쥐는 세기 하·중·상 + 0~100 점수) · `observation.touch.vibration` · **`observation.physio`** (심박·피부온도, 생체 동의만) ·
 `observation.objects` · `annotation.step` · `annotation.primitive` (reach·grasp·…·release) · `sync.error_ms` + 품질 인증서.
 실제 `lerobot` 0.6.1 로 읽힙니다 (`scripts/validate_lerobot.py`).
 

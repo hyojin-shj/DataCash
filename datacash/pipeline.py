@@ -1,7 +1,7 @@
 """녹화 세션 하나 → 4감 LeRobot 데이터셋 + 품질 인증서.
 
   1. 4감 자동 동기화 (워치 시계 → 폰 시계)
-  2. 촉각: 능동 진동 반응 → 저울 보정 → 쥐는 힘 / 영상 접촉 단계 / 접촉음 + 손목 충격
+  2. 촉각: 능동 진동 반응 → 사람별 보정(GripSense) → 쥐는 세기 하·중·상 + 0~100 / 영상 접촉 단계 / 접촉음 + 손목 충격
   3. 몸 감각: 심박·HRR·피부온도 변화 (생체 동의만)
   4. 손·몸 관절 (주어지지 않으면 MediaPipe 로 뽑는다)
   5. 장면 격자에 모아 내보내기 (등급별 채널) + 인증서
@@ -27,7 +27,7 @@ from .session import load_session
 from .sync import align_session
 from .touch.contact import contact_phases, phase_events
 from .touch.sounds import audio_onsets, confirmed_contacts, wrist_impacts
-from .touch.gripsense import LEVELS, GripModel, labels_for, train, window_features
+from .touch.gripsense import GRADES, LEVELS, GripModel, labels_for, train, window_features
 from .touch.vibration import pulse_responses
 
 FINGERTIPS = [4, 8, 12, 16, 20]
@@ -102,7 +102,7 @@ def process(session_dir, out_dir, level: str = "bio", fps: float = 30.0, masked_
             held = None
             if cframes and s.frame_ns is not None and len(s.frame_ns) == len(cframes):   # 영상: 창 시각에 손이 물건에 닿았나
                 fi = np.clip(np.searchsorted(s.frame_ns, tp), 0, len(cframes) - 1)
-                held = np.array([cframes[i].contact >= 1.0 for i in fi])
+                held = np.array([(1 if cframes[i].contact >= 1.0 else 0) if objects[i] else -1 for i in fi])   # 물체가 안 보인 장면은 모름
             lv, score = model.predict(win.x, win.t_ns, held)
             grip = [(int(t), int(l), float(sc)) for t, l, sc, o in zip(tp, lv, score, ok) if o]
         vib = [(int(t), *[float(v) for v in x[:6]]) for t, x, o in zip(tp, win.x, ok) if o]      # 보내는 특징 6개
@@ -195,7 +195,7 @@ def process(session_dir, out_dir, level: str = "bio", fps: float = 30.0, masked_
             "outcome": {**(s.meta.get("outcome") or {}),
                         "self_marks_s": [round(float((t - grid[0]) / 1e9), 2) for t in marks if grid[0] <= t <= grid[-1]]},
             "sync": al.to_dict(),
-            "touch": {"grip_model": model.to_dict() if model else None, "grip_levels": LEVELS,
+            "touch": {"grip_model": model.to_dict() if model else None, "grip_levels": GRADES, "grip_score": "쥔 동안 0~100 (하 0~33 · 중 34~66 · 상 67~100)",
                       "contact_events": phase_events(cframes, (frame_ns - frame_ns[0]) / 1e9 - t0) if cframes else [],
                       "confirmed_sounds": [round((e["t_ns"] - grid[0]) / 1e9, 3) for e in confirmed if grid[0] <= e["t_ns"] <= grid[-1]]},
             "human_state": {"physio": phys["summary"], "self_report": s.meta.get("self_report")} if phys else None,

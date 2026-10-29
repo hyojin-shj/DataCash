@@ -24,7 +24,9 @@
   워치4 IMU 는 하드웨어 최대 100Hz (논문 1kHz) → 모터 떨림은 거의 걸러지고, 진동 명령→실제 울림 지연도 20~80ms 로 흔들린다.
   결정 트리 하나·창 하나: 4단계 47%. 트리 25그루(forest) + 2초 묶기: 4단계 58% (꽉 100%, 안 쥠 32%).
   '안 쥠' 이 가장 흔들린다 (손을 편 자세가 매번 달라 진동이 퍼지는 모양이 바뀐다) → 쥐었는지는 영상의 손-물건 닿음이 정하고,
-  쥔 동안만 가볍게·평소·꽉 3단계를 따로 배운 트리로 가린다: 82% (트리 하나 63%).
+  쥔 동안은 세기를 0~100 점수로 바로 배운 회귀 트리 50그루가 낸다 (가볍게 0 · 평소 50 · 꽉 100 으로 배움).
+  점수를 하(0~33)·중(34~66)·상(67~100)으로 끊으면 88% (단계로 분류하는 트리 묶음 80%, 트리 하나 63%), 점수 평균 오차 15점.
+  ('안 쥠' 창으로 기준을 맞추는 정규화는 오히려 55% 로 떨어져 쓰지 않는다.)
 """
 
 from __future__ import annotations
@@ -39,6 +41,7 @@ WIN_S, HOP_S = 0.5, 0.25
 SMOOTH_S = 2.0         # 창 확률을 앞뒤 2초 평균 (쥐는 세기는 천천히 바뀐다 — 창 하나는 흔들린다)
 N_TREES = 25
 LEVELS = ["안 쥠", "가볍게", "평소처럼", "꽉"]
+GRADES = ["안 쥠", "하", "중", "상"]       # 보여 줄 때: 쥔 동안은 하·중·상 + 0~100 점수 (예: 중 (57))
 FEATURES = ["hf_p90_gyro", "hf_p90_acc", "hf_ratio_gyro", "hf_ratio_acc", "lf_var_gyro", "lf_var_acc", "motor_on", "arm_motion", "valid"]
 MODEL_FEATURES = FEATURES[:6]
 HF_ONLY = 4            # 앞 4개 = 고주파(모터 흡수) 특징
@@ -155,6 +158,49 @@ class Forest:
         return Forest([Tree.from_sklearn(e.tree_, rf.classes_) for e in rf.estimators_])
 
 
+@dataclass
+class RegForest:
+    """회귀 트리 묶음 — 잎마다 점수(0~100), 트리 평균."""
+    feature: list
+    threshold: list
+    left: list
+    right: list
+    value: list             # 트리마다 [마디별 점수]
+
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        out = np.zeros(len(X), np.float32)
+        for f, th, l, r, v in zip(self.feature, self.threshold, self.left, self.right, self.value):
+            for i, x in enumerate(X):
+                node = 0
+                while l[node] != -1:
+                    node = l[node] if x[f[node]] <= th[node] else r[node]
+                out[i] += v[node]
+        return out / max(1, len(self.value))
+
+    def to_dict(self) -> dict:
+        return {"feature": self.feature, "threshold": self.threshold, "left": self.left, "right": self.right, "value": self.value}
+
+    @staticmethod
+    def fit(X, score, seed=0) -> "RegForest":
+        from sklearn.ensemble import RandomForestRegressor
+
+        rf = RandomForestRegressor(2 * N_TREES, max_depth=6, min_samples_leaf=2, random_state=seed).fit(X, score)
+        ts = [e.tree_ for e in rf.estimators_]
+        return RegForest([t.feature.tolist() for t in ts], [[float(v) for v in t.threshold] for t in ts],
+                         [t.children_left.tolist() for t in ts], [t.children_right.tolist() for t in ts],
+                         [[float(v) for v in t.value[:, 0, 0]] for t in ts])
+
+
+def level_of(score: float) -> int:
+    """0~100 점수 → 1 하 · 2 중 · 3 상."""
+    return 1 if score < 100 / 3 else (2 if score < 200 / 3 else 3)
+
+
+def grade_text(level: int, score: Optional[float]) -> str:
+    """'중 (57)' · 안 쥐었으면 '안 쥠'."""
+    return GRADES[0] if level <= 0 or score is None else f"{GRADES[level]} ({int(round(score))})"
+
+
 def _smooth(p: np.ndarray, t_ns: Optional[np.ndarray]) -> np.ndarray:
     """창 확률을 앞뒤 SMOOTH_S/2 초 평균."""
     if t_ns is None or len(p) < 2:
@@ -178,6 +224,9 @@ class GripModel:
     held: Optional[Forest] = None
     held_hf: Optional[Forest] = None
     accuracy_held_cv: float = float("nan")
+    score: Optional[RegForest] = None          # 쥔 동안 세기 0~100 (가볍게 0 · 평소 50 · 꽉 100 으로 배움)
+    score_hf: Optional[RegForest] = None
+    score_mae: float = float("nan")
 
     def _switch(self, full: Forest, hf: Forest, X: np.ndarray) -> np.ndarray:
         moving = X[:, ARM] > self.arm_limit
@@ -200,24 +249,55 @@ class GripModel:
             return out
         return _smooth(self._switch(self.full, self.hf, X), t_ns)
 
+    def held_score(self, X: np.ndarray, t_ns: Optional[np.ndarray] = None) -> np.ndarray:
+        """쥔 창들의 세기 0~100 (2초 묶기). 회귀 트리가 없는 예전 보정은 3단계 확률의 기댓값으로."""
+        X = np.asarray(X, np.float32)
+        if self.score is not None:
+            moving = X[:, ARM] > self.arm_limit
+            sc = np.zeros(len(X), np.float32)
+            if (~moving).any():
+                sc[~moving] = self.score.predict(X[~moving][:, :len(MODEL_FEATURES)])
+            if moving.any():
+                sc[moving] = self.score_hf.predict(X[moving][:, :HF_ONLY])
+            return np.clip(_smooth(sc[:, None], t_ns)[:, 0], 0, 100)
+        if self.held is not None:
+            p = _smooth(self._switch(self.held, self.held_hf, X), t_ns)
+        else:
+            p = _smooth(self._switch(self.full, self.hf, X), t_ns)
+        p = p[:, 1:] / np.maximum(p[:, 1:].sum(1, keepdims=True), 1e-6)
+        return p @ np.array([0, 50, 100], np.float32)
+
     def predict(self, X: np.ndarray, t_ns: Optional[np.ndarray] = None, held: Optional[np.ndarray] = None):
-        """(단계 0~3, 연속 점수 = 단계 기댓값). t_ns(창 시각)를 주면 2초 묶어 본다."""
-        p = self.proba(X, t_ns, held)
-        return p.argmax(1), p @ np.arange(len(LEVELS), dtype=np.float32)
+        """(단계 0 안 쥠 · 1 하 · 2 중 · 3 상, 세기 0~100 — 안 쥐었으면 0). t_ns(창 시각)를 주면 2초 묶어 본다.
+        held(영상의 손-물건 닿음: 1·0·-1 모름)가 없거나 모름인 창은 4단계 트리 묶음이 '안 쥠' 인지 정한다."""
+        X = np.asarray(X, np.float32)
+        h = np.full(len(X), -1, int) if held is None else np.asarray(held, int)   # 1 닿음 · 0 안 닿음 · -1 모름 (영상에 물체가 없었음)
+        if (h < 0).any():
+            h[h < 0] = (self.proba(X, t_ns).argmax(1) > 0)[h < 0]
+        held = h > 0
+        lv, sc = np.zeros(len(X), int), np.zeros(len(X), np.float32)
+        if held.any():
+            sc[held] = self.held_score(X[held], None if t_ns is None else np.asarray(t_ns)[held])
+            lv[held] = [level_of(v) for v in sc[held]]
+        return lv, sc
 
     def to_dict(self) -> dict:
         return {"method": "gripsense", "features": MODEL_FEATURES, "levels": LEVELS, "full": self.full.to_dict(),
                 "hf_only": self.hf.to_dict(), "held": self.held.to_dict() if self.held else None,
                 "held_hf": self.held_hf.to_dict() if self.held_hf else None, "arm_limit": self.arm_limit,
                 "accuracy_cv": round(self.accuracy_cv, 3),
-                "accuracy_held_cv": None if np.isnan(self.accuracy_held_cv) else round(self.accuracy_held_cv, 3), "n_windows": self.n}
+                "accuracy_held_cv": None if np.isnan(self.accuracy_held_cv) else round(self.accuracy_held_cv, 3),
+                "score": self.score.to_dict() if self.score else None, "score_hf": self.score_hf.to_dict() if self.score_hf else None,
+                "score_mae": None if np.isnan(self.score_mae) else round(self.score_mae, 1), "n_windows": self.n}
 
     @staticmethod
     def from_dict(d: dict) -> "GripModel":
         opt = lambda k: Forest.from_dict(d[k]) if d.get(k) else None      # noqa: E731
         return GripModel(Forest.from_dict(d["full"]), Forest.from_dict(d["hf_only"]), float(d["arm_limit"]),
                          float(d.get("accuracy_cv", 0)), int(d.get("n_windows", 0)), opt("held"), opt("held_hf"),
-                         float(d["accuracy_held_cv"]) if d.get("accuracy_held_cv") is not None else float("nan"))
+                         float(d["accuracy_held_cv"]) if d.get("accuracy_held_cv") is not None else float("nan"),
+                         RegForest(**d["score"]) if d.get("score") else None, RegForest(**d["score_hf"]) if d.get("score_hf") else None,
+                         float(d["score_mae"]) if d.get("score_mae") is not None else float("nan"))
 
 
 def _cv(X, y, seed) -> float:
@@ -232,9 +312,22 @@ def _cv(X, y, seed) -> float:
                                          X, y, cv=folds)))
 
 
+def _cv_score(X, y, seed) -> tuple:
+    """쥔 동안 점수 회귀의 교차 검증: (하·중·상 정확도, 점수 평균 오차). 창 하나씩, 묶기 전."""
+    from sklearn.ensemble import RandomForestRegressor
+    from sklearn.model_selection import KFold, cross_val_predict
+
+    if len(X) < 10:
+        return float("nan"), float("nan")
+    target = (y - 1) * 50.0
+    pred = cross_val_predict(RandomForestRegressor(2 * N_TREES, max_depth=6, min_samples_leaf=2, random_state=seed), X, target,
+                             cv=KFold(5, shuffle=True, random_state=seed))
+    return float(np.mean([level_of(v) for v in pred] == y)), float(np.mean(np.abs(pred - target)))
+
+
 def train(win: Windows, y: np.ndarray, seed: int = 0) -> Optional[GripModel]:
-    """트리 25그루 묶음 (깊이 ≤ 6, 잎 ≥ 2창): 4단계 · 쥔 동안 3단계 각각 전체 특징·고주파만.
-    교차 검증 정확도(창 하나씩, 묶기 전)를 같이 남긴다."""
+    """트리 25그루 묶음 (깊이 ≤ 6, 잎 ≥ 2창): 4단계 · 쥔 동안 3단계 각각 전체 특징·고주파만,
+    쥔 동안 세기 0~100 회귀 트리 50그루 (가볍게 0 · 평소 50 · 꽉 100). 교차 검증(창 하나씩, 묶기 전)을 같이 남긴다."""
     ok = y >= 0
     X, y = win.x[ok], y[ok]
     if len(X) < 12 or len(set(y.tolist())) < 2:
@@ -242,8 +335,12 @@ def train(win: Windows, y: np.ndarray, seed: int = 0) -> Optional[GripModel]:
     F = len(MODEL_FEATURES)
     arm_limit = float(np.percentile(X[:, ARM], 95) * 2 + 1e-6)
     h = y > 0
-    held = held_hf = None
+    held = held_hf = score = score_hf = None
+    acc_h, mae = float("nan"), float("nan")
     if h.sum() >= 12 and len(set(y[h].tolist())) >= 2:
         held, held_hf = Forest.fit(X[h][:, :F], y[h], seed), Forest.fit(X[h][:, :HF_ONLY], y[h], seed)
+        target = (y[h] - 1) * 50.0
+        score, score_hf = RegForest.fit(X[h][:, :F], target, seed), RegForest.fit(X[h][:, :HF_ONLY], target, seed)
+        acc_h, mae = _cv_score(X[h][:, :F], y[h], seed)
     return GripModel(Forest.fit(X[:, :F], y, seed), Forest.fit(X[:, :HF_ONLY], y, seed), arm_limit, _cv(X[:, :F], y, seed),
-                     int(len(X)), held, held_hf, _cv(X[h][:, :F], y[h], seed) if held else float("nan"))
+                     int(len(X)), held, held_hf, acc_h, score, score_hf, mae)

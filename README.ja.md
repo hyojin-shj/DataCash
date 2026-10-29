@@ -46,7 +46,7 @@ API を呼ぶたびに費用を `data/api_ledger.jsonl` に記録し、上限を
 手をたたく必要はありません：スマホ↔ウォッチの時計の往復、18〜20 kHz の音響ビーコン、ウォッチの振動パルス。実際のスマホ + ウォッチの録画で残差 0.5〜2.3 ミリ秒（`datacash/sync/`）。
 
 ### 3. 手袋なしの触覚 —— 手首の GripSense
-Goel・Wobbrock・Patel の *GripSense*（UIST 2012）を手首に移しました。ウォッチが短く振動すると、強く握るほど手が振動を吸収し、ジャイロの高周波が減り、指が踏ん張る 4〜12 Hz の震えが増えます。一人ひとりが自分で区別した強さ（離す・軽く・ふつう・ぎゅっと、はかり不要）で学習した決定木が、握る力のレベル 0〜3 を出します（`datacash/touch/`）。 Galaxy Watch4 で実測（IMU は最大 100 Hz、キャリブレーション 1 回、1 回目で学習して 2 回目を当て、逆も）：決定木 25 本 + 2 秒まとめで 4 段階 59%（当てずっぽう 25%、ぎゅっと 100%）、映像が手と物の接触を見ている間の 軽く・ふつう・ぎゅっと 3 段階は 79%。
+Goel・Wobbrock・Patel の *GripSense*（UIST 2012）を手首に移しました。ウォッチが短く振動すると、強く握るほど手が振動を吸収し、ジャイロの高周波が減り、指が踏ん張る 4〜12 Hz の震えが増えます。一人ひとりが自分で区別した強さ（離す・軽く・ふつう・ぎゅっと、はかり不要）で学習した決定木が、握る力のレベル 0〜3 を出します（`datacash/touch/`）。 Galaxy Watch4 で実測（IMU は最大 100 Hz、キャリブレーション 1 回、1 回目で学習して 2 回目を当て、逆も）：決定木 25 本 + 2 秒まとめで 4 段階 59%（当てずっぽう 25%、ぎゅっと 100%）、映像が手と物の接触を見ている間は回帰木 50 本が握る強さを 0〜100 の点数で出し（例：「中 (57)」）、低・中・高に区切ると 88%、点数の平均誤差 15 点。
 心拍・拍動間隔・皮膚温度は Samsung Health Sensor SDK から（`docs/samsung_health_sdk.md`）。
 
 ### 4. ふつうの言葉の依頼 → ミッション
@@ -61,7 +61,7 @@ Goel・Wobbrock・Patel の *GripSense*（UIST 2012）を手首に移しまし�
 ## データセット（LeRobot v3.0）
 
 `observation.images.ego`（隠した + 顔を置き換えた映像）· `observation.hands` · `observation.body` · `observation.imu.phone` · `observation.imu.wrist` ·
-`observation.audio` · **`observation.touch`**（接触、握る力のレベル 0〜3）· `observation.touch.vibration` · **`observation.physio`**（心拍、皮膚温度。生体情報に同意した人のみ）·
+`observation.audio` · **`observation.touch`**（接触、握る強さ 低・中・高 + 0〜100 点）· `observation.touch.vibration` · **`observation.physio`**（心拍、皮膚温度。生体情報に同意した人のみ）·
 `observation.objects` · `annotation.step` · `annotation.primitive`（reach · grasp · … · release）· `sync.error_ms` + 品質証明書。
 実際の `lerobot` 0.6.1 で読み込めます（`scripts/validate_lerobot.py`）。
 

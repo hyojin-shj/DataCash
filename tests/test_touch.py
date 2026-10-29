@@ -8,7 +8,7 @@ from datacash.session import load_session
 from datacash.sync import align_session
 from datacash.touch.contact import contact_phases, phase_events
 from datacash.touch.sounds import audio_onsets, confirmed_contacts, wrist_impacts
-from datacash.touch.gripsense import GripModel, labels_for, train, window_features
+from datacash.touch.gripsense import GripModel, grade_text, labels_for, train, window_features
 from datacash.touch.vibration import pulse_responses
 
 
@@ -39,7 +39,8 @@ def test_gripsense_levels_from_self_rated_calibration(synth_session):
     tau = (w.t_ns - W0) / 1e9
     lv, score = model.predict(w.x)
     held, free = (tau > 6.5) & (tau < 9.5), tau > 16.5
-    assert np.bincount(lv[held], minlength=4).argmax() == 2 and 1.5 < score[held].mean() < 2.5   # 8N → 평소처럼
+    assert np.bincount(lv[held], minlength=4).argmax() == 2 and 34 < score[held].mean() < 66     # 8N → 중 (34~66점)
+    assert grade_text(2, 57.4) == "중 (57)" and grade_text(0, 0) == "안 쥠"
     assert (lv[free] == 0).mean() > 0.8
     again = GripModel.from_dict(json.loads(json.dumps(model.to_dict())))                        # JSON 으로 저장해도 같다
     assert (again.predict(w.x)[0] == lv).all()

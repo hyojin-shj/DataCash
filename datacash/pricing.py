@@ -33,7 +33,7 @@ SENSORS = {
              ["observation.hands", "observation.hands_present", "observation.body", "observation.body_world"], ["observation.hands"]),
     "audio": ("소리", "들리는 소리 세기 · 소리 사건 · 확인된 접촉음", 5_000, ["observation.audio"], ["observation.audio"]),
     "wrist": ("손목 IMU", "워치 가속도·자이로 (ms 동기화)", 15_000, ["observation.imu.wrist"], ["observation.imu.wrist"]),
-    "touch": ("촉각", "접촉 단계 · 쥐는 세기 단계 0~3 · GripSense 특징 (워치 능동 진동)", 25_000,
+    "touch": ("촉각", "접촉 단계 · 쥐는 세기 하·중·상 + 0~100 점수 · GripSense 특징 (워치 능동 진동)", 25_000,
               ["observation.touch", "observation.touch.vibration"], ["observation.touch.vibration"]),
     "physio": ("생체", "심박 · HRR · 피부온도 변화 + 미션 후 본인 응답 (생체 동의 녹화만)", 50_000,
                ["observation.physio"], ["observation.physio"]),
