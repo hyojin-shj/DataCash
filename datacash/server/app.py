@@ -151,7 +151,8 @@ class Store:
         """모아 둔 녹화 [(미션, 녹화)] — 아직 처리하지 않은 것만."""
         base = self.root / "collected"
         return [(m.name, l.name) for m in sorted(base.iterdir()) if m.is_dir() for l in sorted(m.iterdir())
-                if self.status(l.name).get("state") in ("collected", "uploading")] if base.exists() else []   # uploading: 예전 서버가 늦은 워치 파일로 덮어쓴 것
+                if self.status(l.name).get("state") in ("collected", "uploading", "queued", "processing")] if base.exists() else []
+        # uploading: 예전 서버가 늦은 워치 파일로 덮어쓴 것 · queued/processing: 처리 중에 서버를 다시 켰을 때
 
     def credit(self, a: dict) -> None:
         """인정된 추가 보상 → 그 녹화의 입금에 더한다."""

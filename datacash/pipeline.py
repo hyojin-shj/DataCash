@@ -100,8 +100,9 @@ def process(session_dir, out_dir, level: str = "bio", fps: float = 30.0, masked_
         ok = win.x[:, 8] > 0.5
         if model is not None:
             held = None
-            if cframes and s.frame_ns is not None and len(s.frame_ns) == len(cframes):   # 영상: 창 시각에 손이 물건에 닿았나
-                fi = np.clip(np.searchsorted(s.frame_ns, tp), 0, len(cframes) - 1)
+            n = min(len(cframes), len(objects)) if cframes and objects is not None else 0
+            if n and s.frame_ns is not None and abs(len(s.frame_ns) - n) <= max(3, n // 100):   # 영상: 창 시각에 손이 물건에 닿았나
+                fi = np.clip(np.searchsorted(s.frame_ns, tp), 0, n - 1)                 # (영상 장면 수와 시각 기록이 1~2장 다를 수 있다)
                 held = np.array([(1 if cframes[i].contact >= 1.0 else 0) if objects[i] else -1 for i in fi])   # 물체가 안 보인 장면은 모름
             lv, score = model.predict(win.x, win.t_ns, held)
             grip = [(int(t), int(l), float(sc)) for t, l, sc, o in zip(tp, lv, score, ok) if o]
