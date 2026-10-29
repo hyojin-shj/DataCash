@@ -46,7 +46,7 @@ Every API call is logged with its cost in `data/api_ledger.jsonl`; if the budget
 No clapping required: phone↔watch clock round-trips, an 18–20 kHz acoustic beacon, and watch vibration pulses. Residual 0.5–2.3 ms on real phone + watch recordings (`datacash/sync/`).
 
 ### 3. Touch without a glove — GripSense on the wrist
-We moved Goel, Wobbrock & Patel's *GripSense* (UIST 2012) to the wrist. The watch buzzes briefly; the tighter you grip, the more the hand absorbs it — high-frequency gyro energy drops while 4–12 Hz finger tremor rises. A per-person decision tree, trained on self-rated levels (release · light · normal · tight, no scale needed), outputs grip level 0–3 (`datacash/touch/`).
+We moved Goel, Wobbrock & Patel's *GripSense* (UIST 2012) to the wrist. The watch buzzes briefly; the tighter you grip, the more the hand absorbs it — high-frequency gyro energy drops while 4–12 Hz finger tremor rises. A per-person decision tree, trained on self-rated levels (release · light · normal · tight, no scale needed), outputs grip level 0–3 (`datacash/touch/`). Measured on a Galaxy Watch4 (IMU capped at 100 Hz, 1 calibration, train on round 1 → test on round 2 and back): a 25-tree forest with 2-second smoothing reaches 59% on 4 levels (chance 25%, tight 100%); while the video sees the hand touching an object, light · normal · tight reach 79%.
 Heart rate, beat-to-beat intervals and skin temperature come from the Samsung Health Sensor SDK (`docs/samsung_health_sdk.md`).
 
 ### 4. Plain-language requests → missions

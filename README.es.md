@@ -46,7 +46,7 @@ Cada llamada a la API se registra con su costo en `data/api_ledger.jsonl`; si se
 Sin aplaudir: ida y vuelta del reloj teléfono↔reloj, una baliza acústica de 18–20 kHz y pulsos de vibración del reloj. Error residual de 0,5–2,3 ms en grabaciones reales con teléfono + reloj (`datacash/sync/`).
 
 ### 3. Tacto sin guante — GripSense en la muñeca
-Trasladamos *GripSense* de Goel, Wobbrock y Patel (UIST 2012) a la muñeca. El reloj vibra brevemente; cuanto más fuerte agarras, más vibración absorbe la mano — baja la energía de alta frecuencia del giroscopio y sube el temblor de 4–12 Hz de los dedos. Un árbol de decisión por persona, entrenado con niveles autoevaluados (soltar · suave · normal · fuerte, sin báscula), da el nivel de agarre 0–3 (`datacash/touch/`).
+Trasladamos *GripSense* de Goel, Wobbrock y Patel (UIST 2012) a la muñeca. El reloj vibra brevemente; cuanto más fuerte agarras, más vibración absorbe la mano — baja la energía de alta frecuencia del giroscopio y sube el temblor de 4–12 Hz de los dedos. Un árbol de decisión por persona, entrenado con niveles autoevaluados (soltar · suave · normal · fuerte, sin báscula), da el nivel de agarre 0–3 (`datacash/touch/`). Medido en un Galaxy Watch4 (IMU limitado a 100 Hz, 1 calibración, entrenar en la ronda 1 → probar en la 2 y al revés): un bosque de 25 árboles con suavizado de 2 s llega al 59% en 4 niveles (azar 25%, fuerte 100%); mientras el vídeo ve la mano tocando un objeto, suave · normal · fuerte llega al 79%.
 La frecuencia cardíaca, los intervalos entre latidos y la temperatura de la piel vienen del Samsung Health Sensor SDK (`docs/samsung_health_sdk.md`).
 
 ### 4. Peticiones en lenguaje natural → misiones

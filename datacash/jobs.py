@@ -85,7 +85,7 @@ def run_calibration(sd: Path, out: Path, store: Path) -> dict:
     store.mkdir(parents=True, exist_ok=True)
     (store / f"{key}.json").write_text(json.dumps({**model.to_dict(), "session": sd.name, "sync": al.to_dict()["chosen"]}))
     rep = {"session_id": sd.name, "mission": "grip_calibration", "key": key, "reward": 0, "level": "calibration", "minutes": 0,
-           "calibration": {"method": "gripsense", "accuracy_cv": round(model.accuracy_cv, 3), "n_windows": model.n},
+           "calibration": {"method": "gripsense", "accuracy_cv": round(model.accuracy_cv, 3), "accuracy_held_cv": model.to_dict()["accuracy_held_cv"], "n_windows": model.n},
            "sync": al.to_dict()["chosen"]}
     (out / "job.json").write_text(json.dumps(rep, indent=2, ensure_ascii=False))
     return rep

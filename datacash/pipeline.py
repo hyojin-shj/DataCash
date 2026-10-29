@@ -88,20 +88,24 @@ def process(session_dir, out_dir, level: str = "bio", fps: float = 30.0, masked_
         model = train(win, labels_for(win, segs))
     if model is None and grip_calibration and grip_calibration.get("method") == "gripsense":
         model = GripModel.from_dict(grip_calibration)        # 이 사람·이 워치로 미리 해 둔 보정
-    grip, vib = [], []
-    if wrist_ok and win is not None and len(win.t_ns):
-        tp = m(win.t_ns)
-        ok = win.x[:, 8] > 0.5
-        if model is not None:
-            lv, score = model.predict(win.x)
-            grip = [(int(t), int(l), float(sc)) for t, l, sc, o in zip(tp, lv, score, ok) if o]
-        vib = [(int(t), *[float(v) for v in x[:6]]) for t, x, o in zip(tp, win.x, ok) if o]      # 보내는 특징 6개
     if labels is None and extract and video is not None:
         from .labels import extract_labels
 
         labels = extract_labels(s.video_path or video)
     pts = hand_points if hand_points is not None else _fingertips(labels)
     cframes = contact_phases(pts, objects, fps) if objects is not None and pts else None
+    grip, vib = [], []
+    if wrist_ok and win is not None and len(win.t_ns):
+        tp = m(win.t_ns)
+        ok = win.x[:, 8] > 0.5
+        if model is not None:
+            held = None
+            if cframes and s.frame_ns is not None and len(s.frame_ns) == len(cframes):   # 영상: 창 시각에 손이 물건에 닿았나
+                fi = np.clip(np.searchsorted(s.frame_ns, tp), 0, len(cframes) - 1)
+                held = np.array([cframes[i].contact >= 1.0 for i in fi])
+            lv, score = model.predict(win.x, win.t_ns, held)
+            grip = [(int(t), int(l), float(sc)) for t, l, sc, o in zip(tp, lv, score, ok) if o]
+        vib = [(int(t), *[float(v) for v in x[:6]]) for t, x, o in zip(tp, win.x, ok) if o]      # 보내는 특징 6개
     onsets = audio_onsets(s.audio.x, s.audio.rate, s.audio.start_ns) if s.audio is not None else []
     impacts = []
     if wrist_ok:
@@ -210,7 +214,7 @@ def process(session_dir, out_dir, level: str = "bio", fps: float = 30.0, masked_
                     "features": sorted(k for k in info["features"] if k not in ("timestamp", "frame_index", "episode_index", "index", "task_index"))},
         "sync": al.to_dict(),
         "touch": {"pulses": len(responses), "pulses_valid": sum(r.valid for r in responses),
-                  "grip_model": {"method": "gripsense", "accuracy_cv": round(model.accuracy_cv, 3), "n_windows": model.n} if model else None,
+                  "grip_model": {"method": "gripsense", "accuracy_cv": round(model.accuracy_cv, 3), "accuracy_held_cv": model.to_dict()["accuracy_held_cv"], "n_windows": model.n} if model else None,
                   "contact_events": eps[0].info["touch"]["contact_events"] if eps else [],
                   "confirmed_sounds": eps[0].info["touch"]["confirmed_sounds"] if eps else []},
         "human_state": eps[0].info["human_state"] if eps else None,
