@@ -300,6 +300,10 @@ def _fit(sensors: list, budget: float, custom: bool, rarity: float = 1.0, cap: f
     return int(lo * 10) / 10       # 내림 (반올림하면 예산을 조금 넘는다)
 
 
+MIN_REUSE_HOURS = 1.0     # 보관 데이터가 이보다 적으면 기존·섞기를 내놓지 않는다 (2분짜리 ₩3,000 같은 선택지는 의미가 없다)
+REUSE_SHARE = 0.1         # 섞기: 보관 데이터가 전체의 10% 는 넘어야
+
+
 def options(plan: dict, catalog: dict) -> dict:
     """기존 데이터 · 신규 수집 · 섞기 — 예산·보관량·참여 조건을 보고 추천.
     기존: 보관 중인 같은 미션 데이터를 판매가로 (착수비 없음, 바로 받음). 참여 조건이 특별하면 기존 데이터로는 못 맞춘다.
@@ -316,7 +320,7 @@ def options(plan: dict, catalog: dict) -> dict:
     restricted = rar_key != "normal" or (plan.get("eligibility") or {}).get("age_bands", AGE_BANDS) != list(AGE_BANDS) \
         or (plan.get("eligibility") or {}).get("gender", "any") != "any"
     out = {}
-    if stock > 0 and not restricted:
+    if stock >= MIN_REUSE_HOURS and not restricted:
         h = min(stock, want) if want else (min(stock, _fit(sensors, budget, False)) if budget else stock)
         q = pricing.quote(h, sensors=sensors)
         out["existing"] = {**q, "stock_hours": stock, "missions": ids, "delivery": "now"}
@@ -327,7 +331,7 @@ def options(plan: dict, catalog: dict) -> dict:
     else:
         nh = float(pricing.CUSTOM_MIN_HOURS)
     out["new"] = {**pricing.quote(nh, custom=True, sensors=sensors, rarity=rar), "delivery": "collect"}
-    if "existing" in out and out["existing"]["hours"] < (want or 1e9):
+    if "existing" in out and out["existing"]["hours"] < (want or 1e9) and (not want or stock >= REUSE_SHARE * want):
         ex = pricing.quote(stock, sensors=sensors)
         if want:
             rest = max(pricing.CUSTOM_MIN_HOURS, want - stock)
@@ -346,7 +350,7 @@ def options(plan: dict, catalog: dict) -> dict:
             out["mix"].update(hours=round(stock + nq["hours"], 2), new_hours=nq["hours"], total=ex["total"] + nq["total"], new=nq)
     within = lambda o: budget <= 0 or o["total"] <= budget * 1.001  # noqa: E731
     if restricted or "existing" not in out:
-        rec, why = "new", ("conditions" if restricted else "no_stock")
+        rec, why = "new", ("conditions" if restricted else "stock_small" if stock > 0 else "no_stock")
     elif want and stock >= want:
         rec, why = "existing", "stock_enough"
     else:                                         # 예산 안에서 가장 많은 시간, 같으면 싼 쪽 (기존은 바로 받는다)

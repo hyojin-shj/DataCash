@@ -91,3 +91,12 @@ def test_options_existing_new_mix_and_rarity():
     assert o["recommended"] == "new" and "existing" not in o["options"] and o["rarity"] == "very_rare"
     normal = options(instant([{"role": "user", "content": "수건 개기 20시간"}], _cat()), _cat())["options"]["new"]["total"]
     assert o["options"]["new"]["total"] > normal * 2                                        # 특이 조건은 비싸게
+
+
+def test_tiny_stock_is_not_offered():
+    """보관 데이터가 1시간도 안 되면 기존·섞기를 내놓지 않는다."""
+    from datacash.requests import instant, options
+
+    cat = {"missions": [{"id": "lift_box", "title": "상자", "hours": {"basic": 0.03, "premium": 0.03, "bio": 0.0}}]}
+    o = options(instant([{"role": "user", "content": "택배 상자 옮기기 데이터, 예산 500만원"}], cat), cat)
+    assert set(o["options"]) == {"new"} and o["why"] == "stock_small" and o["stock_hours"] == 0.03

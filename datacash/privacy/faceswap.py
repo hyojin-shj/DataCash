@@ -44,6 +44,8 @@ class SwapReport:
     small_face_swapped: int = 0     # 작은 얼굴: YuNet 으로 찾고 그 둘레를 키워 478점을 찾아 치환한 장면
     small_face_covered: int = 0     # 478점도 YuNet 5점 치환도 안 된 얼굴 → 얼굴 모양대로 부드럽게 흐림 (원래 얼굴이 남지 않게)
     yunet_swapped: int = 0          # MediaPipe 가 못 찾은 옆얼굴·먼 얼굴을 YuNet 5점 자르기로 치환한 장면
+    profile_kept: int = 0           # 옆모습인데 재식별 모델이 참여자로 알아보지 못함(닮음 < REID_MAX) → 원래대로 둠 (흐리지 않는다)
+    profile_swapped: int = 0        # 참여자로 알아보는 옆모습 → 5점(눈·코·입꼬리)에 맞춰 치환, 치환 뒤 재식별 검사 통과
     family: int = 0                 # 동의한 가족 수 (사람마다 다른 가상 인물)
     reid_max: float = 0.0
     reid_mean: float = 0.0
@@ -210,12 +212,22 @@ class LivePortraitSwap:
         img = (out.permute(0, 2, 3, 1).clamp(0, 1).cpu().numpy()[0] * 255).astype(np.uint8)
         return cv2.cvtColor(cv2.resize(img, (CROP, CROP)), cv2.COLOR_RGB2BGR)
 
-    def paste(self, frame, face512, M, gen_lmk: Optional[np.ndarray], clip=None, target: Optional[np.ndarray] = None) -> np.ndarray:
+    def paste(self, frame, face512, M, gen_lmk: Optional[np.ndarray], clip=None, target: Optional[np.ndarray] = None,
+              target5: Optional[np.ndarray] = None) -> np.ndarray:
         """만든 얼굴의 얼굴 윤곽(이마는 조금 위로) 안만, 가장자리를 흐리게, 색을 장면에 맞춰 붙인다.
         clip: YuNet 얼굴(점 없이 자른 경우) — 붙이는 자리를 원래 얼굴 타원 안으로 묶는다 (얼굴 밖으로 튀어나오지 않게).
         target: 원래 얼굴 점(장면 좌표) — 만든 얼굴의 눈·코·입·턱을 이 자리에 맞춰 옮긴다 (가상 인물의 얼굴 비율이 달라
           눈코입이 얼굴 폭의 10%쯤, 많게는 20% 어긋나 이마에 눈이 붙은 것처럼 보였다)."""
         h, w = frame.shape[:2]
+        if gen_lmk is not None and target is None and target5 is not None:   # 옆모습: YuNet 5점(눈 둘·코·입꼬리 둘)에만 맞춘다
+            t5 = cv2.transform(np.asarray(target5, np.float32).reshape(1, 5, 2), cv2.invertAffineTransform(M))[0]
+            g5 = np.array([gen_lmk[[33, 133]].mean(0)[:2], gen_lmk[[362, 263]].mean(0)[:2], gen_lmk[1, :2],
+                           gen_lmk[61, :2], gen_lmk[291, :2]], np.float32)
+            A, _ = cv2.estimateAffinePartial2D(g5, t5, method=cv2.LMEDS)
+            if A is not None and 0.6 < np.sqrt(abs(np.linalg.det(A[:, :2]))) < 1.6:
+                face512 = cv2.warpAffine(face512, A, (CROP, CROP), borderMode=cv2.BORDER_REPLICATE)
+                gen_lmk = gen_lmk.copy()
+                gen_lmk[:, :2] = cv2.transform(gen_lmk[None, :, :2].astype(np.float32), A)[0]
         if gen_lmk is not None and target is not None:
             tc = cv2.transform(target[None, :, :2].astype(np.float32), cv2.invertAffineTransform(M))[0]
             A, _ = cv2.estimateAffine2D(gen_lmk[ALIGN, :2].astype(np.float32), tc[ALIGN], method=cv2.LMEDS)
@@ -374,7 +386,7 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
         return states[key]
 
     person_state("participant", 0)
-    ref, cap = [], cv2.VideoCapture(str(original))          # 참여자 움직임 기준: 영상 곳곳 정면에 가까운 얼굴 장면들로 미리
+    ref, ref_emb, cap = [], [], cv2.VideoCapture(str(original))   # ref_emb: 참여자 정면 얼굴 (옆모습을 알아보는지 잴 때)          # 참여자 움직임 기준: 영상 곳곳 정면에 가까운 얼굴 장면들로 미리
     nf = int(cap.get(7))
     for j in np.linspace(0, max(0, nf - 1), 3 * D0_FRAMES).astype(int):
         cap.set(cv2.CAP_PROP_POS_FRAMES, int(j))
@@ -384,6 +396,9 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
             lmk = max(found, key=lambda a: np.ptp(a[:, 0]) * np.ptp(a[:, 1]))
             if np.ptp(lmk[:, 0]) > 80:                     # 너무 작은 얼굴은 빼고
                 ref.append(warp_in(f, crop_matrix(lmk)))
+                e = reid.embed(f, lmk[:, :2].mean(0))
+                if e is not None:
+                    ref_emb.append(e)
     cap.release()
     if ref:
         lp.use(states["participant"])
@@ -432,11 +447,31 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
                         continue
                     yf = max(yfs, key=lambda f: f[2] * f[3])
                     lmk = None
-                    if is_profile(yf):                     # 옆얼굴은 만들면 얼굴이 튀어나와 더 어색하다 → 얼굴 모양대로 흐림
-                        soften(res, yf)
-                        rep.small_face_covered += 1
+                    if is_profile(yf):
+                        # 옆모습: ① 재식별 모델이 참여자로 알아보지 못하면 원래대로 (흐리면 모자이크처럼 튀어 어색하다)
+                        #         ② 알아보면 5점에 맞춰 치환하고, 치환 뒤에도 알아보면 그때만 흐린다
                         any_face = True
                         crops.pop(key, None)
+                        yc = np.array([yf[0] + yf[2] / 2, yf[1] + yf[3] / 2], np.float32)
+                        ep = reid.embed(fo, yc)
+                        known = ep is None or not ref_emb or max(reid.sim(ep, r) for r in ref_emb) >= REID_MAX
+                        if not known:
+                            rep.profile_kept += 1
+                            continue
+                        Mp = crop_from_yunet(yf)
+                        lp.use(person_state(key, 0 if key == "participant" else 1 + family_order.index(key.split(":", 1)[1])))
+                        gp = lp.drive(warp_in(fo, Mp), 0.5, anchor=False)
+                        gpl = fl(gp)
+                        outp = lp.paste(res, gp, Mp, gpl[0] if gpl else None, clip=yf, target5=np.asarray(yf[4:14], np.float32).reshape(5, 2)) \
+                            if gpl else None
+                        e1 = reid.embed(outp, yc) if outp is not None else None
+                        if outp is not None and (e1 is None or ep is None or reid.sim(ep, e1) < REID_MAX):
+                            res = outp
+                            rep.profile_swapped += 1
+                            rep.swapped += 1
+                        else:
+                            soften(res, yf)
+                            rep.small_face_covered += 1
                         continue
             any_face = True
             M = smooth_crop(crops.get(key), crop_matrix(lmk) if lmk is not None else crop_from_yunet(yf))
