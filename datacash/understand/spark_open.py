@@ -28,7 +28,7 @@ PROVIDERS = [   # (이름, 키 이름, 주소, 모델) — 앞에서부터 쓴�
     ("fireworks", "FIREWORKS_API_KEY", "https://api.fireworks.ai/inference/v1", "accounts/fireworks/models/muse-spark-open"),
 ]
 MAX_IMAGES = {"baseten": 8}     # 한 번에 받는 이미지 수 (Baseten: 8장) — 넘으면 장면을 나란히 붙여 이미지 수를 줄인다
-FRAMES = 16
+FRAMES = 24             # 크레딧이 넉넉해 촘촘히 (Baseten 은 4장씩 붙여 6장으로)
 SIDE = 768
 REASONING = "high"
 PRICE = (1.25e-6, 4.25e-6)       # 달러/토큰 (입력·출력) — 가격표 확인 전 추정치 (두 곳 같게), 장부에 '추정'으로 남긴다
@@ -186,18 +186,21 @@ def label_frames(video, t0: float, t1: Optional[float], mission: str, extra: str
 
 
 JUDGE = """You are reviewing step labels of a robot-learning video, mission: "{mission}". Gray areas are privacy masks; ignore them.
-Two labelers disagreed on the steps below. For each step you get one image with 4 frames from inside that step in time order
-(top-left, top-right, bottom-left, bottom-right). Decide which manipulation primitive the hand is doing during that step.
-Prefer one of the two options; pick another primitive only if both are clearly wrong. Primitives: {prims}.
+For each step below you get one image with 4 frames from inside that step in time order (top-left, top-right, bottom-left,
+bottom-right) and the candidate label(s) from earlier labelers. Decide which manipulation primitive the hand is doing during
+that step. Prefer a candidate; pick another primitive only if the candidates are clearly wrong. Primitives: {prims}.
 Expected order in this mission (a hint): {order}.
 Return ONLY JSON {{"steps": [{{"k": <step number>, "action": <primitive>, "why": <short reason>}}]}}."""
 
 
 def adjudicate(video, disputes: List[dict], mission: str, primitives: Optional[list] = None) -> List[Optional[str]]:
-    """두 모델이 다르게 본 단계 [{start_s, end_s, options: [a, b]}] → 단계마다 Spark Open 의 판단 (그 구간 안 장면 4장을 촘촘히).
-    이미지 한도(Baseten 8장) 안에 들게 8단계씩 나눠 묻는다. 못 정한 단계는 None."""
+    """단계 [{start_s, end_s, options: [후보 1~2개]}] → 단계마다 Spark Open 의 판단 (그 구간 안 장면 4장을 촘촘히).
+    이미지 한도(Baseten 8장) 안에 들게 8단계씩 나눠 동시에 묻는다. 못 정한 단계는 None."""
+    from concurrent.futures import ThreadPoolExecutor
+
     out: List[Optional[str]] = [None] * len(disputes)
-    for g in range(0, len(disputes), 8):
+
+    def one(g):
         chunk = disputes[g:g + 8]
         tiles = []
         for d in chunk:
@@ -209,8 +212,8 @@ def adjudicate(video, disputes: List[dict], mission: str, primitives: Optional[l
         for j, (d, tl) in enumerate(zip(chunk, tiles)):
             if tl is None:
                 continue
-            parts += [{"type": "text", "text": f"Step {j + 1}: {d['start_s']:.2f}s to {d['end_s']:.2f}s, options: "
-                                               f"{d['options'][0]} or {d['options'][1]}"}, _jpg(tl)]
+            parts += [{"type": "text", "text": f"Step {j + 1}: {d['start_s']:.2f}s to {d['end_s']:.2f}s, candidates: "
+                                               + " or ".join(dict.fromkeys(d["options"]))}, _jpg(tl)]
         prov, r = _ask(lambda mx, p=parts: p)
         _record(getattr(r, "usage", None), f"spark-open adjudicate {Path(video).name} {len(chunk)} steps", prov)
         text = r.choices[0].message.content or "{}"
@@ -225,4 +228,7 @@ def adjudicate(video, disputes: List[dict], mission: str, primitives: Optional[l
                 continue
             if 0 <= k < len(chunk) and x.get("action") in PRIMITIVES:
                 out[g + k] = x["action"]
+
+    with ThreadPoolExecutor(4) as ex:
+        list(ex.map(one, range(0, len(disputes), 8)))
     return out

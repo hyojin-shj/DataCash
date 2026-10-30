@@ -4,7 +4,10 @@ LivePortrait 기본 얼굴 찾기·자르기는 InsightFace(비상업 라이선�
   자르기   MediaPipe FaceLandmarker 478점 → 눈 선으로 기울기를 맞춘 정사각형 (LivePortrait 의 자르기 비율과 비슷하게)
   움직임   원래 영상의 참여자 얼굴을 driving 으로, 가상 인물 사진을 source 로 (상대 움직임: 고개·표정을 첫 장면 대비 차이로 옮김)
   되붙이기 LivePortrait 의 얼굴 마스크 틀로 가장자리를 부드럽게
-  재식별 검사  OpenCV YuNet + SFace(Apache 2.0): 바꾼 얼굴이 원래 사람과 같은 사람 기준(0.363)에 가까우면(REID_MAX 이상) 그 장면은 얼굴을 가린다
+  재식별 검사  OpenCV YuNet + SFace(Apache 2.0): 바꾼 얼굴이 원래 사람과 닮으면(REID_MAX 이상) 표정을 줄여 다시 만든다
+  옆얼굴·먼 얼굴  MediaPipe 가 점을 못 찾아도 YuNet 의 5점(눈·코·입꼬리)으로 자르기를 만들어 치환한다 — 모자이크로 끊기지 않게.
+              그래도 못 바꾸면 얼굴 모양대로 부드럽게 흐린다 (굵은 모자이크는 쓰지 않는다)
+  자연스럽게  붙일 얼굴의 밝기·대비·색을 장면 얼굴 자리에 맞추고, 자르기 위치를 앞 장면과 섞어 떨림을 줄인다
 원본(가리기 전) 영상이 필요하다 — 해커톤 시연은 동의자 본인 녹화로만. LivePortrait 위치는 LP_ROOT 환경 변수.
 """
 
@@ -39,7 +42,8 @@ class SwapReport:
     damped: int = 0                 # 바꾼 얼굴이 닮아 표정을 줄여 다시 만든 장면 (모자이크 대신 — 영상이 이어진다)
     over_reid: int = 0              # 표정을 다 빼도 같은 사람 기준(REID_MAX)을 넘은 장면 — 가장 덜 닮은 것을 그대로 썼다 (인증서에 남김)
     small_face_swapped: int = 0     # 작은 얼굴: YuNet 으로 찾고 그 둘레를 키워 478점을 찾아 치환한 장면
-    small_face_covered: int = 0     # 그래도 478점을 못 찾은 작은 얼굴 → 모자이크로 가림 (원래 얼굴이 남지 않게)
+    small_face_covered: int = 0     # 478점도 YuNet 5점 치환도 안 된 얼굴 → 얼굴 모양대로 부드럽게 흐림 (원래 얼굴이 남지 않게)
+    yunet_swapped: int = 0          # MediaPipe 가 못 찾은 옆얼굴·먼 얼굴을 YuNet 5점 자르기로 치환한 장면
     family: int = 0                 # 동의한 가족 수 (사람마다 다른 가상 인물)
     reid_max: float = 0.0
     reid_mean: float = 0.0
@@ -176,8 +180,9 @@ class LivePortraitSwap:
         img = (out.permute(0, 2, 3, 1).clamp(0, 1).cpu().numpy()[0] * 255).astype(np.uint8)
         return cv2.cvtColor(cv2.resize(img, (CROP, CROP)), cv2.COLOR_RGB2BGR)
 
-    def paste(self, frame, face512, M, gen_lmk: Optional[np.ndarray]) -> np.ndarray:
-        """만든 얼굴의 얼굴 윤곽(이마는 조금 위로) 안만, 가장자리를 흐리게, 색을 장면에 맞춰 붙인다."""
+    def paste(self, frame, face512, M, gen_lmk: Optional[np.ndarray], clip=None) -> np.ndarray:
+        """만든 얼굴의 얼굴 윤곽(이마는 조금 위로) 안만, 가장자리를 흐리게, 색을 장면에 맞춰 붙인다.
+        clip: YuNet 얼굴(점 없이 자른 경우) — 붙이는 자리를 원래 얼굴 타원 안으로 묶는다 (얼굴 밖으로 튀어나오지 않게)."""
         h, w = frame.shape[:2]
         mk = np.zeros((CROP, CROP), np.float32)
         if gen_lmk is not None:
@@ -191,14 +196,24 @@ class LivePortraitSwap:
         mk = cv2.GaussianBlur(cv2.erode(mk, np.ones((k, k), np.uint8)), (2 * k + 1, 2 * k + 1), 0)
         bg = warp_in(frame, M)
         sel = mk > 0.5
-        if sel.sum() > 100:                                  # 색·밝기를 원래 장면 얼굴 자리에 맞춘다 (LAB 평균)
+        if sel.sum() > 100:                                  # 밝기·대비·색을 원래 장면 얼굴 자리에 맞춘다 (LAB 평균·퍼짐)
             a = cv2.cvtColor(face512, cv2.COLOR_BGR2LAB).astype(np.float32)
             b = cv2.cvtColor(bg, cv2.COLOR_BGR2LAB).astype(np.float32)
-            for ch in range(3):
-                a[..., ch] += (b[..., ch][sel].mean() - a[..., ch][sel].mean()) * (0.6 if ch == 0 else 1.0)
+            for ch in range(3):                              # 밝기는 퍼짐도 조금만(그늘진 장면에서 얼룩지지 않게), 색은 평균만
+                am, asd = a[..., ch][sel].mean(), a[..., ch][sel].std() + 1e-3
+                bm, bsd = b[..., ch][sel].mean(), b[..., ch][sel].std() + 1e-3
+                k = float(np.clip(bsd / asd, 0.9, 1.1)) if ch == 0 else 1.0
+                a[..., ch] = (a[..., ch] - am) * k + am + (bm - am) * (0.85 if ch == 0 else 1.0)
             face512 = cv2.cvtColor(np.clip(a, 0, 255).astype(np.uint8), cv2.COLOR_LAB2BGR)
         warped = cv2.warpAffine(face512, M, (w, h), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
-        mw = cv2.warpAffine(mk, M, (w, h), flags=cv2.INTER_LINEAR)[..., None]
+        mw = cv2.warpAffine(mk, M, (w, h), flags=cv2.INTER_LINEAR)
+        if clip is not None:
+            x, y, fw, fh = (float(v) for v in clip[:4])
+            el = np.zeros((h, w), np.float32)
+            cv2.ellipse(el, (int(x + fw / 2), int(y + fh / 2)), (int(fw * 0.55), int(fh * 0.62)), 0, 0, 360, 1.0, -1)
+            kk = max(3, int(fw * 0.25)) | 1
+            mw = mw * cv2.GaussianBlur(el, (kk, kk), 0)
+        mw = mw[..., None]
         return (warped * mw + frame * (1 - mw)).astype(np.uint8)
 
 
@@ -231,36 +246,66 @@ def find_small_faces(frame, fl: "FaceLandmarks", reid: "Reid", participant_box=N
     return out
 
 
-def pixelate(img, x0: int, y0: int, x1: int, y1: int, cells: int = 7) -> None:
-    """상자 안을 가로 cells 칸 정도의 굵은 모자이크로 (얼굴 크기와 상관없이 알아볼 수 없게)."""
-    h, w = img.shape[:2]
-    x0, y0, x1, y1 = max(0, x0), max(0, y0), min(w, x1), min(h, y1)
-    if x1 - x0 < 4 or y1 - y0 < 4:
-        return
-    cw = max(1, cells)
-    ch = max(1, round(cells * (y1 - y0) / (x1 - x0)))
-    small = cv2.resize(img[y0:y1, x0:x1], (cw, ch), interpolation=cv2.INTER_AREA)
-    img[y0:y1, x0:x1] = cv2.resize(small, (x1 - x0, y1 - y0), interpolation=cv2.INTER_NEAREST)
-
-
-def cover_small_faces(base, original, reid: "Reid", participant_box=None) -> int:
-    """치환할 수 없는 작은 얼굴을 YuNet 으로 찾아 모자이크로 덮는다 (참여자 상자가 있으면 그 안의 얼굴만). 덮은 개수."""
-    h, w = original.shape[:2]
+def yunet_faces(frame, reid: "Reid", participant_box=None) -> List[np.ndarray]:
+    """YuNet 얼굴 [x, y, w, h, 오른눈x, y, 왼눈x, y, 코x, y, 입오른x, y, 입왼x, y, 점수] (참여자 상자가 있으면 그 안만)."""
+    h, w = frame.shape[:2]
     reid.det.setInputSize((w, h))
-    _, faces = reid.det.detect(original)
-    n = 0
+    _, faces = reid.det.detect(frame)
+    out = []
     for f in faces if faces is not None else []:
-        x, y, fw, fh = (int(v) for v in f[:4])
-        cx, cy = x + fw / 2, y + fh / 2
-        if participant_box is not None and not (participant_box[0] <= cx <= participant_box[2] and participant_box[1] <= cy <= participant_box[3]):
-            continue
-        pad = int(0.35 * max(fw, fh))
-        x0, y0, x1, y1 = max(0, x - pad), max(0, y - pad), min(w, x + fw + pad), min(h, y + fh + pad)
-        if x1 - x0 < 4 or y1 - y0 < 4:
-            continue
-        pixelate(base, x0, y0, x1, y1)
-        n += 1
-    return n
+        cx, cy = f[0] + f[2] / 2, f[1] + f[3] / 2
+        if participant_box is None or (participant_box[0] <= cx <= participant_box[2] and participant_box[1] <= cy <= participant_box[3]):
+            out.append(f)
+    return out
+
+
+def crop_from_yunet(f, size: int = CROP) -> np.ndarray:
+    """MediaPipe 점이 없을 때: YuNet 상자·눈 두 점으로 crop_matrix 와 비슷한 자르기 (눈 선 수평, 상자의 1.9배 근처)."""
+    re, le = np.array(f[4:6], np.float32), np.array(f[6:8], np.float32)
+    ang = np.arctan2(le[1] - re[1], le[0] - re[0])            # 화면 왼쪽 눈 → 오른쪽 눈
+    c, s = np.cos(ang), np.sin(ang)
+    side = float(max(f[2], f[3])) * 1.95
+    center = np.array([f[0] + f[2] / 2, f[1] + f[3] / 2], np.float32) + np.array([np.sin(ang), -np.cos(ang)]) * (0.06 * side)
+    k = side / size
+    R = np.array([[c, -s], [s, c]]) * k
+    t = center - R @ np.array([size / 2, size / 2])
+    return np.hstack([R, t[:, None]]).astype(np.float32)
+
+
+PROFILE_EYES = 0.36    # YuNet 두 눈 사이 / 얼굴 폭이 이보다 작으면 옆얼굴 — LivePortrait 가 옆얼굴은 못 만들어 흐리기로
+
+
+def is_profile(f) -> bool:
+    return float(np.hypot(f[6] - f[4], f[7] - f[5])) / max(1.0, float(f[2])) < PROFILE_EYES
+
+
+def soften(img, f) -> None:
+    """치환할 수 없는 얼굴: 얼굴 모양(타원)대로, 가장자리를 흐려 부드럽게 (굵은 모자이크처럼 튀지 않게)."""
+    h, w = img.shape[:2]
+    x, y, fw, fh = (float(v) for v in f[:4])
+    cx, cy, ax, ay = x + fw / 2, y + fh / 2, fw * 0.62, fh * 0.75
+    x0, y0, x1, y1 = int(max(0, cx - ax * 1.4)), int(max(0, cy - ay * 1.4)), int(min(w, cx + ax * 1.4)), int(min(h, cy + ay * 1.4))
+    if x1 - x0 < 6 or y1 - y0 < 6:
+        return
+    roi = img[y0:y1, x0:x1]
+    k = max(5, int(max(fw, fh) * 0.45)) | 1
+    blur = cv2.GaussianBlur(cv2.resize(cv2.resize(roi, None, fx=0.25, fy=0.25, interpolation=cv2.INTER_AREA),
+                                       (x1 - x0, y1 - y0), interpolation=cv2.INTER_LINEAR), (k, k), 0)
+    m = np.zeros((y1 - y0, x1 - x0), np.float32)
+    cv2.ellipse(m, (int(cx - x0), int(cy - y0)), (int(ax), int(ay)), 0, 0, 360, 1.0, -1)
+    m = cv2.GaussianBlur(m, (k, k), 0)[..., None]
+    img[y0:y1, x0:x1] = (blur * m + roi * (1 - m)).astype(np.uint8)
+
+
+def smooth_crop(prev: Optional[np.ndarray], M: np.ndarray) -> np.ndarray:
+    """자르기 위치를 앞 장면과 섞는다 — 얼굴 점이 장면마다 조금씩 흔들려 붙인 얼굴이 떨리는 것을 줄인다.
+    많이 움직였으면(얼굴 크기의 4% 넘게) 그대로 따라간다 (늦게 따라가 어긋나지 않게)."""
+    if prev is None:
+        return M
+    scale = float(np.hypot(M[0, 0], M[1, 0])) * CROP
+    move = float(np.hypot(*(M[:, 2] - prev[:, 2])))
+    a = 0.55 if move < 0.04 * scale else 0.0
+    return (prev * a + M * (1 - a)).astype(np.float32)
 
 
 def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[dict] = None,
@@ -296,7 +341,7 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
     out_path = Path(out_path)
     raw = out_path.with_suffix(".raw.mp4")
     vw = cv2.VideoWriter(str(raw), cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))
-    sims, scales, i = [], {}, 0
+    sims, scales, crops, i = [], {}, {}, 0
     family_order: list = []
     while True:
         ok1, fo = co.read()
@@ -318,20 +363,32 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
                       and box[0] <= f[:, 0].mean() <= box[2] and box[1] <= f[:, 1].mean() <= box[3]]
             if not inside and box is None and key == "participant":
                 inside = [k for k in range(len(faces)) if k not in used]      # 참여자 상자가 없으면 가장 큰 얼굴
-            small = False
+            small, yf = False, None
             if inside:
                 kk = max(inside, key=lambda k: np.ptp(faces[k][:, 0]) * np.ptp(faces[k][:, 1]))
                 used.add(kk)
                 lmk = faces[kk]
             else:
                 found = find_small_faces(fo, fl, reid, box)
-                if not found:
-                    continue
-                lmk, small = found[0], True
+                if found:
+                    lmk, small = found[0], True
+                else:                                      # 옆얼굴·먼 얼굴: YuNet 5점으로 자른다 (모자이크로 끊기지 않게)
+                    yfs = yunet_faces(fo, reid, box)
+                    if not yfs:
+                        continue
+                    yf = max(yfs, key=lambda f: f[2] * f[3])
+                    lmk = None
+                    if is_profile(yf):                     # 옆얼굴은 만들면 얼굴이 튀어나와 더 어색하다 → 얼굴 모양대로 흐림
+                        soften(res, yf)
+                        rep.small_face_covered += 1
+                        any_face = True
+                        crops.pop(key, None)
+                        continue
             any_face = True
-            M = crop_matrix(lmk)
+            M = smooth_crop(crops.get(key), crop_matrix(lmk) if lmk is not None else crop_from_yunet(yf))
+            crops[key] = M
             crop = warp_in(fo, M)
-            c = lmk.mean(0)
+            c = lmk.mean(0) if lmk is not None else np.array([yf[0] + yf[2] / 2, yf[1] + yf[3] / 2], np.float32)
             e0 = reid.embed(fo, c)
             # 재식별 검사를 장면마다: 바꾼 얼굴이 원래 사람과 닮으면 모자이크(영상이 끊긴다) 대신 표정을 줄여 다시 만든다
             # 바로 앞 장면에서 통과한 표정 세기부터 (매번 원래 표정부터 다시 하면 장면마다 2~3번 만들어 느렸다),
@@ -343,7 +400,7 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
                 lp.use(person_state(key, 0 if key == "participant" else 1 + family_order.index(key.split(":", 1)[1])))
                 gen = lp.drive(crop, es)
                 gl = fl(gen)
-                out = lp.paste(res, gen, M, gl[0] if gl else None)
+                out = lp.paste(res, gen, M, gl[0] if gl else None, clip=yf)
                 e1 = reid.embed(out, c) if e0 is not None else None
                 sv = reid.sim(e0, e1) if e1 is not None else None
                 tries.append((-1.0 if sv is None else sv, out, es))
@@ -358,13 +415,17 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
             rep.damped += used_scale < 1.0
             rep.over_reid += sv >= REID_MAX
             rep.small_face_swapped += small
+            rep.yunet_swapped += yf is not None
             res = out
         if not any_face:
             rep.no_face += 1
             covered = 0
-            for _, box in targets:
-                covered += cover_small_faces(res, fo, reid, box)
+            for _, box in targets:                         # 남은 얼굴(치환도 못 한 것)은 부드럽게 흐린다
+                for f in yunet_faces(fo, reid, box):
+                    soften(res, f)
+                    covered += 1
             rep.small_face_covered += covered > 0
+            crops.clear()                                  # 얼굴이 끊겼다 다시 나오면 앞 위치와 섞지 않는다
         vw.write(res)
         i += 1
         if i % 60 == 0:

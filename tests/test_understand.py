@@ -108,19 +108,21 @@ def test_second_opinion_relabels_and_feeds_examples(tmp_path, monkeypatch):
              {"start_s": 2.0, "end_s": 3.0, "action": "pull", "verified": True},
              {"start_s": 3.0, "end_s": 4.0, "action": "release", "verified": True}]
     asked = []
-    monkeypatch.setattr(spark_open, "adjudicate", lambda v, d, *a, **k: asked.extend(d) or ["tear"])   # 다시 보니 tear
+    monkeypatch.setattr(spark_open, "adjudicate",                  # 모든 단계를 촘촘히 다시 봄: 셋째 단계는 tear
+                        lambda v, d, *a, **k: asked.extend(d) or ["reach", "grasp", "tear", "release"])
     r = evolve.second_opinion("20261029_120000", "v.mp4", 0.0, "Pull a tissue", "pull_tissue", steps, log=lambda *_: None)
-    assert asked[0]["options"] == ["pull", "tear"]                   # 다르게 본 단계만, 두 답을 보기로 다시 묻는다
-    assert r["agree"] == 3 and r["disputed"] == 1 and r["relabeled"] == 1
+    assert len(asked) == 4 and asked[2]["options"] == ["pull", "tear"] and asked[0]["options"] == ["reach", "reach"]
+    assert r["agree"] == 3 and r["disputed"] == 1 and r["relabeled"] == 1 and r["gold"] == 3
     assert steps[2]["action"] == "tear" and steps[2]["relabeled_from"] == "pull"
     assert evolve.corrections("20261029_120000")[0]["source"] == "review"
     assert "reach 1.0s -> grasp 1.0s" in evolve.gold_examples("pull_tissue") and evolve.gold_examples("twist_cap") == ""
     assert "was actually \"tear\"" in evolve.correction_hints()
     assert evolve._registry()["agreement"][-1]["rate"] == 0.75
-    monkeypatch.setattr(spark_open, "adjudicate", lambda *a, **k: ["pull"])                 # 다시 보니 Spark 1.3 이 맞으면 유지
+    monkeypatch.setattr(spark_open, "adjudicate", lambda *a, **k: ["reach", "place", "pull", "release"])   # 다시 보니 1.3 이 맞으면 유지
     steps[2].update(action="pull", relabeled_from=None)
     r = evolve.second_opinion("20261029_120001", "v.mp4", 0.0, "Pull a tissue", "pull_tissue", steps, log=lambda *_: None)
     assert r["upheld"] == 1 and r["relabeled"] == 0 and steps[2]["action"] == "pull" and steps[2]["spark_open"]["agree"]
+    assert not steps[1]["spark_open"]["agree"] and r["gold"] == 3      # 두 모델은 같았지만 촘촘히 보니 달라 정답에서 뺌
 
 
 def test_spark_open_packs_frames_for_image_limit():

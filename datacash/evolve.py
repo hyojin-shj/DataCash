@@ -1,9 +1,10 @@
 """모델 진화 — 가중치 학습 없이, 쓸수록 정답 예시가 쌓여 Spark 1.3 라벨이 정확해진다.
 
   ① 1차 라벨        Muse Spark 1.3 (Meta API, 영상을 직접 본다) — 모든 녹화
-  ② 2차 검증        Muse Spark Open 816B (Baseten → Fireworks) 가 같은 동작 구간의 장면 16장을 따로 라벨 → second_opinion
-                    두 모델이 같은 동작 + 센서로 검증 = 정답(gold). 다르게 본 단계는 더 큰 Spark Open 의 동작으로 바로잡고
-                    '어려운 예시'(feedback/, source=review)로 남긴다. 이의 신청은 Spark Open 추론 high 가 다시 본다 (judge.py).
+  ② 2차 검증        Muse Spark Open 816B (Baseten → Fireworks) 가 같은 동작 구간의 장면 24장을 따로 라벨하고(훑기),
+                    모든 단계를 그 구간 안 장면 4장으로 한 번 더 본다(촘촘히) → second_opinion. 세 번 본 것으로 다수결:
+                    셋이 같고 센서로 검증 = 정답(gold). 훑기·촘촘히가 같게 Spark 1.3 과 다르면 바로잡고 '어려운 예시'(feedback/,
+                    source=review)로 남긴다. 이의 신청은 Spark Open 추론 high 가 다시 본다 (judge.py).
   ③ 진화            다음 녹화부터 Spark 1.3 질문에 같은 미션의 정답 예시(gold_examples)와 지난 바로잡음(correction_hints)을 붙인다.
                     API 모델은 가중치를 바꿀 수 없으니 예시로 배운다.
   ④ 증명            녹화마다 'Spark 1.3 이 Spark Open 과 같은 동작으로 본 비율'을 기록 (agreement) → 운영자 화면의 선.
@@ -91,7 +92,7 @@ def gold_examples(mission_id: str, limit: int = 3) -> str:
         r = json.loads(p.read_text())
         if r.get("mission_id") != mission_id:
             continue
-        seq = [x for x in r["rows"] if x["agree"] and x["verified"]]
+        seq = [x for x in r["rows"] if x["agree"] and x["verified"] and x.get("confirmed", True)]
         if len(seq) < 2:
             continue
         lines.append("- " + " -> ".join(f'{x["spark13"]} {x["end_s"] - x["start_s"]:.1f}s' for x in seq[:14]))
@@ -138,7 +139,8 @@ def compare(steps: List[dict], so_steps: List[dict], tol: float) -> List[dict]:
 
 def summarize(name: str, mission: str, rows: List[dict], so_steps: List[dict], mission_id: str = "") -> dict:
     return {"recording": name, "mission": mission, "mission_id": mission_id, "steps": len(rows), "agree": sum(x["agree"] for x in rows),
-            "gold": sum(x["agree"] and x["verified"] for x in rows), "rows": rows, "spark_open_steps": so_steps}
+            "gold": sum(bool(x["agree"] and x["verified"] and x.get("confirmed", True)) for x in rows), "rows": rows,
+            "spark_open_steps": so_steps}
 
 
 def second_opinion(sid: str, video, t0: float, mission: str, mission_id: str, steps: List[dict], log=print) -> Optional[dict]:
@@ -157,32 +159,39 @@ def second_opinion(sid: str, video, t0: float, mission: str, mission_id: str, st
     tol = (fr[-1] - fr[0]) / max(1, len(fr) - 1) if len(fr) > 1 else 0.7
     rows = compare(steps, so["steps"], tol)
     first = sum(r["agree"] for r in rows)
+    # 모든 단계를 그 구간 안 장면 4장으로 촘촘히 한 번 더 (크레딧이 넉넉해 정확도를 산다) → 세 번 본 것으로 다수결
+    verdicts = spark_open.adjudicate(video, [{"start_s": st["start_s"], "end_s": st["end_s"],
+                                              "options": [r["spark13"]] + ([r["spark_open"]] if r["spark_open"] else [])}
+                                             for st, r in zip(steps, rows)], mission, order)
     disputes = [k for k, r in enumerate(rows) if not r["agree"] and r["spark_open"]]
-    verdicts = spark_open.adjudicate(video, [{"start_s": steps[k]["start_s"], "end_s": steps[k]["end_s"],
-                                              "options": [rows[k]["spark13"], rows[k]["spark_open"]]} for k in disputes],
-                                     mission, order) if disputes else []
     fixes = []
-    for k, v in zip(disputes, verdicts):
-        r, st = rows[k], steps[k]
+    for k, (r, st, v) in enumerate(zip(rows, steps, verdicts)):
         r["verdict"] = v
-        if v == r["spark13"]:                 # 다시 보니 Spark 1.3 이 맞음 → 유지, 두 번 본 정답 후보
-            r["agree"], r["upheld"] = True, True
-        elif v:
+        if r["agree"]:                        # 두 모델이 같게 봄: 촘촘히 본 것도 같으면 세 번 확인된 정답, 다르면 정답에서 뺀다
+            r["confirmed"] = v is None or v == r["spark13"]
+        elif v == r["spark13"]:               # 다르게 봤는데 촘촘히 보니 Spark 1.3 이 맞음 → 유지 (2:1)
+            r["agree"], r["upheld"], r["confirmed"] = True, True, True
+        elif v and (v == r["spark_open"] or not r["spark_open"]):   # 훑기와 촘촘히가 같음 → 바로잡음 (2:1)
             fixes.append({"start_s": st["start_s"], "end_s": st["end_s"], "was": st["action"], "action": v,
-                          "note": f"2nd-pass review (scan said {r['spark_open']})", "source": "review"})
+                          "note": f"2nd-pass review (scan {r['spark_open']}, close look {v})", "source": "review"})
             st.update(action=v, labeled_by=so.get("model"), relabeled_from=r["spark13"])
+            r["confirmed"] = False
+        else:                                 # 셋이 다 다름 → 그대로 두되 정답에서 뺀다
+            r["confirmed"] = False
     for st, r in zip(steps, rows):
-        st["spark_open"] = {"action": r.get("verdict") or r["spark_open"], "agree": r["agree"], "model": so.get("model")}
+        st["spark_open"] = {"action": r.get("verdict") or r["spark_open"], "agree": bool(r["agree"] and r.get("confirmed", True)),
+                            "model": so.get("model")}
     rep = {**summarize(sid, mission, rows, so["steps"], mission_id), "first_pass_agree": first}
     (ROOT / "crosscheck").mkdir(parents=True, exist_ok=True)
     (ROOT / "crosscheck" / f"{sid}.json").write_text(json.dumps(rep, ensure_ascii=False, indent=1))
     if fixes:
         add_correction(sid, fixes, mission)
     record_agreement(sid, mission_id, rep["steps"], first, so.get("model", ""))
-    log(f"[{sid}] 2차 검증 {so.get('model')}: 처음 같은 동작 {first}/{rep['steps']} · 다시 본 {len(disputes)}단계 중 "
-        f"유지 {sum(1 for k in disputes if rows[k].get('upheld'))} · 바로잡음 {len(fixes)}")
+    gold = sum(bool(r["agree"] and r["verified"] and r.get("confirmed", True)) for r in rows)
+    log(f"[{sid}] 2차 검증 {so.get('model')}: 처음 같은 동작 {first}/{rep['steps']} · 다르게 본 {len(disputes)}단계 중 "
+        f"유지 {sum(1 for k in disputes if rows[k].get('upheld'))} · 바로잡음 {len(fixes)} · 세 번 확인된 정답 {gold}")
     return {"model": so.get("model"), "steps": rep["steps"], "agree": first, "disputed": len(disputes),
-            "upheld": sum(1 for k in disputes if rows[k].get("upheld")), "relabeled": len(fixes)}
+            "upheld": sum(1 for k in disputes if rows[k].get("upheld")), "relabeled": len(fixes), "gold": gold}
 
 
 def record_agreement(sid: str, mission_id: str, steps: int, agree: int, model: str) -> None:
@@ -223,7 +232,7 @@ def labeled_steps(out_dir) -> Optional[dict]:
              for s in c.get("steps") or [] if s.get("verified") and s.get("action") in PRIMITIVES]
     cross = ROOT / "crosscheck" / f"{out.name}.json"
     if cross.exists():                           # 교차 검증(scripts/crosscheck.py): 더 큰 Spark Open 도 같은 동작이라고 본 단계만
-        ok = {(round(r["start_s"], 3), r["spark13"]) for r in json.loads(cross.read_text())["rows"] if r["agree"]}
+        ok = {(round(r["start_s"], 3), r["spark13"]) for r in json.loads(cross.read_text())["rows"] if r["agree"] and r.get("confirmed", True)}
         steps = [{**s, "source": "spark+sensors+spark_open"} for s in steps if (round(s["start_s"], 3), s["action"]) in ok]
     for f in corrections(out.name):              # 이의 신청에서 바로잡은 단계가 우선 (더 높은 모델로 다시 본 정답)
         steps = [s for s in steps if not (s["start_s"] < f["end_s"] and f["start_s"] < s["end_s"])]
