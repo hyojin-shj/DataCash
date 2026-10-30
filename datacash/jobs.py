@@ -131,7 +131,7 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
         t_act = 0.0
         if (sd / "video_frames.csv").exists():
             ft = np.loadtxt(sd / "video_frames.csv", delimiter=",", skiprows=1, ndmin=2)[:, 1]
-            t_act = face_check_end_s(meta, int(ft[0])) if len(ft) else 0.0
+            t_act = face_check_end_s(meta, int(ft[0]), (ft[-1] - ft[0]) / 1e9) if len(ft) else 0.0
         pc = precheck(video, labels, t_act)
         report["precheck"] = pc
         lap("precheck")
@@ -232,8 +232,13 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
             t0 = 0.0
             if (sd / "video_frames.csv").exists():   # 1단계 얼굴 확인 구간은 빼고 보낸다
                 ft = np.loadtxt(sd / "video_frames.csv", delimiter=",", skiprows=1, ndmin=2)[:, 1]
-                t0 = min(face_check_end_s(meta, int(ft[0])), max(0.0, dur - 2)) if len(ft) else 0.0
-            clip = clip_mp4(src, out / "understand_clip.mp4", t0, min(dur - t0, 90), max_side=640, audio=False)
+                t0 = min(face_check_end_s(meta, int(ft[0]), (ft[-1] - ft[0]) / 1e9), max(0.0, dur - 2)) if len(ft) else 0.0
+            from .light import gain_for, video_luma
+
+            g = gain_for(video_luma(src, start_s=t0))        # 어두우면 밝혀서 보낸다
+            if g > 1.01:
+                report["brightened"] = round(g, 2)
+            clip = clip_mp4(src, out / "understand_clip.mp4", t0, min(dur - t0, 90), max_side=640, audio=False, gain=g)
             u = understand_clip(clip, f"{mission.get('title_en')} ({mission.get('title')})", min(dur - t0, 90),
                                primitives=mission.get("primitives"), mission_id=mission.get("id", ""))
             for st_ in u["steps"]:            # 자른 구간만큼 녹화 시각으로 되돌린다

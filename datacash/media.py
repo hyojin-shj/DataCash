@@ -21,13 +21,16 @@ def run(args: list) -> None:
 
 
 def clip_mp4(src, dst, start_s: float = 0.0, dur_s: Optional[float] = None, max_side: int = 960,
-             fps: Optional[float] = None, audio: bool = True) -> Path:
-    """H.264 MP4 (faststart) 로 자른다 — SAM 3.1·Muse Spark 가 받는 형식. 긴 쪽을 max_side 로 줄인다."""
+             fps: Optional[float] = None, audio: bool = True, gain: float = 1.0) -> Path:
+    """H.264 MP4 (faststart) 로 자른다 — SAM 3.1·Muse Spark 가 받는 형식. 긴 쪽을 max_side 로 줄인다.
+    gain > 1 이면 어두운 영상을 그만큼 곱해 밝힌다 (light.gain_for)."""
     dst = Path(dst)
     dst.parent.mkdir(parents=True, exist_ok=True)
     vf = f"scale='if(gt(iw,ih),min({max_side},iw),-2)':'if(gt(iw,ih),-2,min({max_side},ih))'"
     if fps:
         vf += f",fps={fps}"
+    if gain > 1.01:
+        vf += f",lutrgb=r=val*{gain:.2f}:g=val*{gain:.2f}:b=val*{gain:.2f}"
     args = ["-ss", start_s, "-i", src] + (["-t", dur_s] if dur_s else []) + \
            ["-vf", vf, "-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p",
             "-movflags", "+faststart"] + (["-c:a", "aac", "-b:a", "96k"] if audio else ["-an"]) + [dst]

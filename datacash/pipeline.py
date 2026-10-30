@@ -54,11 +54,16 @@ def grip_segments_to_watch(meta: dict, m) -> list:
     return out
 
 
-def face_check_end_s(meta: dict, first_frame_ns: int) -> float:
-    """녹화 1단계(얼굴 확인)가 끝난 시각(첫 장면 기준 초, 0.3초 여유). 없으면 0."""
+def face_check_end_s(meta: dict, first_frame_ns: int, video_s: Optional[float] = None) -> float:
+    """녹화 1단계(얼굴 확인)가 끝난 시각(첫 장면 기준 초, 0.3초 여유). 없으면 0.
+    얼굴 확인이 끝나지 않은 채 멈췄으면(통과 못 함 · 건너뛰기도 안 누름 · 남은 동작이 3초 미만) 1단계 동안 동작을 한 것으로 보고
+    처음부터(0). video_s(영상 길이)를 줄 때만 본다."""
     fc = meta.get("face_check") or {}
     end = fc.get("end_ns")
-    return max(0.0, (int(end) - first_frame_ns) / 1e9 + 0.3) if end else 0.0
+    t = max(0.0, (int(end) - first_frame_ns) / 1e9 + 0.3) if end else 0.0
+    if video_s is not None and not fc.get("passed") and not fc.get("no_person") and video_s - t < 3.0:
+        return 0.0
+    return t
 
 
 def process(session_dir, out_dir, level: str = "bio", fps: float = 30.0, masked_video=None, labels=None,
@@ -149,7 +154,7 @@ def process(session_dir, out_dir, level: str = "bio", fps: float = 30.0, masked_
 
     # 4~5. 에피소드마다 격자 + 채널
     spans = episodes_s or [(0.0, (frame_ns[-1] - frame_ns[0]) / 1e9)]
-    cut = face_check_end_s(s.meta, int(frame_ns[0]))   # 1단계 얼굴 확인 구간은 판매 데이터에서 뺀다
+    cut = face_check_end_s(s.meta, int(frame_ns[0]), (frame_ns[-1] - frame_ns[0]) / 1e9)   # 1단계 얼굴 확인 구간은 판매 데이터에서 뺀다
     if cut > 0:
         spans = [(max(a, cut), b) for a, b in spans if b - max(a, cut) >= 1.0]
     eps, vids = [], []

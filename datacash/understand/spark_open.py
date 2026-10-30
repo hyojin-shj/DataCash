@@ -21,6 +21,7 @@ import cv2
 import numpy as np
 
 from .. import config
+from ..light import lift
 from .spark import PRIMITIVES, PROMPT, SCHEMA
 
 PROVIDERS = [   # (이름, 키 이름, 주소, 모델) — 앞에서부터 쓴다
@@ -109,7 +110,7 @@ def _grab(video, times: List[float]) -> List[tuple]:
         ok, f = cap.read()
         if ok:
             s = SIDE / max(f.shape[:2])
-            out.append((round(t, 2), cv2.resize(f, None, fx=s, fy=s) if s < 1 else f))
+            out.append((round(t, 2), lift(cv2.resize(f, None, fx=s, fy=s) if s < 1 else f)))
     cap.release()
     return out
 

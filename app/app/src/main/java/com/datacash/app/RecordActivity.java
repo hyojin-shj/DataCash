@@ -10,6 +10,8 @@ import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.ColorMatrix;
+import android.graphics.ColorMatrixColorFilter;
 import android.graphics.Paint;
 import android.graphics.PointF;
 import android.graphics.PorterDuff;
@@ -468,8 +470,9 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
     private void faceLoop() {
         if (!faceChecking || !recording) return;
         int w = 480, h = preview.getWidth() > 0 ? Math.round(480f * preview.getHeight() / preview.getWidth()) : 640;
-        Bitmap bm = preview.getBitmap(w, h & ~1);
-        if (bm == null) { ui.postDelayed(this::faceLoop, 200); return; }
+        Bitmap raw = preview.getBitmap(w, h & ~1);
+        if (raw == null) { ui.postDelayed(this::faceLoop, 200); return; }
+        Bitmap bm = lift(raw);                             // 어두운 곳이면 밝혀서 얼굴을 찾는다 (서버 본인 확인에도)
         RectF oval = faceOval.ovalIn(w, h);
         faceWorker.execute(() -> {
             boolean found = frontalIn(bm, oval);
@@ -480,6 +483,27 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
             bm.recycle();
             ui.postDelayed(() -> onFace(found), 200);
         });
+    }
+
+    /** 장면 평균 밝기가 85 아래면 120 쯤까지 곱해 밝힌 새 그림 (최대 6배, 서버 datacash/light.py 와 같은 방식). 밝으면 그대로. */
+    static Bitmap lift(Bitmap src) {
+        Bitmap s = Bitmap.createScaledBitmap(src, 32, 24, true);
+        long sum = 0;
+        for (int y = 0; y < 24; y++)
+            for (int x = 0; x < 32; x++) {
+                int c = s.getPixel(x, y);
+                sum += (299 * Color.red(c) + 587 * Color.green(c) + 114 * Color.blue(c)) / 1000;
+            }
+        s.recycle();
+        float l = sum / (32f * 24f);
+        if (l >= 85f) return src;
+        float g = Math.min(6f, 120f / Math.max(l, 1f));
+        Bitmap out = Bitmap.createBitmap(src.getWidth(), src.getHeight(), Bitmap.Config.ARGB_8888);
+        Paint p = new Paint();
+        p.setColorFilter(new ColorMatrixColorFilter(new ColorMatrix(new float[]{g, 0, 0, 0, 0, 0, g, 0, 0, 0, 0, 0, g, 0, 0, 0, 0, 0, 1, 0})));
+        new Canvas(out).drawBitmap(src, 0, 0, p);
+        src.recycle();
+        return out;
     }
 
     /** Android 기본 얼굴 찾기(두 눈 기준 — 정면에 가까운 얼굴만 찾힌다): 동그라미 안, 너무 작지 않게. */

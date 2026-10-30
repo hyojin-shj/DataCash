@@ -10,6 +10,8 @@ from dataclasses import dataclass, field
 from typing import List, Optional
 
 import cv2
+
+from ..light import lift
 import numpy as np
 
 from .. import config
@@ -52,6 +54,7 @@ def extract_labels(video_path, max_frames: Optional[int] = None, start_frame: in
         if not ok:
             break
         h, w = bgr.shape[:2]
+        bgr = lift(bgr)                     # 어두운 곳에서 찍어도 손·몸을 찾게
         img = mp.Image(image_format=mp.ImageFormat.SRGB, data=cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB))
         ts = int((start_frame + i) * 1000 / fps)
         fl = FrameLabels()
