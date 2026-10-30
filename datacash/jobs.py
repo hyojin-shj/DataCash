@@ -274,6 +274,13 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
     lap("review")
     cert = process(sd, out, level=lvl, masked_video=masked, labels=labels, objects=objects, steps=steps,
                    mistakes=mistakes, scene=scene, privacy=privacy, extract=False, grip_calibration=stored, **kw)
+    if report.get("review"):                 # 센서 검증이 붙은 뒤에 정답 수를 센다
+        from . import evolve
+
+        g = evolve.finish_gold(sd.name, cert.get("steps") or [])
+        if g is not None:
+            report["review"]["gold"] = g
+            log(f"[{sd.name}] 세 번 확인 + 센서 검증된 정답 {g}")
     minutes = cert["dataset"]["frames"] / cert["dataset"]["fps"] / 60
     today = False
     try:   # 녹화한 날(한국 날짜)의 오늘 미션이면 +50%

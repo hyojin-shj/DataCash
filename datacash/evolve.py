@@ -194,6 +194,21 @@ def second_opinion(sid: str, video, t0: float, mission: str, mission_id: str, st
             "upheld": sum(1 for k in disputes if rows[k].get("upheld")), "relabeled": len(fixes), "gold": gold}
 
 
+def finish_gold(sid: str, steps: List[dict]) -> Optional[int]:
+    """센서 검증(verify)은 2차 검증 뒤 처리에서 붙는다 → 끝난 단계의 verified 를 crosscheck 에 옮기고 정답 수를 다시 센다.
+    (이걸 안 하면 verified 가 모두 False 로 남아 정답 0, 다음 녹화에 붙일 정답 예시도 없다.)"""
+    p = ROOT / "crosscheck" / f"{sid}.json"
+    if not p.exists():
+        return None
+    rep = json.loads(p.read_text())
+    ok = {round(s["start_s"], 2) for s in steps if s.get("verified")}
+    for r in rep["rows"]:
+        r["verified"] = round(r["start_s"], 2) in ok
+    rep["gold"] = sum(bool(r["agree"] and r["verified"] and r.get("confirmed", True)) for r in rep["rows"])
+    p.write_text(json.dumps(rep, ensure_ascii=False, indent=1))
+    return rep["gold"]
+
+
 def record_agreement(sid: str, mission_id: str, steps: int, agree: int, model: str) -> None:
     """④ 녹화마다 Spark 1.3 ↔ Spark Open 일치 — 붙인 정답 예시 수와 함께 (예시가 늘수록 오르는지 본다)."""
     reg = _registry()
