@@ -17,7 +17,9 @@
     "release": "손 떼기",
     "pour": "따르기",
     "fold": "접기",
-    "other": "기타"
+    "other": "기타",
+    "open": "열기",
+    "close": "닫기"
   },
   "missions": [
     {

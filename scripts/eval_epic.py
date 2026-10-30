@@ -190,6 +190,33 @@ EXPERIMENTS = {"base": {"chunk": None, "extra": ""},              # 처음과 �
                "chunk20_slow": {"chunk": 20.0, "extra": "", "slow": 2.0},  # 20초를 0.5배속(40초)으로 늘려 보내고 시각을 2로 나눈다
                "chunk20_r2": {"chunk": 20.0, "extra": ""},        # chunk20 을 두 번 더 → 세 번 다수결 (vote3)
                "chunk20_r3": {"chunk": 20.0, "extra": ""}}
+# 동작 이름 실험 (10-30): 지금 처리(chunk20_slow) 위에 — 어휘 넓히기 · 물체 상태로 집기/놓기 가르기
+STATE = ("Name each step by how the object's state changes: object goes from a surface (or container) into the hand = "
+         "grasp/lift; object goes from the hand onto a surface (or into a container) = place/release; object stays in the hand "
+         "and only moves = transport; hand works a door, drawer, lid, tap or knob = the articulation primitive. "
+         "Look at the first and last moments of each step before naming it.")
+VOCAB = {"open": "open a door, drawer, lid, bag or container", "close": "close a door, drawer, lid or container",
+         "wash": "wash, rinse or scrub under water", "stir": "stir or mix with a tool", "cut": "cut, slice, chop or peel"}
+EXPERIMENTS.update({"slow_vocab": {"chunk": 20.0, "extra": "", "slow": 2.0, "vocab": True},
+                    "slow_state": {"chunk": 20.0, "extra": STATE, "slow": 2.0},
+                    "slow_vocab_state": {"chunk": 20.0, "extra": STATE, "slow": 2.0, "vocab": True}})
+MERGE_OURS.update({"open": "articulate", "close": "articulate", "wash": "wash"})      # stir · cut 은 'other'
+LENIENT.update({"open": "articulate", "close": "articulate", "wash": "wash"})
+
+
+def _use_vocab() -> None:
+    """Spark 1.3 의 동작 목록(스키마·질문)에 VOCAB 을 더한다 — 프로세스 전체에 걸리므로 vocab 변형은 따로 돌린다."""
+    from datacash.understand import spark
+
+    new = {k: v for k, v in VOCAB.items() if k not in spark.PRIMITIVES}   # open·close 는 10-30 부터 처리에 들어 있다
+    for k in new:
+        spark.PRIMITIVES.insert(spark.PRIMITIVES.index("other"), k)
+    spark.SCHEMA["properties"]["steps"]["items"]["properties"]["action"]["enum"] = spark.PRIMITIVES
+    add = ", ".join(f"{k} ({v})" for k, v in new.items())
+    if new and add not in spark.PROMPT:
+        spark.PROMPT = spark.PROMPT.replace("container), other.", f"container), {add}, other.")
+
+
 VOTES = {"vote3": ["chunk20", "chunk20_r2", "chunk20_r3"]}          # 0.1초마다 다수결 (같은 표면 첫 번째 것)
 SET = "dev"                                                         # dev: 방법 고르는 8구간 · test: 고른 방법을 확인하는 새 8구간
 
@@ -258,6 +285,12 @@ def exp(names: list) -> None:
 
     evolve.ROOT = D / "evolve_empty"            # 지난 바로잡음 힌트 없이 — 변형끼리 같은 조건
     ws = json.loads(_windows_path().read_text())
+    todo = [n for n in names if n in EXPERIMENTS and not all((_exp_dir() / n / f"{_clip(w).stem}.json").exists() for w in ws)]
+    vocab = {bool(EXPERIMENTS[n].get("vocab")) for n in todo}
+    if len(vocab) > 1:
+        raise SystemExit("어휘를 넓힌 변형(vocab)과 아닌 변형은 따로 돌린다 (동작 목록이 프로세스 전체에 걸린다)")
+    if vocab == {True}:
+        _use_vocab()
     runs = [n for n in names if n in EXPERIMENTS] + [r for n in names for r in VOTES.get(n, [])]
     jobs = [(n, w) for n in dict.fromkeys(runs) for w in ws if not (_exp_dir() / n / f"{_clip(w).stem}.json").exists()]
 

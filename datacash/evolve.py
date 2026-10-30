@@ -44,7 +44,8 @@ DEFINITIONS = """Definitions: reach = hand moves toward the object, not touching
 lift = raise the held object; pull = draw it toward you or out of something (e.g. a tissue out of its box); push = move it away;
 twist = rotate it (e.g. a lid); press = push a button or surface down; squeeze; tear; wipe; insert = fit it into place;
 transport = carry the held object through the air; place = set the held object down on a surface; handover = pass it to the
-other hand or a person; release = fingers open and let go; other = none of these."""
+other hand or a person; release = fingers open and let go; open / close = a door, drawer, lid or container;
+other = none of these."""
 STYLES = {"basic": "", "defs": DEFINITIONS, "hint": "", "hint_defs": DEFINITIONS}
 STYLE = "hint"              # 학습·평가·쓰기에 같은 질문 — 미션 동작 순서 힌트 (Spark 에게 주는 것과 같은 정보, 10-29 평가에서 가장 좋음)
 HINT = "Expected primitive order in this mission (a hint, not a rule; repetitions are normal): {order}."

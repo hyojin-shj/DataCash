@@ -14,8 +14,10 @@ from ..meta.client import MetaClient, data_url
 MODEL = "muse-spark-1.3"
 
 # 로봇 조작 기본 동작 (라벨 단위). 미션마다 예상 순서는 missions.json 의 primitives.
+# 순서가 판매 데이터의 annotation.primitive 번호다 — 새 동작은 끝에만 붙인다 (open·close 는 10-30: 열기·닫기를 'other' 로 내던 것,
+# EPIC 정답으로 열기·닫기류 정확도 37% → 47~49%, docs/label_eval.md).
 PRIMITIVES = ["reach", "grasp", "lift", "pull", "push", "twist", "press", "squeeze", "tear", "wipe", "insert", "transport",
-              "place", "handover", "release", "pour", "fold", "other"]
+              "place", "handover", "release", "pour", "fold", "other", "open", "close"]
 GRASP_TYPES = ["power", "precision", "pinch", "lateral", "two_hand", "none", "unclear"]
 
 SCHEMA = {
@@ -52,7 +54,8 @@ The clip is {dur:.1f} seconds long.
 Split the active part of the clip into consecutive steps, ONE manipulation primitive per step, from this set:
 reach (hand moves toward the object), grasp (fingers close on it), lift, pull, push, twist, press (button/trigger), squeeze,
 tear, wipe, insert (snap/fit into place), transport (carry while holding), place (set it down), handover (give to/take from
-another person), release (fingers open), other. Repeat the sequence for every repetition you see.
+another person), release (fingers open), open (a door, drawer, lid, bag or container), close (a door, drawer, lid or
+container), other. Repeat the sequence for every repetition you see.
 For each step give start/end seconds (relative to clip start, within 0..{dur:.1f}), an imperative instruction a robot could
 follow, which hand, the grasp type, the objects touched, and whether the step succeeded.
 Also list mistakes (drops, slips, misses, re-grasps, tearing too much) with time and whether they were recovered, and the

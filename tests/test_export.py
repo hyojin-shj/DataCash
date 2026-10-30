@@ -110,3 +110,21 @@ def test_purge_originals(tmp_path):
     assert set(gone) == {"video.mp4", "audio.wav", "watch_audio.wav", "masked.mp4", "sam_input_3.mp4"}
     assert sorted(p.name for p in sd.iterdir()) == ["audio_clean.wav", "meta.json", "phone_imu.csv"]
     assert sorted(p.name for p in out.iterdir()) == ["certificate.md", "masked_swap.mp4"]
+
+
+def test_new_primitives_keep_old_numbers(synth_session, synth_tracks, tmp_path):
+    """open·close 는 끝에 붙어 예전 번호(reach 0 … other 17)가 그대로이고, 내보낸 번호표에 이름이 있다."""
+    from datacash.understand.spark import PRIMITIVES
+
+    assert PRIMITIVES.index("other") == 17 and PRIMITIVES[18:20] == ["open", "close"]
+    d, _ = synth_session
+    hand, objs, _ = synth_tracks
+    steps = [{"start_s": 6.0, "end_s": 8.0, "instruction": "Open the lid", "action": "open"},
+             {"start_s": 8.0, "end_s": 10.0, "instruction": "Lift the cup", "action": "lift"}]
+    process(d, tmp_path / "o", level="basic", hand_points=hand, objects=objs, steps=steps, extract=False)
+    ds = tmp_path / "o" / "lerobot"
+    t = pq.read_table(ds / "data" / "chunk-000" / "file-000.parquet")
+    prim = np.array(t.column("annotation.primitive").to_pylist()).ravel()
+    assert {18, 2} <= set(prim.tolist())
+    info = json.loads((ds / "meta" / "info.json").read_text())
+    assert "open" in json.dumps(info)
