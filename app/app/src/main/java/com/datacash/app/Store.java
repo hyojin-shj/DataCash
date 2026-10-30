@@ -19,8 +19,8 @@ final class Store {
         return c.getSharedPreferences("datacash", Context.MODE_PRIVATE);
     }
 
-    static String server(Context c) { return p(c).getString("server", "http://192.168.0.10:8800"); }
-    static String token(Context c) { return p(c).getString("token", ""); }
+    static String server(Context c) { return p(c).getString("server", BuildConfig.DEFAULT_SERVER); }
+    static String token(Context c) { String t = p(c).getString("token", ""); return t.isEmpty() ? BuildConfig.DEFAULT_TOKEN : t; }
     /** 이 폰의 고정 id (쥐는 힘 보정을 사람·폰마다 저장하는 열쇠). */
     static String deviceId(Context c) {
         String id = p(c).getString("device_id", "");

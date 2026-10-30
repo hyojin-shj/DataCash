@@ -27,6 +27,7 @@ final class Discover {
         if (System.currentTimeMillis() - lastTry < 10000) return false;     // 안 될 때 계속 확인·찾기 하지 않게
         if (reachable(Store.server(c))) return true;
         String found = find(c);
+        if ((found == null || !reachable(found)) && reachable(BuildConfig.DEFAULT_SERVER)) found = BuildConfig.DEFAULT_SERVER;  // 집 밖: 터널 주소
         if (found == null || !reachable(found)) {
             lastTry = System.currentTimeMillis();
             return false;

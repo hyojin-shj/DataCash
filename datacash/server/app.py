@@ -123,12 +123,15 @@ class Store:
                                   extra_missions=self.requests.live_missions(),
                                   skip_precheck=bool(self.status(sid).get("skip_precheck")))
                 fin = self.set_status(sid, state="done" if "error" not in rep else "rejected", skip_precheck=False, **rep)
-                # 실제 서비스: 처리가 끝나면(승인·반려) 원본은 바로 지운다. 서버 오류(failed)면 다시 처리하도록 둔다.
-                # 해커톤 시연에서는 원본 ↔ 치환 비교를 보여 줘야 해서 지우지 않는다 — 서비스에서는 아래 주석을 푼다.
-                # from ..jobs import purge_originals
-                #
-                # fin = self.set_status(sid, originals_deleted=purge_originals(self.root / "sessions" / sid, self.root / "out" / sid),
-                #                       originals_deleted_at=datetime.now(timezone.utc).isoformat(timespec="seconds"))
+                # 실제 서비스(DATACASH_PURGE=1, 다른 사람이 쓰는 내부 시험부터): 승인되면 원본은 바로 지운다.
+                # 반려는 이의 신청으로 다시 처리할 수 있게 원본을 남기고, 서버 오류(failed)도 다시 처리하도록 둔다.
+                # (운영자가 모아 찍은 시연용 녹화 collected/ 는 원본 ↔ 치환 비교를 위해 남긴다)
+                mine = any((self.root / "collected").glob(f"*/{sid}")) if (self.root / "collected").exists() else False
+                if os.environ.get("DATACASH_PURGE") == "1" and fin.get("state") == "done" and not mine:
+                    from ..jobs import purge_originals
+
+                    fin = self.set_status(sid, originals_deleted=purge_originals(self.root / "sessions" / sid, self.root / "out" / sid),
+                                          originals_deleted_at=datetime.now(timezone.utc).isoformat(timespec="seconds"))
             except Exception as e:
                 fin = self.set_status(sid, state="failed", error=f"{type(e).__name__}: {str(e)[:300]}")
             self.appeals.reprocessed(sid, fin)
@@ -382,6 +385,9 @@ class OrderIn(QuoteIn):
     note: str = ""
 
 
+CHAT_PER_HOUR, CHAT_PER_DAY = 20, 300
+
+
 def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api: bool = True, collect: bool = False,
                process_collected: bool = False) -> FastAPI:
     root = Path(root or config.DATA / "server")
@@ -394,7 +400,15 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
     app = FastAPI(title="DataCash")
     app.state.store = st
 
+    app_token = os.environ.get("DATACASH_APP_TOKEN") or ""   # 나눠 주는 앱에 넣는 참여자 토큰 (운영자 화면은 못 연다)
+
     def auth(t: Optional[str]):
+        if t != st.token and not (app_token and t == app_token):
+            raise HTTPException(401, "토큰이 맞지 않음")
+
+    chat_calls: list = []
+
+    def admin_auth(t: Optional[str]):
         if t != st.token:
             raise HTTPException(401, "토큰이 맞지 않음")
 
@@ -679,6 +693,13 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
             raise HTTPException(400)
         return JSONResponse(evaluate_run(root / "watchtest" / run), headers={"Access-Control-Allow-Origin": "*"})
 
+    @app.get("/app.apk")
+    def apk():                               # 내부 시험: 참여자 앱 내려받기 (data/server/dist/datacash.apk)
+        p = root / "dist" / "datacash.apk"
+        if not p.exists():
+            raise HTTPException(404, "앱 파일이 아직 없음")
+        return FileResponse(p, media_type="application/vnd.android.package-archive", filename="DataCash.apk")
+
     @app.get("/admin", response_class=HTMLResponse)
     def admin_page():
         return (WEB / "admin.html").read_text()
@@ -789,9 +810,19 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
         raise HTTPException(404)
 
     @app.post("/api/market/request/chat")
-    def request_chat(b: ChatIn):
+    def request_chat(b: ChatIn, request: Request):
         if not st.use_api:
             raise HTTPException(503, "Meta API 가 꺼진 서버예요")
+        # 공개 주소(터널)로 열려 있어 아무나 부를 수 있다 → 사람(IP)마다 시간당 CHAT_PER_HOUR 번, 하루 전체 CHAT_PER_DAY 번까지
+        ip = request.headers.get("cf-connecting-ip") or (request.client.host if request.client else "?")
+        now = time.time()
+        calls = [t for t in chat_calls if now - t[1] < 86400]
+        chat_calls[:] = calls
+        if len(calls) >= CHAT_PER_DAY or sum(1 for i, t in calls if i == ip and now - t < 3600) >= CHAT_PER_HOUR:
+            raise HTTPException(429, "잠시 뒤에 다시 해 주세요 (의뢰 대화 횟수 제한)")
+        chat_calls.append((ip, now))
+        if len(b.messages) > 30 or sum(len(m.content) for m in b.messages) > 8000:
+            raise HTTPException(413, "대화가 너무 길어요")
         from ..requests import chat
 
         try:
@@ -826,12 +857,12 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
     # ---- 운영자 ----
     @app.get("/api/admin/requests")
     def admin_requests(token: str = Query("")):
-        auth(token)
+        admin_auth(token)
         return {"requests": [request_view(r) | {"org": r["org"], "email": r["email"]} for r in st.requests.all()]}
 
     @app.post("/api/admin/requests/{rid}/close")
     def admin_request_close(rid: str, token: str = Query("")):
-        auth(token)
+        admin_auth(token)
         try:
             return request_view(st.requests.close(rid))
         except KeyError:
@@ -839,13 +870,13 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
 
     @app.get("/api/admin/orders")
     def admin_orders(token: str = Query("")):
-        auth(token)
+        admin_auth(token)
         return {"orders": sorted((json.loads(p.read_text()) for p in (root / "orders").glob("*.json")),
                                  key=lambda o: o["created"], reverse=True)}
 
     @app.post("/api/admin/orders/{oid}/approve")
     def approve(oid: str, bg: BackgroundTasks, token: str = Query("")):
-        auth(token)
+        admin_auth(token)
         o = st.order(oid)
         o["status"] = "building"
         st.save_order(o)
@@ -855,7 +886,7 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
     @app.get("/api/admin/sessions")
     def admin_sessions(token: str = Query("")):
         """녹화 목록: 상태 · 미션 · 보상 · 단계별 처리 시간 · 얼굴 치환(가상 인물·기준 넘은 장면) · 라벨을 붙인 모델."""
-        auth(token)
+        admin_auth(token)
         rows = []
         for p in sorted((root / "status").glob("*.json"), reverse=True):
             s = json.loads(p.read_text())
@@ -877,7 +908,7 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
     @app.get("/api/admin/sessions/{sid}/video")
     def admin_video(sid: str, kind: str = Query("swap"), token: str = Query("")):
         """운영자 비교용 영상: swap(판매용, 얼굴 치환·가림) · original(원본 — 시연 서버에만 남아 있다)."""
-        auth(token)
+        admin_auth(token)
         if not SID.match(sid) or kind not in ("swap", "original"):
             raise HTTPException(404)
         p = root / "out" / sid / "masked_swap.mp4" if kind == "swap" else root / "sessions" / sid / "video.mp4"
@@ -888,7 +919,7 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
     @app.get("/api/admin/costs")
     def admin_costs(token: str = Query("")):
         """Meta API 사용액: 합계·한도·모델별·날짜별·최근 호출."""
-        auth(token)
+        admin_auth(token)
         from ..meta.client import _ledger_rows
 
         rows = _ledger_rows()
@@ -912,7 +943,7 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
     @app.get("/api/admin/evolve")
     def admin_evolve(token: str = Query("")):
         """모델 진화: 녹화마다 Spark 1.3 ↔ Spark Open 일치(agreement) · 2차 검증 표 · 바로잡음 · 정답 예시 수."""
-        auth(token)
+        admin_auth(token)
         from .. import evolve
 
         cross = [json.loads(p.read_text()) for p in sorted((evolve.ROOT / "crosscheck").glob("*.json"))] \
@@ -930,12 +961,12 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
 
     @app.get("/api/admin/appeals")
     def admin_appeals(token: str = Query("")):
-        auth(token)
+        admin_auth(token)
         return {"appeals": st.appeals.all()}
 
     @app.post("/api/admin/appeals/{aid}")
     def admin_decide(aid: str, b: DecisionIn, token: str = Query("")):
-        auth(token)
+        admin_auth(token)
         try:
             a = st.appeals.decide(aid, b.accept, b.extra_reward, b.note)
         except KeyError:

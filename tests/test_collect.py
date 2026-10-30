@@ -38,3 +38,16 @@ def test_late_watch_upload_keeps_collected(tmp_path):
     assert _upload(c, "20261029_210000", "twist_cap")["state"] == "collected"
     c.put("/api/sessions/20261029_210000/files/watch_imu.csv", content=b"t_ns\n", headers={"X-DC-Token": "t"})
     assert c.app.state.store.status("20261029_210000")["state"] == "collected"
+
+
+def test_app_token_cannot_open_admin(tmp_path, monkeypatch):
+    """나눠 주는 앱의 참여자 토큰으로는 미션은 받지만 운영자 화면 API 는 못 연다."""
+    from fastapi.testclient import TestClient
+
+    from datacash.server.app import create_app
+
+    monkeypatch.setenv("DATACASH_APP_TOKEN", "app")
+    c = TestClient(create_app(tmp_path, "admin", use_api=False))
+    assert c.get("/api/missions", headers={"X-DC-Token": "app"}).status_code == 200
+    assert c.get("/api/admin/sessions?token=app").status_code == 401
+    assert c.get("/api/admin/sessions?token=admin").status_code == 200

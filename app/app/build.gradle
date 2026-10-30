@@ -2,6 +2,11 @@ plugins {
     id 'com.android.application'
 }
 
+// 내부 시험용 기본 서버·참여자 토큰 — local.properties(git 에 안 올라감)의 dc.server · dc.appToken 에서 넣는다
+def local = new Properties()
+def lf = rootProject.file('local.properties')
+if (lf.exists()) lf.withInputStream { local.load(it) }
+
 android {
     namespace 'com.datacash.app'
     compileSdk 34
@@ -10,8 +15,14 @@ android {
         applicationId 'com.datacash.app'
         minSdk 28
         targetSdk 34
-        versionCode 1
-        versionName '0.1-hackathon'
+        versionCode 2
+        versionName '0.2-beta'
+        buildConfigField 'String', 'DEFAULT_SERVER', '"' + local.getProperty('dc.server', 'http://192.168.0.10:8800') + '"'
+        buildConfigField 'String', 'DEFAULT_TOKEN', '"' + local.getProperty('dc.appToken', '') + '"'
+    }
+
+    buildFeatures {
+        buildConfig true
     }
 
     compileOptions {
