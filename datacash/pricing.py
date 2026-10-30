@@ -4,7 +4,7 @@
   영상(필수 35,000: 가린·치환 영상·폰 IMU·물체 영역·단계·기본 동작 라벨·성공·실수·인증서) + 관절 20,000 + 소리 5,000
   + 손목 IMU 15,000 + 촉각 25,000 + 생체 50,000
   기본 = 영상·관절·소리 60,000원 · 고품질 = + 손목·촉각 100,000원 · 생체 = + 생체 150,000원
-맞춤 수집: 판매가 × 1.5, 최소 10시간, 착수비 500,000원
+맞춤 수집: 판매가 × 1.5, 최소 10시간, 착수비 500,000원 · 모으기 어려운 조건(고령·한 성별·좁은 연령 등) × 1.3~2.5
 묶음 할인: 100시간 이상 20%, 500시간 이상 35%
 정제 요청: 금액의 10%, 최소 50,000원
 촬영자 보상 (받아들인 시간당, 판매가의 약 1/3): 기본 20,000 · 고품질 33,000 · 생체 50,000원
@@ -78,15 +78,18 @@ def _round100(x: float) -> int:
     return int(round(x / 100.0)) * 100
 
 
+RARITY = {"normal": 1.0, "uncommon": 1.3, "rare": 1.8, "very_rare": 2.5}   # 모으기 어려운 참여 조건 (신규 수집에만 붙는다)
+
+
 def quote(hours: float, level: Optional[str] = "basic", custom: bool = False, refine: bool = False,
-          sensors: Optional[list] = None) -> dict:
+          sensors: Optional[list] = None, rarity: float = 1.0) -> dict:
     if level not in LEVELS and not sensors:
         raise ValueError(f"등급은 {LEVELS} 중 하나")
     sel = sensors_for(level if level in LEVELS else None, sensors)
     level = level_of(sel)
     preset = next((k for k, v in PRESETS.items() if v == sel), None)
     hours = max(0.0, float(hours))
-    per = per_hour(sel) * (CUSTOM_MULT if custom else 1.0)
+    per = per_hour(sel) * (CUSTOM_MULT if custom else 1.0) * (rarity if custom else 1.0)
     if custom:
         hours = max(hours, CUSTOM_MIN_HOURS)
     base = per * hours
@@ -98,7 +101,7 @@ def quote(hours: float, level: Optional[str] = "basic", custom: bool = False, re
     return {"level": level, "level_ko": LEVEL_KO[preset] if preset else "맞춤 조합", "sensors": sel,
             "sensors_ko": [SENSORS[k][0] for k in sel], "hours": round(hours, 2), "per_hour": _round100(per),
             "discount_pct": int(rate * 100), "data": _round100(data), "setup": setup, "refine": _round100(ref),
-            "total": _round100(total), "custom": custom}
+            "total": _round100(total), "custom": custom, "rarity": rarity if custom else 1.0}
 
 
 def reward(accepted_minutes: float, level: str = "basic", scarce: bool = False, today: bool = False) -> int:

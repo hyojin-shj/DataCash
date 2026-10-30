@@ -64,3 +64,30 @@ def test_session_uses_request_mission(tmp_path):
     m = _mission({"mission": {"id": "req_x_0"}}, extra=[{"id": "req_x_0", "title": "상자", "title_en": "box", "objects": ["box"],
                                                          "primitives": ["reach", "release"]}])
     assert m["objects"] == ["box"] and m["primitives"] == ["reach", "release"]
+
+
+def _cat():
+    return {"missions": [{"id": "lift_box", "title": "상자 들어 올려 옮기기", "hours": {"basic": 30.0, "premium": 30.0, "bio": 0.0}},
+                         {"id": "fold_cloth", "title": "수건 개기", "hours": {"basic": 0.0, "premium": 0.0, "bio": 0.0}}]}
+
+
+def test_instant_reads_request_without_model():
+    from datacash.requests import instant
+
+    p = instant([{"role": "user", "content": "물류 회사예요. 택배 상자 상하차, 50대 이하 여성, 예산 300만 원, 쥐는 세기 꼭"}], _cat())
+    assert p["missions"][0]["id"] == "lift_box" and p["budget_krw"] == 3_000_000
+    assert p["eligibility"] == {"age_bands": ["19~29세", "30대", "40대", "50대"], "gender": "female"}
+    assert "touch" in p["sensors"] and p["source"] == "instant"
+
+
+def test_options_existing_new_mix_and_rarity():
+    from datacash.requests import instant, options
+
+    o = options(instant([{"role": "user", "content": "택배 상자 옮기기 데이터 20시간"}], _cat()), _cat())
+    assert o["recommended"] == "existing" and o["options"]["existing"]["setup"] == 0       # 보관량으로 충분 → 기존, 착수비 없음
+    o = options(instant([{"role": "user", "content": "택배 상자 옮기기 데이터 50시간"}], _cat()), _cat())
+    assert o["recommended"] == "mix" and o["options"]["mix"]["existing_hours"] == 30.0
+    o = options(instant([{"role": "user", "content": "90대 어르신이 상자 옮기는 데이터 20시간"}], _cat()), _cat())
+    assert o["recommended"] == "new" and "existing" not in o["options"] and o["rarity"] == "very_rare"
+    normal = options(instant([{"role": "user", "content": "수건 개기 20시간"}], _cat()), _cat())["options"]["new"]["total"]
+    assert o["options"]["new"]["total"] > normal * 2                                        # 특이 조건은 비싸게

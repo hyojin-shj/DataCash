@@ -114,6 +114,11 @@ class Reid:
         return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-9))
 
 
+ALIGN = [33, 133, 362, 263, 1, 61, 291, 152, 234, 454]   # 눈꼬리 4 · 코끝 · 입꼬리 2 · 턱 · 양 볼 (MediaPipe 얼굴 점)
+D0_FRAMES = 15        # 움직임 기준 후보 수
+EXP_CLIP = 0.07       # 키포인트마다 표정 차이 한도 (LivePortrait exp 단위)
+
+
 class LivePortraitSwap:
     def __init__(self):
         sys.path.insert(0, str(LP_ROOT))
@@ -142,29 +147,54 @@ class LivePortraitSwap:
         self.s_info, self.s_feat = info, self.w.extract_feature_3d(x)
         self.s_kp = self.w.transform_keypoint(info)
         self.s_R = self.rot(info["pitch"], info["yaw"], info["roll"])
-        self.d0 = None
+        self.d0, self.d0_buf = None, []
         return crop
+
+    def set_reference(self, crops: list) -> None:
+        """움직임 기준을 영상 곳곳의 얼굴 장면(MediaPipe 로 자른 crop 들) 가운데 표정이 가운데인 장면으로 미리 정한다
+        (첫 장면들로만 정하면 녹화 처음의 표정에 끌려간다)."""
+        for c in crops:
+            if len(self.d0_buf) >= D0_FRAMES:
+                break
+            x = self.w.prepare_source(cv2.cvtColor(c, cv2.COLOR_BGR2RGB))
+            d = self.w.get_kp_info(x)
+            self.d0_buf.append((d, self.rot(d["pitch"], d["yaw"], d["roll"])))
+        if self.d0_buf:
+            t = self.torch
+            ex = t.stack([b[0]["exp"].flatten() for b in self.d0_buf])
+            self.d0 = self.d0_buf[int(((ex - ex.median(0).values) ** 2).sum(1).argmin())]
 
     def state(self) -> tuple:
         """지금 가상 인물·움직임 기준 (여러 사람을 바꿀 때 사람마다 따로 둔다)."""
-        return self.s_info, self.s_feat, self.s_kp, self.s_R, self.d0
+        return self.s_info, self.s_feat, self.s_kp, self.s_R, self.d0, list(self.d0_buf)
 
     def use(self, st: tuple) -> None:
-        self.s_info, self.s_feat, self.s_kp, self.s_R, self.d0 = st
+        self.s_info, self.s_feat, self.s_kp, self.s_R, self.d0, buf = st
+        self.d0_buf = list(buf)
 
-    def drive(self, drive_crop_bgr, exp_scale: float = 1.0) -> np.ndarray:
+    def drive(self, drive_crop_bgr, exp_scale: float = 1.0, anchor: bool = True) -> np.ndarray:
         """원래 얼굴 crop → 가상 인물이 같은 움직임을 한 512 얼굴 (BGR).
-        exp_scale: 표정을 얼마나 옮길지 (1 = 그대로, 0 = 고개 움직임만). 표정이 원래 사람을 닮게 만드는 장면에서 줄인다."""
+        exp_scale: 표정을 얼마나 옮길지 (1 = 그대로, 0 = 고개 움직임만). 표정이 원래 사람을 닮게 만드는 장면에서 줄인다.
+        anchor: 이 장면을 움직임 기준(d0) 후보로 써도 되는가 — MediaPipe 점으로 제대로 자른 얼굴만.
+          (상자 옮기기 녹화: 기준이 YuNet·작은 얼굴로 다르게 자른 장면에서 잡혀, 이후 모든 장면의 표정 차이가 커져
+           눈이 튀어나온 '놀란 얼굴' 이 됐다.) 기준은 처음 D0_FRAMES 개 후보 가운데 표정이 가운데인 장면, 표정 차이는 EXP_CLIP 로 묶는다."""
         t = self.torch
         x = self.w.prepare_source(cv2.cvtColor(drive_crop_bgr, cv2.COLOR_BGR2RGB))
         d = self.w.get_kp_info(x)
         R_d = self.rot(d["pitch"], d["yaw"], d["roll"])
-        if self.d0 is None:
-            self.d0 = (d, R_d)
-        d0, R_d0 = self.d0
+        if anchor and len(self.d0_buf) < D0_FRAMES:
+            self.d0_buf.append((d, R_d))
+            ex = t.stack([b[0]["exp"].flatten() for b in self.d0_buf])
+            med = ex.median(0).values
+            self.d0 = self.d0_buf[int(((ex - med) ** 2).sum(1).argmin())]
+        if self.d0 is None:                   # 아직 기준이 없으면 이 장면이 기준인 것처럼 (표정 차이 0, 고개만)
+            d0, R_d0 = d, R_d
+        else:
+            d0, R_d0 = self.d0
         s = self.s_info
         R_new = (R_d @ R_d0.permute(0, 2, 1)) @ self.s_R
-        exp_new = s["exp"] + exp_scale * (d["exp"] - d0["exp"])
+        delta = (d["exp"] - d0["exp"]).clamp(-EXP_CLIP, EXP_CLIP)
+        exp_new = s["exp"] + exp_scale * delta
         scale_new = s["scale"] * (d["scale"] / d0["scale"])
         t_new = s["t"] + (d["t"] - d0["t"])
         t_new[..., 2] = 0
@@ -180,10 +210,19 @@ class LivePortraitSwap:
         img = (out.permute(0, 2, 3, 1).clamp(0, 1).cpu().numpy()[0] * 255).astype(np.uint8)
         return cv2.cvtColor(cv2.resize(img, (CROP, CROP)), cv2.COLOR_RGB2BGR)
 
-    def paste(self, frame, face512, M, gen_lmk: Optional[np.ndarray], clip=None) -> np.ndarray:
+    def paste(self, frame, face512, M, gen_lmk: Optional[np.ndarray], clip=None, target: Optional[np.ndarray] = None) -> np.ndarray:
         """만든 얼굴의 얼굴 윤곽(이마는 조금 위로) 안만, 가장자리를 흐리게, 색을 장면에 맞춰 붙인다.
-        clip: YuNet 얼굴(점 없이 자른 경우) — 붙이는 자리를 원래 얼굴 타원 안으로 묶는다 (얼굴 밖으로 튀어나오지 않게)."""
+        clip: YuNet 얼굴(점 없이 자른 경우) — 붙이는 자리를 원래 얼굴 타원 안으로 묶는다 (얼굴 밖으로 튀어나오지 않게).
+        target: 원래 얼굴 점(장면 좌표) — 만든 얼굴의 눈·코·입·턱을 이 자리에 맞춰 옮긴다 (가상 인물의 얼굴 비율이 달라
+          눈코입이 얼굴 폭의 10%쯤, 많게는 20% 어긋나 이마에 눈이 붙은 것처럼 보였다)."""
         h, w = frame.shape[:2]
+        if gen_lmk is not None and target is not None:
+            tc = cv2.transform(target[None, :, :2].astype(np.float32), cv2.invertAffineTransform(M))[0]
+            A, _ = cv2.estimateAffine2D(gen_lmk[ALIGN, :2].astype(np.float32), tc[ALIGN], method=cv2.LMEDS)
+            if A is not None and 0.7 < np.sqrt(abs(np.linalg.det(A[:, :2]))) < 1.4:
+                face512 = cv2.warpAffine(face512, A, (CROP, CROP), borderMode=cv2.BORDER_REPLICATE)
+                gen_lmk = gen_lmk.copy()
+                gen_lmk[:, :2] = cv2.transform(gen_lmk[None, :, :2].astype(np.float32), A)[0]
         mk = np.zeros((CROP, CROP), np.float32)
         if gen_lmk is not None:
             poly = gen_lmk[FACE_OVAL].copy()
@@ -335,6 +374,21 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
         return states[key]
 
     person_state("participant", 0)
+    ref, cap = [], cv2.VideoCapture(str(original))          # 참여자 움직임 기준: 영상 곳곳 정면에 가까운 얼굴 장면들로 미리
+    nf = int(cap.get(7))
+    for j in np.linspace(0, max(0, nf - 1), 3 * D0_FRAMES).astype(int):
+        cap.set(cv2.CAP_PROP_POS_FRAMES, int(j))
+        ok, f = cap.read()
+        found = fl(f) if ok else []
+        if found:
+            lmk = max(found, key=lambda a: np.ptp(a[:, 0]) * np.ptp(a[:, 1]))
+            if np.ptp(lmk[:, 0]) > 80:                     # 너무 작은 얼굴은 빼고
+                ref.append(warp_in(f, crop_matrix(lmk)))
+    cap.release()
+    if ref:
+        lp.use(states["participant"])
+        lp.set_reference(ref[:: max(1, len(ref) // D0_FRAMES)])
+        states["participant"] = lp.state()
     co, cb = cv2.VideoCapture(str(original)), cv2.VideoCapture(str(base))
     fps = cb.get(cv2.CAP_PROP_FPS) or 30
     w, h = int(cb.get(3)), int(cb.get(4))
@@ -398,9 +452,9 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
             tries = []                                     # (닮음, 결과, 표정 비율)
             for es in dict.fromkeys((start, prev, 0.0) if start > prev else (start, 0.0)):
                 lp.use(person_state(key, 0 if key == "participant" else 1 + family_order.index(key.split(":", 1)[1])))
-                gen = lp.drive(crop, es)
+                gen = lp.drive(crop, es, anchor=lmk is not None and not small)
                 gl = fl(gen)
-                out = lp.paste(res, gen, M, gl[0] if gl else None, clip=yf)
+                out = lp.paste(res, gen, M, gl[0] if gl else None, clip=yf, target=lmk)
                 e1 = reid.embed(out, c) if e0 is not None else None
                 sv = reid.sim(e0, e1) if e1 is not None else None
                 tries.append((-1.0 if sv is None else sv, out, es))
