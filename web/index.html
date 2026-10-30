@@ -256,7 +256,9 @@ async function load() {
   load_levels();
   $("#mChecks").innerHTML = CAT.missions.map(m => `<label><input type="checkbox" value="${esc(m.id)}">${esc(m.title)}</label>`).join("");
   document.querySelectorAll("#mChecks label").forEach(l => l.onclick = e => { setTimeout(() => { l.classList.toggle("on", l.querySelector("input").checked); quote(); }, 0); });
-  const samples = CAT.missions.flatMap(m => m.samples.map(s => ({s, m})));
+  const FIRST = "lift_box";   // 처음 보여 줄 예시: 무거운 상자 옮기기 (닿음·쥐는 세기·워치가 가장 잘 보이는 녹화)
+  const samples = CAT.missions.flatMap(m => m.samples.map(s => ({s, m})))
+    .sort((a, b) => (b.m.id === FIRST) - (a.m.id === FIRST));
   $("#sampleSel").innerHTML = samples.map(x => `<option value="${esc(x.s)}">${esc(x.m.title)} · ${esc(x.s)}</option>`).join("") || "<option>예시 없음</option>";
   if (CAT.missions.some(m => m.synthetic_only)) $("#synthNote").textContent = " · '합성 시험' 표시는 정답을 아는 합성 녹화로 파이프라인을 검증한 데이터입니다 (판매 대상 아님).";
   if (samples.length) loadSample(samples[0].s);
