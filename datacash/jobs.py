@@ -163,7 +163,14 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
             found = scan(video)                  # 이 맥에서 훑어보고 SAM 에 물을 것만 (혼자면 사람은 안 묻는다)
             plan = sam_plan(found, PEOPLE, CHILD, SENSITIVE, manip)
             report["scan"] = found
-            r = mask_video(video, out / "masked.mp4", manipulated=manip, hand_pts=pts, match=match, plan=plan)
+            from .understand import spark_open
+
+            generic = ["package", "bottle", "box"]
+            namer = (lambda: spark_open.name_objects(video, mission.get("title_en") or mission.get("title") or "", t_act) + generic) \
+                if spark_open.available() else (lambda: generic)   # 미션의 물체 이름으로 못 찾으면 Spark Open 이 장면을 보고 다른 이름을
+            r = mask_video(video, out / "masked.mp4", manipulated=manip, hand_pts=pts, match=match, plan=plan, name_objects=namer)
+            if r.report.get("object_fallback"):
+                log(f"[{sd.name}] 물체 이름 다시 찾기: {r.report['object_fallback']}")
             masked, objects, privacy = r.masked_video, r.objects, r.report
             log(f"[{sd.name}] 가리기: {json.dumps(r.report, ensure_ascii=False)[:300]}")
             lap("mask")
@@ -263,6 +270,15 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
             report["skipped"].append(f"understand: {e}")
         except Exception as e:
             report["skipped"].append(f"understand: {type(e).__name__}: {str(e)[:200]}")
+
+    # 3-1. 미션 동작을 하나도 못 찾았으면 반려 (얼굴 확인만 하다 끝난 녹화 등 — 이의 신청으로 더 높은 모델이 다시 본다)
+    if steps is not None and not steps and not skip_precheck:
+        report["error"] = "미션 동작을 찾지 못했어요 · 미션 물건을 손으로 다루는 모습이 화면에 나오게 찍어 주세요"
+        report["reward"] = 0
+        report["scene"] = scene
+        (out / "job.json").write_text(json.dumps(report, indent=2, ensure_ascii=False))
+        log(f"[{sd.name}] 반려: 동작 단계 0개 (Spark 1.3: 완료 {(scene or {}).get('completed')})")
+        return report
 
     # 4. 4감 내보내기
     has_watch = (sd / "watch_imu.csv").exists()

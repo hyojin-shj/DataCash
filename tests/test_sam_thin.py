@@ -107,3 +107,22 @@ def test_fast_mask_decode_same_as_official():
         m = SimpleNamespace(encoding="one_bit", width=w, height=h, payload=_encode_raster(img.ravel().tolist(), w, h))
         official = np.frombuffer(decode_mask_to_raster(m), np.uint8).reshape(h, w)
         assert np.array_equal(decode(m), official) and np.array_equal(official, img)
+
+
+def test_object_name_fallback(tmp_path):
+    """미션의 물체 이름(cup)으로 0장면이면 다른 이름들을 차례로 — 찾은 이름의 상자가 물체 채널에 들어간다."""
+    v = tmp_path / "v.mp4"
+    _video(v, n=30)
+
+    class Pitcher(FakeSam):
+        def video(self, path, concept, file_id=None):
+            out = FakeSam.video(self, path, "computer monitor" if concept == "pitcher" else "-", file_id)
+            self.calls[-1] = concept
+            return out
+
+    sam = Pitcher()
+    r = mask_video(v, tmp_path / "m.mp4", sam=sam, manipulated=("cup",), concepts_people=(), concepts_child=(),
+                   concepts_sensitive=(), name_objects=lambda: ["metal jug", "pitcher", "package"])
+    assert sam.calls == ["cup", "metal jug", "pitcher"]            # 찾으면 멈춘다
+    assert r.report["object_fallback"]["found"] == "pitcher"
+    assert sum(1 for o in r.objects if o) == 30

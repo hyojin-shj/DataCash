@@ -233,3 +233,49 @@ def adjudicate(video, disputes: List[dict], mission: str, primitives: Optional[l
     with ThreadPoolExecutor(4) as ex:
         list(ex.map(one, range(0, len(disputes), 8)))
     return out
+
+
+NAME = """Mission: "{mission}". The image has 4 frames from one video (top-left, top-right, bottom-left, bottom-right).
+What object(s) do the person's hands pick up, hold or manipulate for this mission? Gray areas are privacy masks.
+Give short, plain English noun phrases an object detector would understand (e.g. "pitcher", "package", "spray bottle"),
+most specific first, with 1-2 alternative names, at most {k} in total.
+Return ONLY JSON {{"names": [<noun phrase>, ...]}}."""
+
+
+_DET = []
+
+
+def _blur_faces(img):
+    """얼굴을 바꾸기 전 원본 장면이라 밖(Baseten·Fireworks)에 보내기 전에 얼굴을 넉넉히 흐린다 (YuNet)."""
+    if not _DET:
+        _DET.append(cv2.FaceDetectorYN.create(str(config.MODELS / "yunet.onnx"), "", (320, 320), 0.5))
+    h, w = img.shape[:2]
+    _DET[0].setInputSize((w, h))
+    _, faces = _DET[0].detect(img)
+    out = img.copy()
+    for f in faces if faces is not None else []:
+        x, y, fw, fh = (int(v) for v in f[:4])
+        x0, y0, x1, y1 = max(0, x - fw // 3), max(0, y - fh // 2), min(w, x + fw + fw // 3), min(h, y + fh + fh // 3)
+        if x1 > x0 and y1 > y0:
+            out[y0:y1, x0:x1] = cv2.GaussianBlur(out[y0:y1, x0:x1], (0, 0), max(8, fw / 4))
+    return out
+
+
+def name_objects(video, mission: str, start_s: float = 0.0, k: int = 4) -> List[str]:
+    """손이 다루는 물체 이름들 (SAM 이 미션의 물체 이름으로 못 찾을 때 — 컵이 아니라 '피처', 휴지 곽이 아니라 '포장 휴지')."""
+    cap = cv2.VideoCapture(str(video))
+    dur = cap.get(7) / (cap.get(5) or 30)
+    cap.release()
+    a = min(max(0.0, start_s), max(0.0, dur - 1))
+    fr = _grab(video, [a + (dur - a) * (j + 0.5) / 4 for j in range(4)])
+    if len(fr) < 4:
+        return []
+    parts = [{"type": "text", "text": NAME.format(mission=mission, k=k)}, _jpg(_tile([_blur_faces(f) for _, f in fr]))]
+    prov, r = _ask(lambda mx, p=parts: p)
+    _record(getattr(r, "usage", None), f"spark-open name objects {Path(video).name}", prov)
+    text = r.choices[0].message.content or "{}"
+    try:
+        names = json.loads(text[text.find("{"): text.rfind("}") + 1]).get("names") or []
+    except ValueError:
+        return []
+    return [str(n).strip().lower() for n in names if isinstance(n, str) and 0 < len(n.strip()) <= 40][:k]

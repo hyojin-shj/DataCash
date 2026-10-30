@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
 import cv2
 import numpy as np
@@ -158,10 +158,13 @@ def _choose_participant(people: Dict[int, List[SamObject]], hand_pts: Optional[S
 def mask_video(video, out_path, manipulated: Sequence[str] = (), participant: Optional[str] = None,
                hand_pts: Optional[Sequence] = None, sam: Optional[Sam] = None, dilate_px: int = 6,
                concepts_people=PEOPLE, concepts_child=CHILD, concepts_sensitive=SENSITIVE, match=None,
-               sam_fps: float = SAM_FPS, plan: Optional[Dict[str, float]] = None) -> PrivacyResult:
+               sam_fps: float = SAM_FPS, plan: Optional[Dict[str, float]] = None,
+               name_objects: Optional[Callable[[], List[str]]] = None) -> PrivacyResult:
     """match: 등록된 본인·동의 가족 알아보기 (people.People.matcher). 본인과 맞는 추적이 참여자, 동의 가족은 가리지 않는다.
     sam_fps: SAM 에는 초당 이만큼만 보낸다 (값이 장면 수로 붙는다). 사이 장면은 가장 가까운 장면의 마스크를 더 넓혀 쓴다.
-    plan: 명사구마다 초당 장면 수 (scan.sam_plan — 0 이면 묻지 않음). 없으면 모두 sam_fps."""
+    plan: 명사구마다 초당 장면 수 (scan.sam_plan — 0 이면 묻지 않음). 없으면 모두 sam_fps.
+    name_objects: 미션의 물체 이름으로 하나도 못 찾으면 부른다 → 손이 다루는 물체의 다른 이름들 (Spark Open 이 장면을 보고).
+      찾을 때까지 차례로 SAM 에 묻는다 (실제: '컵' 이 스테인리스 피처, '휴지 곽' 이 포장 휴지라 0장면이던 녹화 9개)."""
     sam = sam or Sam()
     video = Path(video)
     cap = cv2.VideoCapture(str(video))
@@ -208,6 +211,34 @@ def mask_video(video, out_path, manipulated: Sequence[str] = (), participant: Op
         except Exception as e:  # 한 명사구가 실패해도 나머지로 계속 (보고에 남긴다)
             report["errors"].append(f"{c}: {type(e).__name__}: {str(e)[:200]}")
             tracks[c] = {}
+    manipulated = list(manipulated)
+    if manipulated and name_objects is not None and not any(tracks.get(c) for c in manipulated):
+        step = max(1, int(round(fps0 / (plan.get(manipulated[0], sam_fps) if plan is not None else sam_fps) or 1)))
+        tried = []
+        try:
+            names = [n for n in dict.fromkeys(name_objects()) if n not in manipulated][:7]
+        except Exception as e:  # noqa: BLE001
+            names = []
+            report["errors"].append(f"name_objects: {type(e).__name__}: {str(e)[:200]}")
+        for c in names:
+            try:
+                src = sam_input(step)
+                t = sam.video(src, c, file_id=lambda s=step, p=src: fids[s] if s in fids else fids.setdefault(s, sam.c.upload(p)))
+                report["sam_frames"] += max(50, -(-n0 // step))
+            except BudgetExceeded as e:
+                report["errors"].append(f"{c}: {e}")
+                break
+            except Exception as e:  # noqa: BLE001
+                report["errors"].append(f"{c}: {type(e).__name__}: {str(e)[:200]}")
+                continue
+            tried.append(c)
+            if t:
+                tracks[c] = _spread(t, step, n0) if step > 1 else t
+                ids = {o.object_id for objs in tracks[c].values() for o in objs}
+                report["concepts"][c] = {"frames": len(tracks[c]), "objects": len(ids)}
+                manipulated.append(c)
+                break
+        report["object_fallback"] = {"asked": names, "tried": tried, "found": manipulated[-1] if tried and tracks.get(tried[-1]) else None}
     if max_step > 1:          # 빌려 쓴 마스크는 그 사이 움직임만큼 더 넓게 (초당 1장면이면 더)
         dilate_px += HOLD_EXTRA_PX * (1 if max_step <= 3 else 2)
     people = {}
