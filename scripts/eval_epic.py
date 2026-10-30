@@ -420,21 +420,68 @@ def refine(base: str, tol: float) -> None:
     exp_score([base, f"{base}+snap", f"{base}+pick", f"{base}+pick+snap"])
 
 
+def hold_exp(base: str, pad: float = 0.0) -> None:
+    """base 변형의 단계에 refine.hold (손에 든 것이 늘었나·줄었나로 집기 ↔ 놓기 고치기) 를 붙여 채점한다."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    from datacash.understand.refine import hold
+
+    ws = json.loads(_windows_path().read_text())
+    name = f"{base}+hold" + (f"{pad:g}" if pad else "")
+
+    def one(w):
+        stem = _clip(w).stem
+        st = _exp_steps(base, stem)
+        dst = _exp_dir() / name / f"{stem}.json"
+        if st is None or dst.exists():
+            return
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        out = hold(_clip(w), st, MISSION, pad_s=pad)
+        dst.write_text(json.dumps({"window": w, "steps": out}, ensure_ascii=False))
+        hs = [s.get("hold") for s in out if s.get("hold")]
+        print(f"{stem}: 물어본 단계 {len(hs)} · gained {hs.count('gained')} · lost {hs.count('lost')} · "
+              f"고친 단계 {sum(1 for s in out if s.get('renamed_from'))}")
+
+    with ThreadPoolExecutor(4) as ex:
+        list(ex.map(one, ws))
+    exp_score([base, name])
+    # 고친 단계가 정답과 맞는지 (고친 단계 가운데 장면이 정답 묶음과 같은 비율, 고치기 전과 비교)
+    from datacash.understand.score import _at, _norm
+    import numpy as np
+    fixed = [0, 0, 0]
+    for w in ws:
+        p = _exp_dir() / name / f"{_clip(w).stem}.json"
+        if not p.exists():
+            continue
+        g = _norm(gold_steps(w), None)
+        for s in json.loads(p.read_text())["steps"]:
+            if s.get("renamed_from"):
+                t = np.arange(s["start_s"], s["end_s"], 0.1)
+                gl = _at(g, t)
+                fixed[0] += len(t)
+                fixed[1] += sum(x == MERGE_OURS.get(s["action"]) for x in gl)
+                fixed[2] += sum(x == MERGE_OURS.get(s["renamed_from"]) for x in gl)
+    if fixed[0]:
+        print(f"고친 단계 장면 {fixed[0]}개: 고친 뒤 맞음 {fixed[1] / fixed[0]:.0%} · 고치기 전 맞음 {fixed[2] / fixed[0]:.0%}")
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["pick", "fetch", "run", "score", "exp", "exp_score", "hands", "refine"])
+    ap.add_argument("cmd", choices=["pick", "fetch", "run", "score", "exp", "exp_score", "hands", "refine", "hold"])
     ap.add_argument("--n", type=int, default=8)
     ap.add_argument("--redo", action="store_true")
     ap.add_argument("--only", default=",".join(EXPERIMENTS), help="exp: 돌릴 변형 (쉼표, vote3 도 된다)")
     ap.add_argument("--base", default="chunk20", help="refine: 다듬을 변형")
     ap.add_argument("--tol", type=float, default=0.4, help="refine: 손 멈춤으로 옮길 수 있는 거리 (초)")
+    ap.add_argument("--pad", type=float, default=0.0, help="hold: 단계 앞뒤로 넓혀 보여 줄 시간 (초)")
     ap.add_argument("--set", default="dev", help="dev (방법 고르기) · test (새 구간으로 확인 — pick 은 dev 구간의 참여자를 뺀다)")
     a = ap.parse_args()
     global SET
     SET = a.set
     {"pick": lambda: pick(a.n), "fetch": fetch, "run": lambda: run(a.redo), "score": do_score,
      "exp": lambda: exp(a.only.split(",")), "exp_score": lambda: exp_score(a.only.split(",")),
-     "hands": hands, "refine": lambda: refine(a.base, a.tol)}[a.cmd]()
+     "hands": hands, "refine": lambda: refine(a.base, a.tol),
+     "hold": lambda: hold_exp(a.base, a.pad)}[a.cmd]()
 
 
 if __name__ == "__main__":

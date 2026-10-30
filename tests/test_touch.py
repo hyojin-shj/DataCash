@@ -7,7 +7,7 @@ import numpy as np
 from datacash.session import load_session
 from datacash.sync import align_session
 from datacash.touch.contact import contact_phases, phase_events
-from datacash.touch.sounds import audio_onsets, confirmed_contacts, wrist_impacts
+from datacash.touch.sounds import audio_onsets, confirmed_contacts, mic_contacts, wrist_impacts
 from datacash.touch.gripsense import GripModel, grade_text, labels_for, train, window_features
 from datacash.touch.vibration import pulse_responses
 
@@ -65,6 +65,30 @@ def test_putdown_confirmed_by_sound_and_wrist(synth_session):
     c = confirmed_contacts(ao, wp)
     assert len(c) == 1 and abs((c[0]["t_ns"] - truth["P0"]) / 1e9 - truth["putdown_s"]) < 0.02
     assert c[0]["gap_ms"] < 5
+
+
+def test_mic_contacts_remove_fixed_shift():
+    """워치 마이크 사건이 폰보다 일정하게 18ms 늦어도 짝을 찾고, 혼자 난 소리는 뺀다."""
+    phone = [{"t_ns": int(t * 1e9), "strength": 10.0} for t in (1.0, 2.0, 3.0, 4.0, 5.5)]
+    watch = [int((t + 0.018) * 1e9) for t in (1.0, 2.0, 3.0, 4.0)] + [int(9e9)]
+    c = mic_contacts(phone, watch)
+    assert [e["t_ns"] for e in c] == [int(t * 1e9) for t in (1.0, 2.0, 3.0, 4.0)]
+    assert c[0]["shift_ms"] == 18.0 and c[0]["gap_ms"] < 1
+    assert mic_contacts(phone, []) == []
+
+
+def test_contact_uses_nearest_hand():
+    """다른 손이 멀리서 가만히 있어도, 컵을 쥔 손이 컵과 같이 움직이면 '잡고 있음' (두 손을 평균 내면 미끄러짐으로 보였다)."""
+    fps, n = 30.0, 60
+    hands, objs = [], []
+    for i in range(n):
+        x = 100 + (3 * (i - 20) if i >= 20 else 0)             # 20번째 장면부터 컵과 손이 같이 오른쪽으로
+        tips = np.array([[x + dx, 200.0] for dx in (-8, -4, 0, 4, 8)])
+        other = np.array([[600.0 + dx, 400.0] for dx in (-8, -4, 0, 4, 8)])
+        hands.append([tips, other])
+        objs.append({0: (x - 20, 190, x + 20, 260)})
+    ph = [f.phase for f in contact_phases(hands, objs, fps)]
+    assert all(p == 3 for p in ph[25:]) and 4 not in ph
 
 
 def test_calibration_session_then_reuse(tmp_path):

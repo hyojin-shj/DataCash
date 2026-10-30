@@ -5,6 +5,8 @@
                 손 속도가 잠깐 멈춘 순간 (hand_events — 손이 닿거나 놓을 때 거의 멈춘다, 영상만으로)
                 영상 접촉 단계가 바뀐 순간 · 접촉음 · 손목 충격 (우리 녹화에서는 처리 중에 이미 구한다)
   pick        경계 앞뒤 장면 8장에 시각을 붙여 Muse Spark Open 에게 '다음 동작이 시작된 첫 장면'을 고르게 한다
+  hold        집기·놓기 단계마다 처음~끝 장면 4장을 보여 '손에 물체가 새로 들렸나 / 손을 떠났나'만 묻고,
+              반대로 붙은 이름만 고친다 (집기 ↔ 놓기 혼동이 가장 큰 오류 — 경계를 맞춰도 남는다)
 """
 
 from __future__ import annotations
@@ -63,6 +65,25 @@ def snap(steps: List[dict], events: Sequence[float], tol: float = 0.4) -> List[d
     return out
 
 
+def _strip(video, times: List[float], side: int, cols: int):
+    """장면들에 시각을 찍어 cols 칸 격자 한 장으로 → (실제 시각들, 그림). 하나라도 못 읽으면 (None, None)."""
+    import cv2
+
+    from . import spark_open
+
+    fr = spark_open._grab(video, [max(0.0, x) for x in times])
+    if len(fr) != len(times):
+        return None, None
+    imgs = []
+    for x, f in fr:
+        s = side / max(f.shape[:2])
+        f = cv2.resize(f, None, fx=s, fy=s)
+        cv2.putText(f, f"{x:.2f}s", (6, 22), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+        imgs.append(f)
+    rows = [np.hstack(imgs[r * cols:(r + 1) * cols]) for r in range(len(imgs) // cols)]
+    return [x for x, _ in fr], np.vstack(rows)
+
+
 PICK = """You are fixing the timing of step labels in a first-person hand-manipulation video, mission: "{mission}".
 For each boundary below you get one image with 8 frames in time order (left-to-right, then top-to-bottom), each with its time.
 The step before the boundary is labeled A and the step after is labeled B. Pick the FIRST frame in which B has begun
@@ -77,26 +98,13 @@ def pick(video, steps: List[dict], mission: str, span_s: float = 0.7, per_call: 
     import json
     from concurrent.futures import ThreadPoolExecutor
 
-    import cv2
-
     from . import spark_open
 
     out = [dict(s) for s in sorted(steps, key=lambda s: s["start_s"])]
     bounds = [k for k in range(1, len(out)) if out[k]["action"] != out[k - 1]["action"]]
 
     def grid(t: float):
-        times = [t - span_s + 2 * span_s * j / 7 for j in range(8)]
-        fr = spark_open._grab(video, [max(0.0, x) for x in times])
-        if len(fr) != 8:
-            return None, None
-        imgs = []
-        for x, f in fr:
-            s = side / max(f.shape[:2])
-            f = cv2.resize(f, None, fx=s, fy=s)
-            cv2.putText(f, f"{x:.2f}s", (6, 22), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
-            imgs.append(f)
-        rows = [np.hstack(imgs[r * 4:(r + 1) * 4]) for r in range(2)]
-        return [x for x, _ in fr], np.vstack(rows)
+        return _strip(video, [t - span_s + 2 * span_s * j / 7 for j in range(8)], side, cols=4)
 
     moves = {}
 
@@ -137,4 +145,70 @@ def pick(video, steps: List[dict], mission: str, span_s: float = 0.7, per_call: 
             if abs(a["end_s"] - b["start_s"]) < 0.3:
                 a["end_s"] = nt
             b["start_s"] = nt
+    return out
+
+
+TAKE = {"reach", "grasp", "lift"}
+PUT = {"place", "release", "insert"}
+
+HOLD = """You are checking step labels in a first-person hand-manipulation video, mission: "{mission}".
+For each step below you get one image with 4 frames in time order (left to right), from the start to the end of that step, each with its time.
+Compare the FIRST and the LAST frame and say what happened to the objects in the hands during this step:
+  "gained" = a hand did not hold this object at the start and holds it at the end (picked up / took / grabbed something),
+  "lost"   = a hand held an object at the start and no longer holds it at the end (put down / placed / let go),
+  "none"   = neither (kept holding the same objects, or empty hands the whole time, or cannot tell).
+Ignore objects that stay in the hand the whole time. Gray areas are privacy masks; ignore them.
+Return ONLY JSON {{"steps": [{{"k": <step number>, "hold": "gained" | "lost" | "none"}}]}}."""
+
+
+def hold(video, steps: List[dict], mission: str, per_call: int = 8, side: int = 256, pad_s: float = 0.0) -> List[dict]:
+    """집기(reach·grasp·lift)·놓기(place·release·insert) 단계마다 Spark Open 에게 손에 든 것이 늘었나·줄었나를 묻는다.
+    집기인데 'lost' 면 place, 놓기인데 'gained' 면 grasp 로 고친다. 'none' 이나 맞는 쪽은 그대로.
+    pad_s: 단계 앞뒤로 그만큼 넓혀 보여 준다 (짧은 단계는 처음·끝 장면이 거의 같다).
+    고친 단계에는 renamed_from, 물어본 단계에는 hold 를 남긴다. 경계·순서는 건드리지 않는다."""
+    import json
+    from concurrent.futures import ThreadPoolExecutor
+
+    from . import spark_open
+
+    out = [dict(s) for s in sorted(steps, key=lambda s: s["start_s"])]
+    ks = [k for k, s in enumerate(out) if s["action"] in TAKE | PUT and s["end_s"] - s["start_s"] >= 0.2]
+    seen = {}
+
+    def one(g):
+        chunk = ks[g:g + per_call]
+        parts = [{"type": "text", "text": HOLD.format(mission=mission)}]
+        idx = {}
+        for j, k in enumerate(chunk):
+            a, b = out[k]["start_s"] - pad_s, out[k]["end_s"] + pad_s
+            _, img = _strip(video, [a + (b - a) * x for x in (0.0, 0.33, 0.67, 1.0)], side, cols=4)
+            if img is None:
+                continue
+            idx[j + 1] = k
+            parts += [{"type": "text", "text": f"Step {j + 1}"}, spark_open._jpg(img)]
+        if not idx:
+            return
+        prov, r = spark_open._ask(lambda mx, p=parts: p)
+        spark_open._record(getattr(r, "usage", None), f"spark-open hold check {Path(video).name} {len(idx)}", prov)
+        text = r.choices[0].message.content or "{}"
+        try:
+            ans = json.loads(text[text.find("{"): text.rfind("}") + 1]).get("steps") or []
+        except ValueError:
+            ans = []
+        for x in ans:
+            try:
+                j, h = int(x["k"]), str(x["hold"]).lower()
+            except (KeyError, TypeError, ValueError):
+                continue
+            if j in idx and h in ("gained", "lost", "none"):
+                seen[idx[j]] = h
+
+    with ThreadPoolExecutor(4) as ex:
+        list(ex.map(one, range(0, len(ks), per_call)))
+    for k, h in seen.items():
+        s = out[k]
+        s["hold"] = h
+        new = "place" if h == "lost" and s["action"] in TAKE else "grasp" if h == "gained" and s["action"] in PUT else None
+        if new:
+            s["renamed_from"], s["action"] = s["action"], new
     return out

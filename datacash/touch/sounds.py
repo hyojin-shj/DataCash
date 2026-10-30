@@ -3,6 +3,8 @@
 소리: 1~8kHz 대역 에너지가 짧게 치솟는 순간(스펙트럼 변화량). 음향 비콘(18~20kHz)·진동음(170Hz)은 대역 밖이라 섞이지 않는다.
 손목: 0.3~30Hz 밖 고주파 충격 중 진동 펄스 시각이 아닌 것.
 둘이 40ms 안에 함께 있으면 '확인된 접촉'.
+워치 마이크: 손목 IMU(100Hz)는 내려놓는 짧은 충격을 거의 못 담는다 (녹화 14편에서 충격 1개). 대신 손 가까이 있는
+  워치 마이크에도 같은 소리가 잡히면 확인된 접촉으로 본다 — 폰 소리 사건의 40% 가 워치 소리와 25ms 안에 맞는다 (무작위 11%).
 """
 
 from __future__ import annotations
@@ -56,4 +58,24 @@ def confirmed_contacts(audio_ev: List[dict], wrist_ev_phone_ns: List[int], tol_m
             d = abs(int(w[j]) - e["t_ns"]) / 1e6
             if d <= tol_ms:
                 out.append({**e, "wrist_ns": int(w[j]), "gap_ms": round(d, 2)})
+    return out
+
+
+def mic_contacts(audio_ev: List[dict], watch_ev_phone_ns: List[int], tol_ms: float = 25.0,
+                 max_shift_ms: float = 100.0) -> List[dict]:
+    """폰 소리 사건 중 워치 마이크 소리 사건(폰 시계로 옮긴 것)과 겹치는 것.
+    두 마이크의 사건 시각에는 녹화마다 거의 일정한 차이(10~25ms — 마이크 처리 지연)가 있어,
+    max_shift 안에서 가장 가까운 짝들의 중앙값을 빼고 tol 안이면 맞는 것으로 본다 (짝이 3개 미만이면 빼지 않는다)."""
+    w = np.array(sorted(watch_ev_phone_ns), np.int64)
+    if not len(w) or not audio_ev:
+        return []
+    near = [int(w[np.argmin(np.abs(w - e["t_ns"]))]) - e["t_ns"] for e in audio_ev]
+    near = [d for d in near if abs(d) <= max_shift_ms * 1e6]
+    shift = float(np.median(near)) if len(near) >= 3 else 0.0
+    out = []
+    for e in audio_ev:
+        j = int(np.argmin(np.abs(w - shift - e["t_ns"])))
+        d = abs(w[j] - shift - e["t_ns"]) / 1e6
+        if d <= tol_ms:
+            out.append({**e, "watch_mic_ns": int(w[j]), "gap_ms": round(float(d), 2), "shift_ms": round(shift / 1e6, 1)})
     return out

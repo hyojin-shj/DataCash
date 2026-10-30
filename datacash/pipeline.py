@@ -26,18 +26,19 @@ from .physio import physio_series
 from .session import load_session
 from .sync import align_session
 from .touch.contact import contact_phases, phase_events
-from .touch.sounds import audio_onsets, confirmed_contacts, wrist_impacts
+from .touch.sounds import audio_onsets, confirmed_contacts, mic_contacts, wrist_impacts
 from .touch.gripsense import GRADES, LEVELS, GripModel, labels_for, train, window_features
 from .touch.vibration import pulse_responses
 
 FINGERTIPS = [4, 8, 12, 16, 20]
 
 
-def _fingertips(labels) -> List[Optional[np.ndarray]]:
+def _fingertips(labels) -> List[Optional[list]]:
+    """장면마다 손끝 점을 손마다 따로 (contact_phases 는 물체에 가까운 손 하나만 본다)."""
     out = []
     for f in labels or []:
         pts = [np.asarray(h)[FINGERTIPS, :2] for h in f.hands if h is not None]
-        out.append(np.concatenate(pts) if pts else None)
+        out.append(pts or None)
     return out
 
 
@@ -118,6 +119,12 @@ def process(session_dir, out_dir, level: str = "bio", fps: float = 30.0, masked_
         wi = wrist_impacts(s.watch_imu.t_ns, s.watch_imu.values, s.watch_vib.t_ns if s.watch_vib else None)
         impacts = [int(v) for v in m(np.array([e["t_ns"] for e in wi]))] if wi else []
     confirmed = confirmed_contacts(onsets, impacts)
+    if s.watch_audio is not None and m is not None and onsets:       # 워치 마이크에도 잡힌 소리
+        wo = audio_onsets(s.watch_audio.x, s.watch_audio.rate, s.watch_audio.start_ns)
+        seen = {e["t_ns"] for e in confirmed}
+        confirmed += [e for e in mic_contacts(onsets, [int(v) for v in m(np.array([e["t_ns"] for e in wo]))] if wo else [])
+                      if e["t_ns"] not in seen]
+        confirmed.sort(key=lambda e: e["t_ns"])
 
     # 3. 몸 감각
     cons = (s.meta.get("participant") or {}).get("consent") or {}

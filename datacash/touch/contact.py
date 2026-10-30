@@ -32,57 +32,82 @@ def _box_dist(pts: np.ndarray, box) -> float:
     return float(np.min(np.hypot(dx, dy)))
 
 
-def contact_phases(hand_pts: Sequence[Optional[np.ndarray]], objects: Sequence[Dict[int, tuple]], fps: float,
-                   move_px: float = 0.6, window_s: float = 0.2) -> List[ContactFrame]:
-    """hand_pts[i]: (k, 2) 손 점(손끝 위주) 또는 None. objects[i]: {물체 칸: (x1, y1, x2, y2)}."""
+def _hands(p) -> list:
+    """장면 하나의 손 점 → 손마다 (k, 2). 배열 하나면 손 하나로 본다."""
+    if p is None:
+        return []
+    if isinstance(p, (list, tuple)):
+        return [np.asarray(h, float)[:, :2] for h in p if h is not None and len(h)]
+    return [np.asarray(p, float)[:, :2]]
+
+
+def _smooth(c: np.ndarray, w: int) -> np.ndarray:
+    out = np.full_like(c, np.nan)
+    for i in range(len(c)):
+        s = c[max(0, i - w): i + w + 1]
+        s = s[np.isfinite(s).all(1)]
+        if len(s):
+            out[i] = np.median(s, 0)
+    return out
+
+
+def contact_phases(hand_pts: Sequence, objects: Sequence[Dict[int, tuple]], fps: float,
+                   window_s: float = 0.2, touch: float = 0.08, move: float = 0.008, rel: float = 0.5,
+                   smooth_s: float = 0.1, keep_s: float = 0.15) -> List[ContactFrame]:
+    """hand_pts[i]: 손 점 (k, 2) 하나, 또는 손마다 (k, 2) 의 목록, 또는 None. objects[i]: {물체 칸: (x1, y1, x2, y2)}.
+
+    - 장면마다 물체에 가장 가까운 손 하나만 본다 (두 손을 한데 평균 내면 손 중심이 두 손 사이로 가서
+      물체가 손과 따로 움직이는 것처럼 보였다 — 녹화 27편에서 장면의 33% 가 '미끄러짐', 단계가 1초에 3.9번 바뀌었다).
+    - 거리·움직임 기준은 물체 크기에 비례한다 (손이 카메라에 가까울수록 픽셀이 커진다).
+    - 한 번 '잡고 있음'이 되면 손끝이 물체에서 keep_s 넘게 떨어질 때까지 유지한다 (물체 상자가 흔들려도 끊기지 않게)."""
     n = len(hand_pts)
     w = max(1, int(round(window_s * fps)))
-    centers = [{k: np.array([(b[0] + b[2]) / 2, (b[1] + b[3]) / 2]) for k, b in o.items()} for o in objects]
-    hand_c = [None if p is None else np.mean(p[:, :2], axis=0) for p in hand_pts]
-    raw = []
+    keep = int(round(keep_s * fps))
+    best = []                                   # (물체 칸, 그 손, 거리, 물체 크기)
     for i in range(n):
-        p, objs = hand_pts[i], objects[i]
-        best, bd, size = -1, np.inf, 1.0
-        if p is not None:
-            for k, b in objs.items():
-                d = _box_dist(p[:, :2], b)
-                if d < bd:
-                    best, bd, size = k, d, max(b[2] - b[0], b[3] - b[1])
-        touching = p is not None and best >= 0 and bd <= 0.08 * size
-        near = p is not None and best >= 0 and bd <= 1.0 * size
-        raw.append((best if near else -1, touching, near))
+        b = (-1, None, np.inf, 1.0)
+        for h in _hands(hand_pts[i]):
+            for k, bx in objects[i].items():
+                d, sz = _box_dist(h, bx), max(bx[2] - bx[0], bx[3] - bx[1], 1.0)
+                if d / sz < b[2] / b[3]:
+                    b = (k, h, d, sz)
+        best.append(b)
+    hc = _smooth(np.array([np.mean(b[1], 0) if b[1] is not None else [np.nan, np.nan] for b in best]),
+                 max(1, int(round(smooth_s * fps))))
+
+    def center(j: int, k: int):
+        bx = objects[j].get(k)
+        return None if bx is None else np.array([(bx[0] + bx[2]) / 2, (bx[1] + bx[3]) / 2])
+
     out: List[ContactFrame] = []
-    held_prev = False
+    held, away = False, 0
     for i in range(n):
-        k, touching, near = raw[i]
-        phase, c = 0, 1.0 if touching else (0.5 if near else 0.0)
+        k, _, d, sz = best[i]
+        touching = k >= 0 and d <= touch * sz
+        near = k >= 0 and d <= 1.0 * sz
+        c = 1.0 if touching else (0.5 if near else 0.0)
         if touching:
+            away = 0
             a, b = max(0, i - w), min(n - 1, i + w)
-            oa, ob = centers[a].get(k), centers[b].get(k)
-            ha, hb = hand_c[a], hand_c[b]
-            if oa is not None and ob is not None and ha is not None and hb is not None:
-                om, hm = ob - oa, hb - ha
-                o_moving = np.linalg.norm(om) > move_px * (b - a)
-                rel = np.linalg.norm(om - hm)
-                if o_moving and rel <= 0.35 * max(np.linalg.norm(om), 1e-6) + move_px * 2:
-                    phase = 3                                   # 물체가 손을 따라 움직인다
-                elif o_moving:
-                    phase = 4                                   # 닿아 있는데 물체가 손과 따로 움직인다
-                elif np.linalg.norm(hm) > move_px * (b - a):
-                    phase = 2                                   # 물체는 멈췄는데 손만 움직인다 → 놓는 중
-                    held_prev = False
-                else:
-                    phase = 3 if held_prev else 2
+            oa, ob = center(a, k), center(b, k)
+            phase = 3 if held else 2
+            if oa is not None and ob is not None and np.isfinite(hc[a]).all() and np.isfinite(hc[b]).all():
+                om, hm = ob - oa, hc[b] - hc[a]
+                thr = move * sz * (b - a)
+                gap = np.linalg.norm(om - hm)
+                if np.linalg.norm(om) > thr and gap <= rel * max(np.linalg.norm(om), np.linalg.norm(hm)):
+                    held, phase = True, 3                       # 물체가 손을 따라 움직인다
+                elif held and np.linalg.norm(om) > thr and gap > 2 * rel * np.linalg.norm(om):
+                    phase = 4                                   # 잡고 있는데 물체가 손과 따로 움직인다
+        else:
+            away += 1
+            if held and away > keep:
+                held, phase = False, 5
+            elif held:
+                phase = 3
             else:
-                phase = 2
-        elif near:
-            phase = 5 if held_prev else 1
-        held_prev = phase in (3, 4) or (held_prev and touching and phase != 2)
-        out.append(ContactFrame(phase, c, k))
-    # '놓음'은 잡고 있다가 손끝이 떨어진 첫 장면만
-    for i in range(1, n):
-        if out[i].phase == 5 and out[i - 1].phase == 5:
-            out[i] = ContactFrame(1 if out[i].contact > 0 else 0, out[i].contact, out[i].object)
+                phase = 1 if near else 0
+        out.append(ContactFrame(phase, c, k if near else -1))
     return out
 
 
