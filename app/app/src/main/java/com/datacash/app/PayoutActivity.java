@@ -19,9 +19,16 @@ import java.util.Locale;
  * 계좌번호 전체는 이 폰에만 저장하고 서버에는 '은행 ****1234' 표시만 보낸다. 시험 버전이라 실제 송금은 하지 않는다.
  * 계좌를 연결하면 기다리던 보상이 바로 '입금'되고 '띠링'.
  */
-public class PayoutActivity extends Activity {
-    private static final String[] BANKS = {"KB국민", "신한", "우리", "하나", "NH농협", "IBK기업", "카카오뱅크", "토스뱅크", "케이뱅크"};
+public class PayoutActivity extends BaseActivity {
+    private String[] BANKS;      // 저장 값 (R.array.bank_values) — 보이는 이름은 R.array.banks
     private String bank;
+
+    /** 저장된 은행 값 → 지금 언어의 이름. */
+    static String bankLabel(android.content.Context c, String value) {
+        String[] vals = c.getResources().getStringArray(R.array.bank_values), names = c.getResources().getStringArray(R.array.banks);
+        for (int i = 0; i < vals.length && i < names.length; i++) if (vals[i].equals(value)) return names[i];
+        return value;
+    }
     private boolean editing;
     private TextView total, status;
 
@@ -39,29 +46,31 @@ public class PayoutActivity extends Activity {
     }
 
     private void showServer(JSONObject r) {
-        total.setText(String.format(Locale.KOREA, "%,d원", r.optInt("total")));
+        total.setText(Ui.won(this, r.optInt("total")));
         int waiting = r.optInt("waiting");
-        if (waiting > 0) status.setText(String.format(Locale.KOREA, "입금 기다리는 보상 %,d원 · 계좌를 연결하면 바로 들어와요", waiting));
+        if (waiting > 0) status.setText(getString(R.string.waiting_status, waiting));
     }
 
     private void render() {
-        LinearLayout body = Ui.page(this, "보상 받을 계좌", true);
+        BANKS = getResources().getStringArray(R.array.bank_values);
+        String[] bankNames = getResources().getStringArray(R.array.banks);
+        LinearLayout body = Ui.page(this, getString(R.string.menu_payout), true);
         bank = Store.bank(this).isEmpty() ? BANKS[0] : Store.bank(this);
         LinearLayout top = Ui.card(this);
-        top.addView(Ui.text(this, "받은 보상", 13, Ui.SUB, false));
+        top.addView(Ui.text(this, getString(R.string.received), 13, Ui.SUB, false));
         total = Ui.text(this, "-", 28, Ui.INK, true);
         total.setPadding(0, Ui.dp(this, 8), 0, Ui.dp(this, 8));
         top.addView(total);
-        status = Ui.text(this, Store.account(this).isEmpty() ? "아직 계좌를 연결하지 않았어요" : label() + " 으로 받아요", 13, Ui.SUB, false);
+        status = Ui.text(this, Store.account(this).isEmpty() ? getString(R.string.no_account) : getString(R.string.receive_to, label()), 13, Ui.SUB, false);
         top.addView(status);
         Ui.add(this, body, top);
 
-        body.addView(Ui.sectionTitle(this, "입금받을 계좌"));
+        body.addView(Ui.sectionTitle(this, getString(R.string.deposit_account)));
         if (!Store.account(this).isEmpty() && !editing) {
             LinearLayout c = Ui.listCard(this);
-            TextView change = Ui.chip(this, "계좌 바꾸기", Ui.SUB, Ui.FIELD);
+            TextView change = Ui.chip(this, getString(R.string.change_account), Ui.SUB, Ui.FIELD);
             change.setOnClickListener(v -> { editing = true; render(); });
-            c.addView(Ui.row(this, Icon.STAR, Ui.ACCENT_INK, Ui.ACCENT_SOFT, Store.bank(this), Store.maskedAccount(this) + " · 연결됨", change, null));
+            c.addView(Ui.row(this, Icon.STAR, Ui.ACCENT_INK, Ui.ACCENT_SOFT, bankLabel(this, Store.bank(this)), getString(R.string.linked_line, Store.maskedAccount(this)), change, null));
             Ui.add(this, body, c);
         } else {
             LinearLayout acc = Ui.card(this);
@@ -69,8 +78,10 @@ public class PayoutActivity extends Activity {
             hs.setHorizontalScrollBarEnabled(false);
             LinearLayout chips = new LinearLayout(this);
             hs.addView(chips);
-            for (String b : BANKS) {
-                TextView c = Ui.chip(this, b, 0, 0);
+            for (int i = 0; i < BANKS.length; i++) {
+                String b = BANKS[i];
+                TextView c = Ui.chip(this, i < bankNames.length ? bankNames[i] : b, 0, 0);
+                c.setTag(b);
                 c.setTextSize(14);
                 c.setPadding(Ui.dp(this, 14), Ui.dp(this, 9), Ui.dp(this, 14), Ui.dp(this, 9));
                 c.setOnClickListener(v -> { bank = b; paint(chips); });
@@ -78,16 +89,16 @@ public class PayoutActivity extends Activity {
             }
             paint(chips);
             acc.addView(hs);
-            EditText num = Ui.input(this, "계좌번호 (- 없이)", "", InputType.TYPE_CLASS_NUMBER);
+            EditText num = Ui.input(this, getString(R.string.account_hint), "", InputType.TYPE_CLASS_NUMBER);
             acc.addView(num, Ui.margins(this, -1, -2, 0, 0, 14, 0, 14));
-            acc.addView(Ui.button(this, "계좌 연결하고 바로 받기", true, v -> save(num.getText().toString().replaceAll("[^0-9]", ""))));
+            acc.addView(Ui.button(this, getString(R.string.link_and_receive), true, v -> save(num.getText().toString().replaceAll("[^0-9]", ""))));
             Ui.add(this, body, acc);
         }
-        TextView note = Ui.text(this, "계좌번호 전체는 이 폰에만 저장되고, 서버에는 가린 번호만 보내요. 시험 버전이라 실제 송금 대신 시험 지급으로 기록돼요.", 12, Ui.SUB, false);
+        TextView note = Ui.text(this, getString(R.string.payout_note), 12, Ui.SUB, false);
         note.setPadding(Ui.dp(this, 4), 0, Ui.dp(this, 4), Ui.dp(this, 6));
         body.addView(note);
 
-        body.addView(Ui.sectionTitle(this, "입금 내역"));
+        body.addView(Ui.sectionTitle(this, getString(R.string.payout_history)));
         LinearLayout list = Ui.listCard(this);
         int n = 0;
         for (File d : Store.sessions(this)) {
@@ -96,26 +107,26 @@ public class PayoutActivity extends Activity {
             if (py == null) continue;
             String id = d.getName();
             boolean sent = py.optString("status").equals("sent");
-            TextView right = sent ? Ui.text(this, String.format(Locale.KOREA, "+%,d원", py.optInt("amount")), 15, Ui.OK, true)
-                    : Ui.chip(this, String.format(Locale.KOREA, "%,d원 대기", py.optInt("amount")), Ui.ACCENT_INK, Ui.ACCENT_SOFT);
+            TextView right = sent ? Ui.text(this, Ui.plusWon(this, py.optInt("amount")), 15, Ui.OK, true)
+                    : Ui.chip(this, getString(R.string.waiting_chip, py.optInt("amount")), Ui.ACCENT_INK, Ui.ACCENT_SOFT);
             list.addView(Ui.row(this, sent ? Icon.CHECK : Icon.STAR, sent ? Ui.OK : Ui.ACCENT_INK, sent ? Ui.OK_SOFT : Ui.ACCENT_SOFT,
-                    st.optString("title", "녹화"),
+                    st.optString("title", getString(R.string.recording)),
                     (id.length() >= 8 ? id.substring(0, 4) + "." + id.substring(4, 6) + "." + id.substring(6, 8) : id)
-                            + (sent ? " · " + py.optString("label") : " · 계좌 연결 대기"), right, null));
+                            + (sent ? " · " + py.optString("label") : " · " + getString(R.string.waiting_account)), right, null));
             n++;
         }
-        if (n == 0) list.addView(Ui.row(this, Icon.LIST, Ui.SUB, Ui.FIELD, "아직 입금된 보상이 없어요", "미션이 승인되면 여기로 들어와요", null, null));
+        if (n == 0) list.addView(Ui.row(this, Icon.LIST, Ui.SUB, Ui.FIELD, getString(R.string.no_payouts), getString(R.string.no_payouts_desc), null, null));
         Ui.add(this, body, list);
     }
 
     private String label() {
-        return Store.bank(this) + " " + Store.maskedAccount(this).replace("••••", "****");
+        return bankLabel(this, Store.bank(this)) + " " + Store.maskedAccount(this).replace("••••", "****");
     }
 
     private void paint(LinearLayout chips) {
         for (int i = 0; i < chips.getChildCount(); i++) {
             TextView c = (TextView) chips.getChildAt(i);
-            boolean on = c.getText().toString().equals(bank);
+            boolean on = String.valueOf(c.getTag()).equals(bank);
             c.setTextColor(on ? android.graphics.Color.WHITE : Ui.SUB);
             c.setBackground(Ui.round(on ? Ui.PRIMARY : Ui.FIELD, Ui.dp(this, 99)));
         }
@@ -123,7 +134,7 @@ public class PayoutActivity extends Activity {
 
     private void save(String n) {
         if (n.length() < 10 || n.length() > 16) {
-            Toast.makeText(this, "계좌번호를 확인해 주세요", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.check_account, Toast.LENGTH_SHORT).show();
             return;
         }
         Store.setPayout(this, bank, n);
@@ -134,10 +145,10 @@ public class PayoutActivity extends Activity {
             try {
                 JSONObject r = Uploader.callJson(this, "POST", "/api/payout/account", new JSONObject().put("label", lb));
                 int sent = r.optInt("sent_now");
-                msg = sent > 0 ? "기다리던 보상 " + sent + "건을 보냈어요" : "다음 보상부터 바로 입금돼요";
+                msg = sent > 0 ? getString(R.string.sent_waiting, sent) : getString(R.string.next_paid);
                 Uploader.refreshPending(this);
             } catch (Exception e) {
-                msg = "이 폰에 저장했어요 · 서버에 알리지 못함";
+                msg = getString(R.string.saved_local);
             }
             String m = msg;
             runOnUiThread(() -> { Toast.makeText(this, m, Toast.LENGTH_LONG).show(); onResume(); Payout.checkNew(this); });

@@ -98,7 +98,7 @@ final class CameraRecorder {
             cm.openCamera(id, new CameraDevice.StateCallback() {
                 @Override public void onOpened(CameraDevice d) { camera = d; startPreview(ready); }
                 @Override public void onDisconnected(CameraDevice d) { d.close(); }
-                @Override public void onError(CameraDevice d, int e) { d.close(); ready.fail("카메라 오류 " + e); }
+                @Override public void onError(CameraDevice d, int e) { d.close(); ready.fail(ctx.getString(R.string.camera_error, e)); }
             }, handler);
         } catch (Exception e) {
             ready.fail(e.getMessage());
@@ -153,7 +153,7 @@ final class CameraRecorder {
                         ready.ok();
                     } catch (Exception e) { ready.fail(e.getMessage()); }
                 }
-                @Override public void onConfigureFailed(CameraCaptureSession s) { ready.fail("미리보기 실패"); }
+                @Override public void onConfigureFailed(CameraCaptureSession s) { ready.fail(ctx.getString(R.string.camera_preview_fail)); }
             }, handler);
         } catch (Exception e) {
             ready.fail(e.getMessage());
@@ -194,7 +194,7 @@ final class CameraRecorder {
                         ready.ok();
                     } catch (Exception e) { recording = false; ready.fail(e.getMessage()); }
                 }
-                @Override public void onConfigureFailed(CameraCaptureSession s) { ready.fail("녹화 세션 실패"); }
+                @Override public void onConfigureFailed(CameraCaptureSession s) { ready.fail(ctx.getString(R.string.camera_session_fail)); }
             }, handler);
         } catch (Exception e) {
             ready.fail(e.getMessage());

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -24,6 +24,7 @@
   .brand small { color: var(--sub); font-weight: 600; font-size: 13px; }
   nav .links { display: flex; gap: 22px; margin-left: auto; font-size: 14px; font-weight: 600; }
   nav .links a { color: var(--ink); }
+  nav select.lang { flex-shrink: 0; padding: 6px 8px; font-size: 13px; border-radius: 8px; cursor: pointer; }
   .btn { display: inline-flex; align-items: center; gap: 6px; border: 0; cursor: pointer; border-radius: 12px; padding: 12px 20px;
          font-weight: 700; font-size: 15px; background: var(--primary); color: #fff; }
   .btn:hover { background: var(--primary-dark); }
@@ -108,111 +109,112 @@
 <body>
 <nav><div class="wrap">
   <a class="brand" href="#"><img src="/static/icon.png" alt="">DataCash <small>for Business</small></a>
-  <div class="links"><a href="#ask">말로 의뢰</a><a href="#senses">4감 데이터</a><a href="#sample">예시 보기</a><a href="#catalog">카탈로그</a><a href="#buy">견적·구매</a><a href="/admin" style="color:var(--sub)">운영자</a></div>
+  <div class="links"><a href="#ask" data-i18n="nav.ask">말로 의뢰</a><a href="#senses" data-i18n="nav.senses">4감 데이터</a><a href="#sample" data-i18n="nav.sample">예시 보기</a><a href="#catalog" data-i18n="nav.catalog">카탈로그</a><a href="#buy" data-i18n="nav.buy">견적·구매</a><a href="/admin" style="color:var(--sub)" data-i18n="nav.admin">운영자</a></div>
+  <select id="langSel" class="lang" aria-label="Language"></select>
 </div></nav>
 
 <header class="hero"><div class="wrap">
   <div>
-    <h1>집에 이미 있는 폰과 워치로 모은<br>로봇이 배울 4감 데이터</h1>
-    <p>실제 집에서 사람이 한 일을 촉각·시각·청각·몸 감각까지 한 시간축에 담았습니다. 동의하지 않은 사람·화면·서류는 SAM 3.1 로 정확히 가리고,
+    <h1 data-i18n-html="hero.h1">집에 이미 있는 폰과 워치로 모은<br>로봇이 배울 4감 데이터</h1>
+    <p data-i18n="hero.p">실제 집에서 사람이 한 일을 촉각·시각·청각·몸 감각까지 한 시간축에 담았습니다. 동의하지 않은 사람·화면·서류는 SAM 3.1 로 정확히 가리고,
       라벨은 Muse Spark 가 붙인 뒤 센서로 다시 확인합니다. LeRobot v3.0 그대로 받아 바로 학습하세요.</p>
-    <div class="row"><a class="btn" href="#ask">필요한 데이터 말로 의뢰하기</a><a class="btn ghost" href="#buy">견적 받기</a><a class="btn ghost" href="#sample">예시 데이터 보기</a></div>
+    <div class="row"><a class="btn" href="#ask" data-i18n="hero.btnAsk">필요한 데이터 말로 의뢰하기</a><a class="btn ghost" href="#buy" data-i18n="hero.btnQuote">견적 받기</a><a class="btn ghost" href="#sample" data-i18n="hero.btnSample">예시 데이터 보기</a></div>
   </div>
   <div class="kpis">
-    <div class="kpi"><b id="k-rec">-</b><span>처리된 녹화</span></div>
-    <div class="kpi"><b id="k-hours">-</b><span>받아들인 분량</span></div>
-    <div class="kpi"><b>4감</b><span>촉각 · 시각 · 청각 · 몸 감각</span></div>
-    <div class="kpi"><b>&lt; 1ms</b><span>워치↔폰 자동 동기화 (합성 검증)</span></div>
+    <div class="kpi"><b id="k-rec">-</b><span data-i18n="kpi.rec">처리된 녹화</span></div>
+    <div class="kpi"><b id="k-hours">-</b><span data-i18n="kpi.hours">받아들인 분량</span></div>
+    <div class="kpi"><b data-i18n="kpi.senses">4감</b><span data-i18n="kpi.sensesSub">촉각 · 시각 · 청각 · 몸 감각</span></div>
+    <div class="kpi"><b>&lt; 1ms</b><span data-i18n="kpi.sync">워치↔폰 자동 동기화 (합성 검증)</span></div>
   </div>
 </div></header>
 
 <section id="ask"><div class="wrap">
-  <h2>필요한 데이터를 말로 의뢰하세요</h2>
-  <p class="lead">어떤 로봇에게 무엇을 가르칠지, 누가 찍으면 좋을지, 예산과 꼭 필요한 센서를 적어 주세요.
+  <h2 data-i18n="ask.h2">필요한 데이터를 말로 의뢰하세요</h2>
+  <p class="lead" data-i18n="ask.lead">어떤 로봇에게 무엇을 가르칠지, 누가 찍으면 좋을지, 예산과 꼭 필요한 센서를 적어 주세요.
     Muse Spark 가 미션을 거꾸로 설계하고, 조건에 맞는 사람에게만 미션이 열려 그대로 모입니다 — 분포를 따로 맞출 필요가 없어요.</p>
   <div class="ask">
     <div class="card chat">
-      <div class="msgs" id="msgs"><div class="msg bot">예) "제조업 회사예요. 택배 상하차 로봇을 학습시킬 데이터가 필요해요. 성별 무관 50대 이하, 예산 500만 원, 손 관절과 쥐는 세기는 꼭 넣어 주세요."</div></div>
-      <div class="row" style="gap:8px"><textarea id="askText" rows="2" placeholder="필요한 데이터를 자유롭게 적어 주세요"></textarea>
-        <button class="btn" id="askBtn">보내기</button></div>
+      <div class="msgs" id="msgs"><div class="msg bot" data-i18n="ask.example">예) "제조업 회사예요. 택배 상하차 로봇을 학습시킬 데이터가 필요해요. 성별 무관 50대 이하, 예산 500만 원, 손 관절과 쥐는 세기는 꼭 넣어 주세요."</div></div>
+      <div class="row" style="gap:8px"><textarea id="askText" rows="2" placeholder="필요한 데이터를 자유롭게 적어 주세요" data-i18n-placeholder="ask.placeholder"></textarea>
+        <button class="btn" id="askBtn" data-i18n="ask.send">보내기</button></div>
     </div>
-    <div class="card" id="planBox"><h3 style="margin-top:0">제안된 미션</h3><div class="note">대화를 시작하면 여기에 미션·참여 조건·센서·견적이 나와요.</div></div>
+    <div class="card" id="planBox"><h3 style="margin-top:0" data-i18n="plan.title">제안된 미션</h3><div class="note" data-i18n="plan.empty">대화를 시작하면 여기에 미션·참여 조건·센서·견적이 나와요.</div></div>
   </div>
 </div></section>
 
 <section id="senses"><div class="wrap">
-  <h2>촉각 센서 없이, 집에 있는 기기만으로</h2>
-  <p class="lead">새 장비를 나눠 주지 않습니다. 사용자가 이미 가진 폰·워치로 모으고, 기기들이 서로를 맞추게 합니다.</p>
+  <h2 data-i18n="senses.h2">촉각 센서 없이, 집에 있는 기기만으로</h2>
+  <p class="lead" data-i18n="senses.lead">새 장비를 나눠 주지 않습니다. 사용자가 이미 가진 폰·워치로 모으고, 기기들이 서로를 맞추게 합니다.</p>
   <div class="grid4">
-    <div class="card sense"><span class="tag" style="background:var(--primary-soft);color:var(--primary-dark)">촉각</span>
-      <h3>쥐는 세기 · 접촉</h3><p>워치가 0.5초마다 짧게 울리고 손목의 울림을 재서, 물건을 쥔 동안의 세기를 하·중·상과 0~100 점수로 읽습니다 (저울 없이 사람마다 한 번 보정).</p>
-      <ul><li>잡음·놓음·미끄러짐: 영상 + SAM 3.1</li><li>내려놓음·문지름: 접촉음 + 손목 충격</li></ul></div>
-    <div class="card sense"><span class="tag" style="background:#EEF6FE;color:var(--sound)">시각</span>
-      <h3>가린 영상 · 관절 · 물체</h3><p>손 21점 × 양손, 전신 33관절(3D), 조작 물체 영역. 참여자 얼굴은 실사 가상 인물로 치환.</p>
-      <ul><li>사람·아이·화면·거울·액자·서류 가리기</li><li>단계 지시문 (Muse Spark)</li></ul></div>
-    <div class="card sense"><span class="tag" style="background:var(--accent-soft);color:var(--accent-ink)">청각</span>
-      <h3>소리 · 접촉음</h3><p>폰·워치 마이크. 개인정보가 담긴 말은 받아써서 그 구간만 끕니다 (Voice Transcribe).</p>
-      <ul><li>소리 세기·사건</li><li>18~20kHz 음향 비콘으로 기기끼리 동기화</li></ul></div>
-    <div class="card sense"><span class="tag" style="background:#F3EEFE;color:var(--hr)">몸 감각</span>
-      <h3>움직임 · 심박 · 체온</h3><p>손목 IMU, 심박·HRR·피부온도 변화 (생체 동의한 녹화만). 판정·조언 없이 원값과 본인 응답만.</p>
-      <ul><li>사람이 얼마나 힘들었나 → 사람을 이해하며 같이 일하는 로봇</li></ul></div>
+    <div class="card sense"><span class="tag" style="background:var(--primary-soft);color:var(--primary-dark)" data-i18n="s1.tag">촉각</span>
+      <h3 data-i18n="s1.h3">쥐는 세기 · 접촉</h3><p data-i18n="s1.p">워치가 0.5초마다 짧게 울리고 손목의 울림을 재서, 물건을 쥔 동안의 세기를 하·중·상과 0~100 점수로 읽습니다 (저울 없이 사람마다 한 번 보정).</p>
+      <ul><li data-i18n="s1.l1">잡음·놓음·미끄러짐: 영상 + SAM 3.1</li><li data-i18n="s1.l2">내려놓음·문지름: 접촉음 + 손목 충격</li></ul></div>
+    <div class="card sense"><span class="tag" style="background:#EEF6FE;color:var(--sound)" data-i18n="s2.tag">시각</span>
+      <h3 data-i18n="s2.h3">가린 영상 · 관절 · 물체</h3><p data-i18n="s2.p">손 21점 × 양손, 전신 33관절(3D), 조작 물체 영역. 참여자 얼굴은 실사 가상 인물로 치환.</p>
+      <ul><li data-i18n="s2.l1">사람·아이·화면·거울·액자·서류 가리기</li><li data-i18n="s2.l2">단계 지시문 (Muse Spark)</li></ul></div>
+    <div class="card sense"><span class="tag" style="background:var(--accent-soft);color:var(--accent-ink)" data-i18n="s3.tag">청각</span>
+      <h3 data-i18n="s3.h3">소리 · 접촉음</h3><p data-i18n="s3.p">폰·워치 마이크. 개인정보가 담긴 말은 받아써서 그 구간만 끕니다 (Voice Transcribe).</p>
+      <ul><li data-i18n="s3.l1">소리 세기·사건</li><li data-i18n="s3.l2">18~20kHz 음향 비콘으로 기기끼리 동기화</li></ul></div>
+    <div class="card sense"><span class="tag" style="background:#F3EEFE;color:var(--hr)" data-i18n="s4.tag">몸 감각</span>
+      <h3 data-i18n="s4.h3">움직임 · 심박 · 체온</h3><p data-i18n="s4.p">손목 IMU, 심박·HRR·피부온도 변화 (생체 동의한 녹화만). 판정·조언 없이 원값과 본인 응답만.</p>
+      <ul><li data-i18n="s4.l1">사람이 얼마나 힘들었나 → 사람을 이해하며 같이 일하는 로봇</li></ul></div>
   </div>
 </div></section>
 
 <section id="sample" style="background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line)"><div class="wrap">
-  <h2>예시 데이터 — 4감 타임라인</h2>
-  <p class="lead">한 에피소드의 장면과, 같은 시간축의 쥐는 세기·심박·소리·단계 라벨입니다. 타임라인을 누르면 그 장면으로 갑니다.</p>
+  <h2 data-i18n="sample.h2">예시 데이터 — 4감 타임라인</h2>
+  <p class="lead" data-i18n="sample.lead">한 에피소드의 장면과, 같은 시간축의 쥐는 세기·심박·소리·단계 라벨입니다. 타임라인을 누르면 그 장면으로 갑니다.</p>
   <div class="row" style="margin-bottom:14px">
     <select id="sampleSel"></select><span class="note" id="sampleNote"></span>
-    <button class="btn small ghost" id="certBtn">품질 인증서</button>
+    <button class="btn small ghost" id="certBtn" data-i18n="sample.cert">품질 인증서</button>
   </div>
   <div class="viewer">
-    <div><img id="frame" alt="가린 장면"><input type="range" id="scrub" min="0" max="0" value="0">
+    <div><img id="frame" alt="가린 장면" data-i18n-alt="sample.frameAlt"><input type="range" id="scrub" min="0" max="0" value="0">
       <ul class="steps" id="stepList"></ul></div>
     <div class="card" style="padding:14px"><canvas id="chart" width="900" height="360"></canvas>
       <div class="legend">
-        <span><i style="background:var(--touch)"></i>쥐는 세기 (하·중·상, 0~100)</span><span><i style="background:var(--hr)"></i>심박 (bpm)</span>
-        <span><i style="background:var(--sound)"></i>소리 세기</span><span><i style="background:var(--contact)"></i>접촉 단계</span>
-        <span>▲ 확인된 접촉음 · ◆ '실수했어요'</span></div>
+        <span><i style="background:var(--touch)"></i><span data-i18n="lg.grip">쥐는 세기 (하·중·상, 0~100)</span></span><span><i style="background:var(--hr)"></i><span data-i18n="lg.hr">심박 (bpm)</span></span>
+        <span><i style="background:var(--sound)"></i><span data-i18n="lg.sound">소리 세기</span></span><span><i style="background:var(--contact)"></i><span data-i18n="lg.contact">접촉 단계</span></span>
+        <span data-i18n="lg.marks">▲ 확인된 접촉음 · ◆ '실수했어요'</span></div>
       <div class="note" id="syncNote" style="margin-top:8px"></div></div>
   </div>
   <pre class="cert" id="cert" hidden></pre>
 </div></section>
 
 <section id="catalog"><div class="wrap">
-  <h2>카탈로그</h2>
-  <p class="lead">처리된 녹화의 품질 인증서에서 바로 계산한 숫자입니다 (지어낸 숫자 없음).</p>
+  <h2 data-i18n="cat.h2">카탈로그</h2>
+  <p class="lead" data-i18n="cat.lead">처리된 녹화의 품질 인증서에서 바로 계산한 숫자입니다 (지어낸 숫자 없음).</p>
   <div class="card" style="padding:6px 16px"><table>
-    <thead><tr><th>미션</th><th>쓰임</th><th>녹화</th><th>기본</th><th>고품질</th><th>생체</th><th>검증된 단계</th></tr></thead>
+    <thead><tr><th data-i18n="cat.mission">미션</th><th data-i18n="cat.use">쓰임</th><th data-i18n="cat.rec">녹화</th><th data-i18n="lv.basic">기본</th><th data-i18n="lv.premium">고품질</th><th data-i18n="lv.bio">생체</th><th data-i18n="cat.verified">검증된 단계</th></tr></thead>
     <tbody id="catBody"></tbody></table></div>
 </div></section>
 
 <section id="buy" style="background:#fff;border-top:1px solid var(--line)"><div class="wrap">
-  <h2>등급과 가격</h2>
-  <p class="lead">받아들인(검수 통과) 시간 기준. 라벨 붙은 1인칭 데이터 시장가(시간당 $30~60)를 기준으로 잡았습니다.
+  <h2 data-i18n="buy.h2">등급과 가격</h2>
+  <p class="lead" data-i18n="buy.lead">받아들인(검수 통과) 시간 기준. 라벨 붙은 1인칭 데이터 시장가(시간당 $30~60)를 기준으로 잡았습니다.
     등급은 미리 맞춘 센서 조합이고, 아래에서 센서 묶음을 하나씩 골라 살 수도 있어요.</p>
   <div class="levels" id="levels"></div>
   <div class="card" style="margin-top:20px">
-    <h3 style="margin-top:0">센서 묶음 고르기 <span class="note" id="sensSum"></span></h3>
+    <h3 style="margin-top:0"><span data-i18n="sens.h3">센서 묶음 고르기</span> <span class="note" id="sensSum"></span></h3>
     <div class="sens" id="sensors"></div>
   </div>
   <div class="quote" style="margin-top:28px">
     <div class="card">
-      <h3 style="margin-top:0">견적</h3>
-      <div class="note">미션 (비우면 전체)</div><div class="checks" id="mChecks" style="margin:8px 0 16px"></div>
-      <div class="row"><label>시간 <input type="number" id="hours" value="10" min="1" step="1" style="width:90px"></label>
-        <label><input type="checkbox" id="custom"> 맞춤 수집 (×1.5, 최소 10시간, 착수비)</label>
-        <label><input type="checkbox" id="refine"> 정제 요청 (10%)</label></div>
+      <h3 style="margin-top:0" data-i18n="quote.h3">견적</h3>
+      <div class="note" data-i18n="quote.missions">미션 (비우면 전체)</div><div class="checks" id="mChecks" style="margin:8px 0 16px"></div>
+      <div class="row"><label><span data-i18n="quote.hours">시간</span> <input type="number" id="hours" value="10" min="1" step="1" style="width:90px"></label>
+        <label><input type="checkbox" id="custom"> <span data-i18n="quote.custom">맞춤 수집 (×1.5, 최소 10시간, 착수비)</span></label>
+        <label><input type="checkbox" id="refine"> <span data-i18n="quote.refine">정제 요청 (10%)</span></label></div>
       <div class="lines" id="qLines" style="margin-top:16px"></div>
       <div class="row" style="justify-content:space-between;margin-top:12px"><span class="note" id="qAvail"></span><span class="total" id="qTotal">-</span></div>
     </div>
     <div class="card">
-      <h3 style="margin-top:0">주문</h3>
+      <h3 style="margin-top:0" data-i18n="order.h3">주문</h3>
       <div style="display:grid;gap:10px">
-        <input type="text" id="org" placeholder="회사·기관 이름"><input type="email" id="email" placeholder="이메일">
-        <textarea id="note" rows="3" placeholder="필요한 조건 (선택)"></textarea>
-        <button class="btn" id="orderBtn">주문하기</button>
-        <div class="note">운영자가 계약·결제를 확인하고 승인하면, 이 화면에 일회용 내려받기 주소(7일, 5번)가 나타납니다.</div>
+        <input type="text" id="org" placeholder="회사·기관 이름" data-i18n-placeholder="ph.org"><input type="email" id="email" placeholder="이메일" data-i18n-placeholder="ph.email">
+        <textarea id="note" rows="3" placeholder="필요한 조건 (선택)" data-i18n-placeholder="ph.note"></textarea>
+        <button class="btn" id="orderBtn" data-i18n="order.btn">주문하기</button>
+        <div class="note" data-i18n="order.note">운영자가 계약·결제를 확인하고 승인하면, 이 화면에 일회용 내려받기 주소(7일, 5번)가 나타납니다.</div>
         <div id="orderBox"></div>
       </div>
     </div>
@@ -220,33 +222,437 @@
 </div></section>
 
 <footer><div class="wrap">
-  DataCash · Meta Global AI Developer Hackathon (Push the Frontier) · 모든 녹화는 참여자 동의·철회 기록이 있고, 철회하면 판매에서 빠집니다.
+  <span data-i18n="footer">DataCash · Meta Global AI Developer Hackathon (Push the Frontier) · 모든 녹화는 참여자 동의·철회 기록이 있고, 철회하면 판매에서 빠집니다.</span>
   <span id="synthNote"></span>
 </div></footer>
 
 <script>
-const grade = (lv, sc) => lv == null || lv < 0 ? "-" : lv === 0 ? "안 쥠" : `${["", "하", "중", "상"][lv]} (${Math.round(sc)})`;   // 예: 중 (57)
+// ---------- 언어 (en 기본 · ko 원문 · ja · zh-CN · es) ----------
+const LANGS = [["en", "English"], ["ko", "한국어"], ["ja", "日本語"], ["zh-CN", "简体中文"], ["es", "Español"]];
+let LANG = "en";
+try { LANG = localStorage.getItem("dc_lang") || "en"; } catch (e) {}
+if (!LANGS.some(l => l[0] === LANG)) LANG = "en";
+const LOCALE = {en: "en-US", ko: "ko-KR", ja: "ja-JP", "zh-CN": "zh-CN", es: "es-ES"};
+const I18N = {
+ko: {
+  "nav.ask": "말로 의뢰", "nav.senses": "4감 데이터", "nav.sample": "예시 보기", "nav.catalog": "카탈로그", "nav.buy": "견적·구매", "nav.admin": "운영자",
+  "hero.h1": "집에 이미 있는 폰과 워치로 모은<br>로봇이 배울 4감 데이터",
+  "hero.p": "실제 집에서 사람이 한 일을 촉각·시각·청각·몸 감각까지 한 시간축에 담았습니다. 동의하지 않은 사람·화면·서류는 SAM 3.1 로 정확히 가리고, 라벨은 Muse Spark 가 붙인 뒤 센서로 다시 확인합니다. LeRobot v3.0 그대로 받아 바로 학습하세요.",
+  "hero.btnAsk": "필요한 데이터 말로 의뢰하기", "hero.btnQuote": "견적 받기", "hero.btnSample": "예시 데이터 보기",
+  "kpi.rec": "처리된 녹화", "kpi.hours": "받아들인 분량", "kpi.senses": "4감", "kpi.sensesSub": "촉각 · 시각 · 청각 · 몸 감각", "kpi.sync": "워치↔폰 자동 동기화 (합성 검증)",
+  "ask.h2": "필요한 데이터를 말로 의뢰하세요",
+  "ask.lead": "어떤 로봇에게 무엇을 가르칠지, 누가 찍으면 좋을지, 예산과 꼭 필요한 센서를 적어 주세요. Muse Spark 가 미션을 거꾸로 설계하고, 조건에 맞는 사람에게만 미션이 열려 그대로 모입니다 — 분포를 따로 맞출 필요가 없어요.",
+  "ask.example": "예) \"제조업 회사예요. 택배 상하차 로봇을 학습시킬 데이터가 필요해요. 성별 무관 50대 이하, 예산 500만 원, 손 관절과 쥐는 세기는 꼭 넣어 주세요.\"",
+  "ask.placeholder": "필요한 데이터를 자유롭게 적어 주세요", "ask.send": "보내기",
+  "plan.title": "제안된 미션", "plan.empty": "대화를 시작하면 여기에 미션·참여 조건·센서·견적이 나와요.",
+  "senses.h2": "촉각 센서 없이, 집에 있는 기기만으로", "senses.lead": "새 장비를 나눠 주지 않습니다. 사용자가 이미 가진 폰·워치로 모으고, 기기들이 서로를 맞추게 합니다.",
+  "s1.tag": "촉각", "s1.h3": "쥐는 세기 · 접촉", "s1.p": "워치가 0.5초마다 짧게 울리고 손목의 울림을 재서, 물건을 쥔 동안의 세기를 하·중·상과 0~100 점수로 읽습니다 (저울 없이 사람마다 한 번 보정).",
+  "s1.l1": "잡음·놓음·미끄러짐: 영상 + SAM 3.1", "s1.l2": "내려놓음·문지름: 접촉음 + 손목 충격",
+  "s2.tag": "시각", "s2.h3": "가린 영상 · 관절 · 물체", "s2.p": "손 21점 × 양손, 전신 33관절(3D), 조작 물체 영역. 참여자 얼굴은 실사 가상 인물로 치환.",
+  "s2.l1": "사람·아이·화면·거울·액자·서류 가리기", "s2.l2": "단계 지시문 (Muse Spark)",
+  "s3.tag": "청각", "s3.h3": "소리 · 접촉음", "s3.p": "폰·워치 마이크. 개인정보가 담긴 말은 받아써서 그 구간만 끕니다 (Voice Transcribe).",
+  "s3.l1": "소리 세기·사건", "s3.l2": "18~20kHz 음향 비콘으로 기기끼리 동기화",
+  "s4.tag": "몸 감각", "s4.h3": "움직임 · 심박 · 체온", "s4.p": "손목 IMU, 심박·HRR·피부온도 변화 (생체 동의한 녹화만). 판정·조언 없이 원값과 본인 응답만.",
+  "s4.l1": "사람이 얼마나 힘들었나 → 사람을 이해하며 같이 일하는 로봇",
+  "sample.h2": "예시 데이터 — 4감 타임라인", "sample.lead": "한 에피소드의 장면과, 같은 시간축의 쥐는 세기·심박·소리·단계 라벨입니다. 타임라인을 누르면 그 장면으로 갑니다.",
+  "sample.cert": "품질 인증서", "sample.frameAlt": "가린 장면", "sample.none": "예시 없음",
+  "lg.grip": "쥐는 세기 (하·중·상, 0~100)", "lg.hr": "심박 (bpm)", "lg.sound": "소리 세기", "lg.contact": "접촉 단계", "lg.marks": "▲ 확인된 접촉음 · ◆ '실수했어요'",
+  "cat.h2": "카탈로그", "cat.lead": "처리된 녹화의 품질 인증서에서 바로 계산한 숫자입니다 (지어낸 숫자 없음).",
+  "cat.mission": "미션", "cat.use": "쓰임", "cat.rec": "녹화", "cat.verified": "검증된 단계", "cat.synth": "합성 시험",
+  "lv.basic": "기본", "lv.premium": "고품질", "lv.bio": "생체",
+  "buy.h2": "등급과 가격",
+  "buy.lead": "받아들인(검수 통과) 시간 기준. 라벨 붙은 1인칭 데이터 시장가(시간당 $30~60)를 기준으로 잡았습니다. 등급은 미리 맞춘 센서 조합이고, 아래에서 센서 묶음을 하나씩 골라 살 수도 있어요.",
+  "sens.h3": "센서 묶음 고르기", "sens.preset": "· {name} 등급 조합", "sens.custom": "· 맞춤 조합", "customCombo": "맞춤 조합",
+  "quote.h3": "견적", "quote.missions": "미션 (비우면 전체)", "quote.hours": "시간", "quote.custom": "맞춤 수집 (×1.5, 최소 10시간, 착수비)", "quote.refine": "정제 요청 (10%)",
+  "order.h3": "주문", "ph.org": "회사·기관 이름", "ph.email": "이메일", "ph.note": "필요한 조건 (선택)", "order.btn": "주문하기",
+  "order.note": "운영자가 계약·결제를 확인하고 승인하면, 이 화면에 일회용 내려받기 주소(7일, 5번)가 나타납니다.",
+  "footer": "DataCash · Meta Global AI Developer Hackathon (Push the Frontier) · 모든 녹화는 참여자 동의·철회 기록이 있고, 철회하면 판매에서 빠집니다.",
+  "synthNote": " · '합성 시험' 표시는 정답을 아는 합성 녹화로 파이프라인을 검증한 데이터입니다 (판매 대상 아님).",
+  "u.min": "분", "u.h": "시간",
+  "grip.none": "안 쥠", "grip.1": "하", "grip.2": "중", "grip.3": "상",
+  "perHour": " / 시간", "levelSub": "분당 {min} · 촬영자 보상 시간당 {reward}", "plusPerHour": "+{p}/시간",
+  "sync": "동기화: {chosen} · 감각별 오차(ms) ", "scene": "Muse Spark: {task} (완료: {done})", "stepOk": "센서 확인", "stepNo": "미확인",
+  "lane.grip": "쥐는 세기", "lane.hr": "심박", "lane.sound": "소리", "lane.contact": "접촉",
+  "q.line": "{level} · {h}시간 × {per}", "q.discount": "묶음 할인", "q.discountPct": "{p}% 적용", "q.setup": "맞춤 수집 착수비", "q.refine": "정제 요청",
+  "q.avail": "지금 바로 받을 수 있는 분량: {h}시간", "q.availCustom": " (맞춤 수집은 새로 모읍니다)",
+  "st.pending": "승인 대기", "st.building": "묶음 만드는 중", "st.ready": "준비됨", "st.failed": "실패",
+  "order.id": "주문 {id}", "order.dl": "LeRobot 묶음 내려받기 ({mb}MB)", "order.until": "{date}까지 · {n}/5번",
+  "chat.matching": "보관 중인 데이터와 맞춰 보는 중…", "chat.draft": "바로 맞춘 초안이에요. Muse Spark 가 미션을 다듬는 중…", "chat.designing": "Muse Spark 가 미션을 설계하는 중…",
+  "chat.retry": "다시 시도해 주세요", "chat.lostDraft": "Muse Spark 연결이 끊겨 초안으로 보여 드려요", "chat.lost": "연결이 끊겼어요",
+  "age.any": "연령 무관 (성인)",
+  "age.19~29세": "19~29세", "age.30대": "30대", "age.40대": "40대", "age.50대": "50대", "age.60대 이상": "60대 이상",
+  "gen.any": "성별 무관", "gen.female": "여성", "gen.male": "남성",
+  "opt.existing": "기존 데이터", "opt.existing.d": "보관 중인 같은 미션 데이터를 바로 받아요 · 착수비 없음",
+  "opt.new": "신규 수집", "opt.new.d": "조건에 맞는 사람에게 미션을 열어 새로 모아요 · 착수비 포함",
+  "opt.mix": "섞기", "opt.mix.d": "보관 데이터를 먼저 쓰고 모자란 만큼 새로 모아요",
+  "why.conditions": "참여 조건이 특별해서 보관 데이터로는 맞출 수 없어 신규 수집을 추천해요",
+  "why.no_stock": "이 미션은 보관 데이터가 없어 신규 수집이에요",
+  "why.stock_enough": "보관 데이터로 충분해서 가장 싸고 바로 받을 수 있어요",
+  "why.stock_short": "보관 데이터만으로는 모자라 섞기를 추천해요 — 예산 안에서 가장 많은 시간이에요",
+  "why.stock_small": "보관 데이터가 아주 적어서 신규 수집이 예산 안에서 가장 많은 시간이에요",
+  "why.budget_small": "예산이 작아 보관 데이터만 살 수 있어요",
+  "rare.uncommon": "모으기 조금 어려운 조건", "rare.rare": "모으기 어려운 조건", "rare.very_rare": "아주 드문 조건",
+  "d.mix": "기존 {a} + 신규 {b}", "d.existing": "{h} / 보관 {s} · 시간당 {p}", "d.new": "{h} · 시간당 {p}{r} + 착수비 {s}", "d.rarity": " (조건 ×{r})",
+  "rec": "추천", "overBudget": " · 예산 초과", "stockMission": "보관 미션", "noMatch": "맞는 보관 미션을 못 찾았어요 — Muse Spark 가 새 미션을 설계해요.",
+  "how": "어떻게 받을까요?", "budget": "예산 {b}", "newReward": "신규 수집 촬영자 보상 시간당 {p}",
+  "rq.order": "이대로 주문하기", "rq.open": "이대로 의뢰하고 미션 열기", "rq.more": "무엇을 찍어야 하는지 조금 더 알려 주세요.",
+  "rq.ordered": "주문 {id} · 보관 데이터 {h} · {total} (승인되면 아래 견적·구매에서 내려받아요)",
+  "rq.opened": "의뢰 {id} · 미션이 앱에 열렸어요", "rq.progress": "{title} — {a} / {b} · 녹화 {n}편",
+  "rq.note": "조건에 맞는 사람에게만 보여요. 모이는 대로 카탈로그에 올라가고, 계약 뒤 주문으로 받을 수 있어요."
+},
+en: {
+  "nav.ask": "Ask in words", "nav.senses": "4-sense data", "nav.sample": "Sample", "nav.catalog": "Catalog", "nav.buy": "Quote & buy", "nav.admin": "Operator",
+  "hero.h1": "4-sense data for robots to learn from,<br>collected with the phones and watches people already own",
+  "hero.p": "What people really do at home — touch, vision, sound and body sense — on one shared timeline. People, screens and documents that didn't consent are masked precisely with SAM 3.1, and labels are added by Muse Spark and then re-checked against the sensors. Download it as LeRobot v3.0 and start training right away.",
+  "hero.btnAsk": "Ask for data in plain words", "hero.btnQuote": "Get a quote", "hero.btnSample": "See sample data",
+  "kpi.rec": "Processed recordings", "kpi.hours": "Accepted volume", "kpi.senses": "4 senses", "kpi.sensesSub": "Touch · vision · sound · body sense", "kpi.sync": "Automatic watch↔phone sync (verified on synthetic data)",
+  "ask.h2": "Tell us what data you need, in plain words",
+  "ask.lead": "Tell us what you want to teach which robot, who should record it, your budget and the sensors you must have. Muse Spark designs the missions backwards from your request, and they open only to contributors who match your conditions — so the data arrives with the distribution you asked for, no rebalancing needed.",
+  "ask.example": "e.g. \"We're a manufacturer. We need data to train a parcel loading/unloading robot. Any gender, age 50s or younger, budget ₩5,000,000 — hand joints and grip force are a must.\"",
+  "ask.placeholder": "Describe the data you need, in your own words", "ask.send": "Send",
+  "plan.title": "Proposed missions", "plan.empty": "Start the conversation and the missions, eligibility, sensors and quote will appear here.",
+  "senses.h2": "No touch sensors — just the devices already at home", "senses.lead": "We don't hand out new equipment. Data is collected with the phone and watch people already own, and the devices calibrate each other.",
+  "s1.tag": "Touch", "s1.h3": "Grip force · contact", "s1.p": "The watch buzzes briefly every 0.5 s and measures how the wrist resonates, reading grip force while holding an object as low · mid · high and a 0–100 score (no scale needed, one calibration per person).",
+  "s1.l1": "Grasp · release · slip: video + SAM 3.1", "s1.l2": "Set down · rub: contact sound + wrist impact",
+  "s2.tag": "Vision", "s2.h3": "Masked video · joints · objects", "s2.p": "21 points × both hands, 33 full-body joints (3D), and the region of the handled object. The contributor's face is replaced by a photorealistic virtual person.",
+  "s2.l1": "Masks people, children, screens, mirrors, picture frames and documents", "s2.l2": "Step instructions (Muse Spark)",
+  "s3.tag": "Sound", "s3.h3": "Sound · contact sounds", "s3.p": "Phone and watch microphones. Speech containing personal information is transcribed and only that segment is muted (Voice Transcribe).",
+  "s3.l1": "Sound level · sound events", "s3.l2": "Devices sync with each other via an 18–20 kHz acoustic beacon",
+  "s4.tag": "Body sense", "s4.h3": "Motion · heart rate · temperature", "s4.p": "Wrist IMU, heart rate, HRR and skin-temperature change (biometric-consent recordings only). Raw values and the contributor's own answers only — no judgments or advice.",
+  "s4.l1": "How hard was it for the person → robots that understand people and work alongside them",
+  "sample.h2": "Sample data — 4-sense timeline", "sample.lead": "Scenes from one episode, with grip force, heart rate, sound and step labels on the same timeline. Click the timeline to jump to that scene.",
+  "sample.cert": "Quality certificate", "sample.frameAlt": "Masked scene", "sample.none": "No samples",
+  "lg.grip": "Grip force (low · mid · high, 0–100)", "lg.hr": "Heart rate (bpm)", "lg.sound": "Sound level", "lg.contact": "Contact phase", "lg.marks": "▲ confirmed contact sound · ◆ 'I made a mistake'",
+  "cat.h2": "Catalog", "cat.lead": "Numbers computed directly from the quality certificates of processed recordings (nothing made up).",
+  "cat.mission": "Mission", "cat.use": "Use", "cat.rec": "Recordings", "cat.verified": "Verified steps", "cat.synth": "Synthetic test",
+  "lv.basic": "Basic", "lv.premium": "Premium", "lv.bio": "Biometric",
+  "buy.h2": "Tiers and pricing",
+  "buy.lead": "Priced per accepted (QA-passed) hour, benchmarked against the market price of labeled first-person data ($30–60 per hour). Tiers are preset sensor combinations — you can also pick sensor packs one by one below.",
+  "sens.h3": "Choose sensor packs", "sens.preset": "· {name} tier combination", "sens.custom": "· Custom combination", "customCombo": "Custom combination",
+  "quote.h3": "Quote", "quote.missions": "Missions (leave empty for all)", "quote.hours": "Hours", "quote.custom": "Custom collection (×1.5, min. 10 hours, setup fee)", "quote.refine": "Refinement request (10%)",
+  "order.h3": "Order", "ph.org": "Company / organization", "ph.email": "Email", "ph.note": "Requirements (optional)", "order.btn": "Place order",
+  "order.note": "Once the operator confirms the contract and payment and approves the order, a one-time download link (7 days, 5 downloads) appears on this page.",
+  "footer": "DataCash · Meta Global AI Developer Hackathon (Push the Frontier) · Every recording has a record of the contributor's consent and withdrawal; withdrawn recordings are removed from sale.",
+  "synthNote": " · 'Synthetic test' marks data from synthetic recordings with known ground truth, used to validate the pipeline (not for sale).",
+  "u.min": " min", "u.h": " h",
+  "grip.none": "no grip", "grip.1": "low", "grip.2": "mid", "grip.3": "high",
+  "perHour": " / hour", "levelSub": "{min} per minute · contributor reward {reward} per hour", "plusPerHour": "+{p}/h",
+  "sync": "Sync: {chosen} · per-sense error (ms) ", "scene": "Muse Spark: {task} (completed: {done})", "stepOk": "Sensor-verified", "stepNo": "Unverified",
+  "lane.grip": "Grip", "lane.hr": "Heart rate", "lane.sound": "Sound", "lane.contact": "Contact",
+  "q.line": "{level} · {h} h × {per}", "q.discount": "Volume discount", "q.discountPct": "{p}% off", "q.setup": "Custom collection setup fee", "q.refine": "Refinement request",
+  "q.avail": "Available right now: {h} h", "q.availCustom": " (custom collection gathers new data)",
+  "st.pending": "Awaiting approval", "st.building": "Building package", "st.ready": "Ready", "st.failed": "Failed",
+  "order.id": "Order {id}", "order.dl": "Download LeRobot package ({mb} MB)", "order.until": "Until {date} · {n}/5 downloads",
+  "chat.matching": "Matching against stored data…", "chat.draft": "Here's an instant draft. Muse Spark is refining the missions…", "chat.designing": "Muse Spark is designing the missions…",
+  "chat.retry": "Please try again", "chat.lostDraft": "Lost the connection to Muse Spark — showing the draft", "chat.lost": "Connection lost",
+  "age.any": "Any age (adults)",
+  "age.19~29세": "19–29", "age.30대": "30s", "age.40대": "40s", "age.50대": "50s", "age.60대 이상": "60+",
+  "gen.any": "Any gender", "gen.female": "Women", "gen.male": "Men",
+  "opt.existing": "Existing data", "opt.existing.d": "Get stored data from the same missions right away · no setup fee",
+  "opt.new": "New collection", "opt.new.d": "Open the missions to contributors who match and collect fresh data · setup fee included",
+  "opt.mix": "Mix", "opt.mix.d": "Use stored data first and collect the rest fresh",
+  "why.conditions": "Your eligibility conditions are specific, so stored data can't match them — we recommend a new collection",
+  "why.no_stock": "There's no stored data for this mission yet, so it's a new collection",
+  "why.stock_enough": "Stored data is enough — cheapest and available immediately",
+  "why.stock_short": "Stored data alone isn't enough, so we recommend mixing — the most hours within your budget",
+  "why.stock_small": "Very little stored data, so a new collection gives the most hours within your budget",
+  "why.budget_small": "The budget is small, so only stored data fits",
+  "rare.uncommon": "Somewhat hard-to-recruit conditions", "rare.rare": "Hard-to-recruit conditions", "rare.very_rare": "Very rare conditions",
+  "d.mix": "Existing {a} + new {b}", "d.existing": "{h} / {s} in stock · {p} per hour", "d.new": "{h} · {p} per hour{r} + setup fee {s}", "d.rarity": " (conditions ×{r})",
+  "rec": "Recommended", "overBudget": " · over budget", "stockMission": "Stored mission", "noMatch": "No matching stored mission — Muse Spark will design a new one.",
+  "how": "How would you like to receive it?", "budget": "Budget {b}", "newReward": "New-collection contributor reward {p} per hour",
+  "rq.order": "Order as is", "rq.open": "Submit request and open missions", "rq.more": "Tell us a bit more about what should be recorded.",
+  "rq.ordered": "Order {id} · stored data {h} · {total} (once approved, download it under Quote & buy below)",
+  "rq.opened": "Request {id} · the missions are now open in the app", "rq.progress": "{title} — {a} / {b} · {n} recordings",
+  "rq.note": "Visible only to contributors who match. Data goes into the catalog as it comes in, and you can receive it by order after signing a contract.",
+  "sn.video": "Video (required)", "sd.video": "Masked/face-replaced first-person video · phone IMU · object regions (SAM 3.1) · step and primitive labels · success/mistakes · sync error",
+  "sn.pose": "Hand & body joints", "sd.pose": "21 hand points × 2 · 33 body points (image and metric coordinates)",
+  "sn.audio": "Audio", "sd.audio": "Sound level · sound events · confirmed contact sounds",
+  "sn.wrist": "Wrist IMU", "sd.wrist": "Watch accelerometer and gyroscope (ms-level sync)",
+  "sn.touch": "Touch", "sd.touch": "Contact phase · grip force low · mid · high + 0–100 score · GripSense features (active watch vibration)",
+  "sn.physio": "Biometrics", "sd.physio": "Heart rate · HRR · skin-temperature change + post-mission self-report (biometric-consent recordings only)",
+  "ld.basic": "Masked/face-replaced video + phone IMU + hand and body joints + object regions + step instructions + contact events + success/mistakes + quality certificate",
+  "ld.premium": "Basic + wrist IMU (ms sync) + touch: contact phase and watch-measured grip force (GripSense)",
+  "ld.bio": "Premium + heart rate, HRR and skin-temperature change + post-mission self-report (biometric-consent recordings only)"
+},
+ja: {
+  "nav.ask": "ことばで依頼", "nav.senses": "4感データ", "nav.sample": "サンプル", "nav.catalog": "カタログ", "nav.buy": "見積もり・購入", "nav.admin": "運営者",
+  "hero.h1": "家にあるスマホとウォッチで集めた、<br>ロボットが学ぶ 4感データ",
+  "hero.p": "実際の家で人がした作業を、触覚・視覚・聴覚・身体感覚まで一つの時間軸に収めました。同意していない人・画面・書類は SAM 3.1 で正確に隠し、ラベルは Muse Spark が付けたあとセンサーで再確認します。LeRobot v3.0 のまま受け取って、すぐ学習に使えます。",
+  "hero.btnAsk": "必要なデータをことばで依頼", "hero.btnQuote": "見積もりを取る", "hero.btnSample": "サンプルデータを見る",
+  "kpi.rec": "処理済みの録画", "kpi.hours": "受け入れた分量", "kpi.senses": "4感", "kpi.sensesSub": "触覚 · 視覚 · 聴覚 · 身体感覚", "kpi.sync": "ウォッチ↔スマホ自動同期（合成データで検証）",
+  "ask.h2": "必要なデータをことばで依頼してください",
+  "ask.lead": "どのロボットに何を教えたいか、誰に撮ってほしいか、予算と必須のセンサーを書いてください。Muse Spark が依頼から逆算してミッションを設計し、条件に合う人だけにミッションが公開されてそのまま集まります —— 分布を別に合わせる必要はありません。",
+  "ask.example": "例）「製造業の会社です。宅配の積み下ろしロボットを学習させるデータが必要です。性別不問・50 代以下、予算 500 万ウォン、手の関節と握る力は必ず入れてください。」",
+  "ask.placeholder": "必要なデータを自由に書いてください", "ask.send": "送信",
+  "plan.title": "提案されたミッション", "plan.empty": "会話を始めると、ここにミッション・参加条件・センサー・見積もりが表示されます。",
+  "senses.h2": "触覚センサーなしで、家にある機器だけで", "senses.lead": "新しい機材は配りません。参加者がすでに持っているスマホ・ウォッチで集め、機器どうしで互いを合わせます。",
+  "s1.tag": "触覚", "s1.h3": "握る力 · 接触", "s1.p": "ウォッチが 0.5 秒ごとに短く振動し、手首の響きを測って、物を握っている間の強さを低・中・高と 0〜100 の点数で読み取ります（はかり不要、一人につき一度キャリブレーション）。",
+  "s1.l1": "つかむ・離す・すべる：映像 + SAM 3.1", "s1.l2": "置く・こする：接触音 + 手首の衝撃",
+  "s2.tag": "視覚", "s2.h3": "隠した映像 · 関節 · 物体", "s2.p": "手 21 点 × 両手、全身 33 関節（3D）、操作する物体の領域。参加者の顔は実写風の仮想人物に置き換え。",
+  "s2.l1": "人・子ども・画面・鏡・額縁・書類を隠す", "s2.l2": "ステップの指示文（Muse Spark）",
+  "s3.tag": "聴覚", "s3.h3": "音 · 接触音", "s3.p": "スマホ・ウォッチのマイク。個人情報を含む発話は書き起こして、その区間だけ消音します（Voice Transcribe）。",
+  "s3.l1": "音の大きさ・音のイベント", "s3.l2": "18〜20 kHz の音響ビーコンで機器どうしを同期",
+  "s4.tag": "身体感覚", "s4.h3": "動き · 心拍 · 体温", "s4.p": "手首 IMU、心拍・HRR・皮膚温度の変化（生体情報に同意した録画のみ）。判定や助言はせず、生の値と本人の回答だけ。",
+  "s4.l1": "その人がどれだけきつかったか → 人を理解して一緒に働くロボットへ",
+  "sample.h2": "サンプルデータ —— 4感タイムライン", "sample.lead": "1 エピソードの場面と、同じ時間軸の握る力・心拍・音・ステップのラベルです。タイムラインをクリックするとその場面に移動します。",
+  "sample.cert": "品質証明書", "sample.frameAlt": "隠した場面", "sample.none": "サンプルなし",
+  "lg.grip": "握る力（低・中・高、0〜100）", "lg.hr": "心拍（bpm）", "lg.sound": "音の大きさ", "lg.contact": "接触の段階", "lg.marks": "▲ 確認された接触音 · ◆「失敗しました」",
+  "cat.h2": "カタログ", "cat.lead": "処理済み録画の品質証明書からそのまま計算した数字です（作った数字はありません）。",
+  "cat.mission": "ミッション", "cat.use": "用途", "cat.rec": "録画", "cat.verified": "検証済みステップ", "cat.synth": "合成テスト",
+  "lv.basic": "ベーシック", "lv.premium": "高品質", "lv.bio": "生体",
+  "buy.h2": "グレードと価格",
+  "buy.lead": "受け入れた（検収を通過した）時間が基準です。ラベル付き一人称データの市場価格（1 時間あたり $30〜60）を基準にしました。グレードはあらかじめ決めたセンサーの組み合わせで、下でセンサーの組み合わせを一つずつ選んで買うこともできます。",
+  "sens.h3": "センサーを選ぶ", "sens.preset": "· {name} グレードの組み合わせ", "sens.custom": "· カスタムの組み合わせ", "customCombo": "カスタムの組み合わせ",
+  "quote.h3": "見積もり", "quote.missions": "ミッション（空欄なら全部）", "quote.hours": "時間", "quote.custom": "カスタム収集（×1.5、最低 10 時間、着手費）", "quote.refine": "精製の依頼（10%）",
+  "order.h3": "注文", "ph.org": "会社・団体名", "ph.email": "メールアドレス", "ph.note": "必要な条件（任意）", "order.btn": "注文する",
+  "order.note": "運営者が契約・支払いを確認して承認すると、この画面に一回限りのダウンロード URL（7 日間、5 回まで）が表示されます。",
+  "footer": "DataCash · Meta Global AI Developer Hackathon (Push the Frontier) · すべての録画に参加者の同意・撤回の記録があり、撤回すると販売から外れます。",
+  "synthNote": " · 「合成テスト」は正解がわかっている合成録画でパイプラインを検証したデータです（販売対象外）。",
+  "u.min": "分", "u.h": "時間",
+  "grip.none": "握っていない", "grip.1": "低", "grip.2": "中", "grip.3": "高",
+  "perHour": " / 時間", "levelSub": "1 分あたり {min} · 撮影者への報酬 1 時間あたり {reward}", "plusPerHour": "+{p}/時間",
+  "sync": "同期：{chosen} · 感覚ごとの誤差（ms） ", "scene": "Muse Spark：{task}（完了：{done}）", "stepOk": "センサー確認済み", "stepNo": "未確認",
+  "lane.grip": "握る力", "lane.hr": "心拍", "lane.sound": "音", "lane.contact": "接触",
+  "q.line": "{level} · {h} 時間 × {per}", "q.discount": "まとめ割引", "q.discountPct": "{p}% 適用", "q.setup": "カスタム収集の着手費", "q.refine": "精製の依頼",
+  "q.avail": "今すぐ受け取れる分量：{h} 時間", "q.availCustom": "（カスタム収集は新たに集めます）",
+  "st.pending": "承認待ち", "st.building": "パッケージ作成中", "st.ready": "準備完了", "st.failed": "失敗",
+  "order.id": "注文 {id}", "order.dl": "LeRobot パッケージをダウンロード（{mb}MB）", "order.until": "{date} まで · {n}/5 回",
+  "chat.matching": "保管中のデータと照らし合わせています…", "chat.draft": "すぐに作った下書きです。Muse Spark がミッションを仕上げています…", "chat.designing": "Muse Spark がミッションを設計しています…",
+  "chat.retry": "もう一度お試しください", "chat.lostDraft": "Muse Spark との接続が切れたため、下書きを表示しています", "chat.lost": "接続が切れました",
+  "age.any": "年齢不問（成人）",
+  "age.19~29세": "19〜29 歳", "age.30대": "30 代", "age.40대": "40 代", "age.50대": "50 代", "age.60대 이상": "60 代以上",
+  "gen.any": "性別不問", "gen.female": "女性", "gen.male": "男性",
+  "opt.existing": "既存データ", "opt.existing.d": "保管中の同じミッションのデータをすぐ受け取れます · 着手費なし",
+  "opt.new": "新規収集", "opt.new.d": "条件に合う人にミッションを公開して新しく集めます · 着手費込み",
+  "opt.mix": "組み合わせ", "opt.mix.d": "保管データを先に使い、足りない分を新しく集めます",
+  "why.conditions": "参加条件が特殊で保管データでは合わせられないため、新規収集をおすすめします",
+  "why.no_stock": "このミッションには保管データがないため、新規収集になります",
+  "why.stock_enough": "保管データで足りるので、いちばん安くすぐに受け取れます",
+  "why.stock_short": "保管データだけでは足りないため、組み合わせをおすすめします —— 予算内でいちばん多くの時間です",
+  "why.stock_small": "保管データがとても少ないため、新規収集が予算内でいちばん多くの時間です",
+  "why.budget_small": "予算が小さいため、保管データだけ購入できます",
+  "rare.uncommon": "やや集めにくい条件", "rare.rare": "集めにくい条件", "rare.very_rare": "とても珍しい条件",
+  "d.mix": "既存 {a} + 新規 {b}", "d.existing": "{h} / 保管 {s} · 1 時間あたり {p}", "d.new": "{h} · 1 時間あたり {p}{r} + 着手費 {s}", "d.rarity": "（条件 ×{r}）",
+  "rec": "おすすめ", "overBudget": " · 予算オーバー", "stockMission": "保管ミッション", "noMatch": "合う保管ミッションが見つかりませんでした —— Muse Spark が新しいミッションを設計します。",
+  "how": "どのように受け取りますか？", "budget": "予算 {b}", "newReward": "新規収集の撮影者報酬 1 時間あたり {p}",
+  "rq.order": "この内容で注文する", "rq.open": "この内容で依頼してミッションを公開", "rq.more": "何を撮ればよいか、もう少し教えてください。",
+  "rq.ordered": "注文 {id} · 保管データ {h} · {total}（承認されたら下の「見積もり・購入」からダウンロードできます）",
+  "rq.opened": "依頼 {id} · ミッションがアプリで公開されました", "rq.progress": "{title} —— {a} / {b} · 録画 {n} 本",
+  "rq.note": "条件に合う人にだけ表示されます。集まり次第カタログに載り、契約後に注文で受け取れます。",
+  "sn.video": "映像（必須）", "sd.video": "隠した・置き換えた一人称映像 · スマホ IMU · 物体の領域（SAM 3.1）· ステップ・基本動作ラベル · 成功・失敗 · 同期誤差",
+  "sn.pose": "手・体の関節", "sd.pose": "手 21 点 × 2 · 体 33 点（画面座標・メートル座標）",
+  "sn.audio": "音", "sd.audio": "聞こえる音の大きさ · 音のイベント · 確認された接触音",
+  "sn.wrist": "手首 IMU", "sd.wrist": "ウォッチの加速度・ジャイロ（ms 単位で同期）",
+  "sn.touch": "触覚", "sd.touch": "接触の段階 · 握る力 低・中・高 + 0〜100 点 · GripSense 特徴量（ウォッチの能動振動）",
+  "sn.physio": "生体情報", "sd.physio": "心拍 · HRR · 皮膚温度の変化 + ミッション後の本人回答（生体情報に同意した録画のみ）",
+  "ld.basic": "隠した・置き換えた映像 + スマホ IMU + 手・全身の関節 + 物体の領域 + ステップの指示文 + 接触イベント + 成功・失敗 + 品質証明書",
+  "ld.premium": "ベーシック + 手首 IMU（ms 同期）+ 触覚：接触の段階・ウォッチで測った握る力（GripSense）",
+  "ld.bio": "高品質 + 心拍・HRR・皮膚温度の変化 + ミッション後の本人回答（生体情報に同意した録画のみ）"
+},
+"zh-CN": {
+  "nav.ask": "用自然语言提需求", "nav.senses": "四感数据", "nav.sample": "示例", "nav.catalog": "目录", "nav.buy": "报价·购买", "nav.admin": "运营者",
+  "hero.h1": "用家里现有的手机和手表收集的<br>机器人学习用四感数据",
+  "hero.p": "把人在真实家庭中完成的动作，连同触觉·视觉·听觉·身体感觉，放在同一条时间轴上。未同意的人·屏幕·文件由 SAM 3.1 精确遮盖，标签由 Muse Spark 标注后再用传感器复核。以 LeRobot v3.0 格式直接下载，马上开始训练。",
+  "hero.btnAsk": "用自然语言提数据需求", "hero.btnQuote": "获取报价", "hero.btnSample": "查看示例数据",
+  "kpi.rec": "已处理的录制", "kpi.hours": "已接收的时长", "kpi.senses": "四感", "kpi.sensesSub": "触觉 · 视觉 · 听觉 · 身体感觉", "kpi.sync": "手表↔手机自动同步（合成数据验证）",
+  "ask.h2": "用自然语言告诉我们您需要的数据",
+  "ask.lead": "请写下要教哪种机器人做什么、希望由谁来录制、预算以及必需的传感器。Muse Spark 会根据需求反向设计任务，任务只向符合条件的人开放并按此收集 —— 无需另外调整分布。",
+  "ask.example": "例如：“我们是制造业公司，需要训练快递装卸机器人的数据。性别不限、50 多岁及以下，预算 500 万韩元，手部关节和握力必须包含。”",
+  "ask.placeholder": "请自由描述您需要的数据", "ask.send": "发送",
+  "plan.title": "建议的任务", "plan.empty": "开始对话后，这里会显示任务·参与条件·传感器·报价。",
+  "senses.h2": "无需触觉传感器，只用家里现有的设备", "senses.lead": "我们不发放新设备。用参与者已有的手机·手表收集数据，并让设备彼此校准。",
+  "s1.tag": "触觉", "s1.h3": "握力 · 接触", "s1.p": "手表每 0.5 秒短暂振动一次，测量手腕的共振，读出握住物体期间的力度：低·中·高以及 0–100 分（无需秤，每人校准一次）。",
+  "s1.l1": "抓取·松开·滑脱：视频 + SAM 3.1", "s1.l2": "放下·擦拭：接触音 + 手腕冲击",
+  "s2.tag": "视觉", "s2.h3": "遮盖后的视频 · 关节 · 物体", "s2.p": "每只手 21 个点 × 双手、全身 33 个关节（3D）、被操作物体的区域。参与者的脸被替换为逼真的虚拟人物。",
+  "s2.l1": "遮盖人·儿童·屏幕·镜子·相框·文件", "s2.l2": "步骤说明（Muse Spark）",
+  "s3.tag": "听觉", "s3.h3": "声音 · 接触音", "s3.p": "手机·手表麦克风。含个人信息的语音会被转写，只把那一段静音（Voice Transcribe）。",
+  "s3.l1": "声音强度·声音事件", "s3.l2": "用 18–20 kHz 声学信标让设备彼此同步",
+  "s4.tag": "身体感觉", "s4.h3": "动作 · 心率 · 体温", "s4.p": "手腕 IMU、心率·HRR·皮肤温度变化（仅限同意提供生物信息的录制）。不做判断或建议，只提供原始数值和本人回答。",
+  "s4.l1": "这个人有多吃力 → 理解人并与人协作的机器人",
+  "sample.h2": "示例数据 —— 四感时间轴", "sample.lead": "一个片段的画面，以及同一时间轴上的握力·心率·声音·步骤标签。点击时间轴即可跳到对应画面。",
+  "sample.cert": "质量证书", "sample.frameAlt": "遮盖后的画面", "sample.none": "暂无示例",
+  "lg.grip": "握力（低·中·高，0–100）", "lg.hr": "心率（bpm）", "lg.sound": "声音强度", "lg.contact": "接触阶段", "lg.marks": "▲ 已确认的接触音 · ◆ “我失误了”",
+  "cat.h2": "目录", "cat.lead": "直接根据已处理录制的质量证书计算的数字（没有编造的数字）。",
+  "cat.mission": "任务", "cat.use": "用途", "cat.rec": "录制", "cat.verified": "已验证步骤", "cat.synth": "合成测试",
+  "lv.basic": "基础", "lv.premium": "高品质", "lv.bio": "生物",
+  "buy.h2": "等级与价格",
+  "buy.lead": "按已接收（通过质检）的时长计价，参照带标签第一人称数据的市场价（每小时 $30–60）。等级是预先搭配好的传感器组合，也可以在下方逐个选择传感器包购买。",
+  "sens.h3": "选择传感器包", "sens.preset": "· {name} 等级组合", "sens.custom": "· 自定义组合", "customCombo": "自定义组合",
+  "quote.h3": "报价", "quote.missions": "任务（留空表示全部）", "quote.hours": "小时", "quote.custom": "定制采集（×1.5，最少 10 小时，启动费）", "quote.refine": "精修请求（10%）",
+  "order.h3": "下单", "ph.org": "公司·机构名称", "ph.email": "电子邮箱", "ph.note": "所需条件（选填）", "order.btn": "下单",
+  "order.note": "运营者确认合同和付款并批准后，此页面会显示一次性下载链接（7 天，5 次）。",
+  "footer": "DataCash · Meta Global AI Developer Hackathon (Push the Frontier) · 每段录制都有参与者的同意和撤回记录，撤回后即从销售中移除。",
+  "synthNote": " · “合成测试”表示用已知真值的合成录制验证流程的数据（不出售）。",
+  "u.min": " 分钟", "u.h": " 小时",
+  "grip.none": "未握", "grip.1": "低", "grip.2": "中", "grip.3": "高",
+  "perHour": " / 小时", "levelSub": "每分钟 {min} · 录制者报酬每小时 {reward}", "plusPerHour": "+{p}/小时",
+  "sync": "同步：{chosen} · 各感官误差（ms） ", "scene": "Muse Spark：{task}（完成：{done}）", "stepOk": "传感器已确认", "stepNo": "未确认",
+  "lane.grip": "握力", "lane.hr": "心率", "lane.sound": "声音", "lane.contact": "接触",
+  "q.line": "{level} · {h} 小时 × {per}", "q.discount": "批量折扣", "q.discountPct": "已减 {p}%", "q.setup": "定制采集启动费", "q.refine": "精修请求",
+  "q.avail": "现在即可获取的时长：{h} 小时", "q.availCustom": "（定制采集将重新收集）",
+  "st.pending": "等待批准", "st.building": "正在打包", "st.ready": "已就绪", "st.failed": "失败",
+  "order.id": "订单 {id}", "order.dl": "下载 LeRobot 数据包（{mb}MB）", "order.until": "{date} 前有效 · {n}/5 次",
+  "chat.matching": "正在与库存数据比对…", "chat.draft": "这是即时生成的草案。Muse Spark 正在完善任务…", "chat.designing": "Muse Spark 正在设计任务…",
+  "chat.retry": "请重试", "chat.lostDraft": "与 Muse Spark 的连接已断开，先显示草案", "chat.lost": "连接已断开",
+  "age.any": "年龄不限（成人）",
+  "age.19~29세": "19–29 岁", "age.30대": "30 多岁", "age.40대": "40 多岁", "age.50대": "50 多岁", "age.60대 이상": "60 岁以上",
+  "gen.any": "性别不限", "gen.female": "女性", "gen.male": "男性",
+  "opt.existing": "现有数据", "opt.existing.d": "立即获取库存中同一任务的数据 · 无启动费",
+  "opt.new": "新采集", "opt.new.d": "向符合条件的人开放任务并重新收集 · 含启动费",
+  "opt.mix": "混合", "opt.mix.d": "先用库存数据，不足部分重新收集",
+  "why.conditions": "参与条件比较特殊，库存数据无法满足，建议新采集",
+  "why.no_stock": "此任务没有库存数据，因此为新采集",
+  "why.stock_enough": "库存数据足够，最便宜且可立即获取",
+  "why.stock_short": "仅靠库存数据不够，建议混合 —— 预算内可获得最多时长",
+  "why.stock_small": "库存数据很少，新采集在预算内可获得最多时长",
+  "why.budget_small": "预算较少，只能购买库存数据",
+  "rare.uncommon": "较难收集的条件", "rare.rare": "难以收集的条件", "rare.very_rare": "非常罕见的条件",
+  "d.mix": "现有 {a} + 新采集 {b}", "d.existing": "{h} / 库存 {s} · 每小时 {p}", "d.new": "{h} · 每小时 {p}{r} + 启动费 {s}", "d.rarity": "（条件 ×{r}）",
+  "rec": "推荐", "overBudget": " · 超出预算", "stockMission": "库存任务", "noMatch": "没有找到匹配的库存任务 —— Muse Spark 将设计新任务。",
+  "how": "您希望如何获取？", "budget": "预算 {b}", "newReward": "新采集录制者报酬每小时 {p}",
+  "rq.order": "按此下单", "rq.open": "按此提交需求并开放任务", "rq.more": "请再多告诉我们一些需要录制的内容。",
+  "rq.ordered": "订单 {id} · 库存数据 {h} · {total}（批准后可在下方“报价·购买”中下载）",
+  "rq.opened": "需求 {id} · 任务已在 App 中开放", "rq.progress": "{title} —— {a} / {b} · 录制 {n} 段",
+  "rq.note": "只对符合条件的人可见。收集到的数据会陆续加入目录，签约后可通过订单获取。",
+  "sn.video": "视频（必选）", "sd.video": "遮盖·换脸后的第一人称视频 · 手机 IMU · 物体区域（SAM 3.1）· 步骤·基础动作标签 · 成功·失误 · 同步误差",
+  "sn.pose": "手·身体关节", "sd.pose": "手部 21 点 × 2 · 身体 33 点（画面坐标·米制坐标）",
+  "sn.audio": "声音", "sd.audio": "可听声音强度 · 声音事件 · 已确认的接触音",
+  "sn.wrist": "手腕 IMU", "sd.wrist": "手表加速度计·陀螺仪（毫秒级同步）",
+  "sn.touch": "触觉", "sd.touch": "接触阶段 · 握力 低·中·高 + 0–100 分 · GripSense 特征（手表主动振动）",
+  "sn.physio": "生物信息", "sd.physio": "心率 · HRR · 皮肤温度变化 + 任务后本人回答（仅限同意提供生物信息的录制）",
+  "ld.basic": "遮盖·换脸视频 + 手机 IMU + 手·全身关节 + 物体区域 + 步骤说明 + 接触事件 + 成功·失误 + 质量证书",
+  "ld.premium": "基础 + 手腕 IMU（毫秒同步）+ 触觉：接触阶段·手表测得的握力（GripSense）",
+  "ld.bio": "高品质 + 心率·HRR·皮肤温度变化 + 任务后本人回答（仅限同意提供生物信息的录制）"
+},
+es: {
+  "nav.ask": "Pedir con palabras", "nav.senses": "Datos de 4 sentidos", "nav.sample": "Ejemplo", "nav.catalog": "Catálogo", "nav.buy": "Cotizar y comprar", "nav.admin": "Operador",
+  "hero.h1": "Datos de 4 sentidos para que aprendan los robots,<br>grabados con el teléfono y el reloj que la gente ya tiene",
+  "hero.p": "Lo que las personas hacen de verdad en casa — tacto, vista, oído y sensación corporal — en una misma línea de tiempo. Las personas, pantallas y documentos sin consentimiento se ocultan con precisión con SAM 3.1, y Muse Spark añade las etiquetas, que luego se vuelven a comprobar con los sensores. Descárgalo tal cual en LeRobot v3.0 y empieza a entrenar.",
+  "hero.btnAsk": "Pedir datos con tus palabras", "hero.btnQuote": "Obtener cotización", "hero.btnSample": "Ver datos de ejemplo",
+  "kpi.rec": "Grabaciones procesadas", "kpi.hours": "Volumen aceptado", "kpi.senses": "4 sentidos", "kpi.sensesSub": "Tacto · vista · oído · sensación corporal", "kpi.sync": "Sincronización automática reloj↔teléfono (verificada con datos sintéticos)",
+  "ask.h2": "Pide los datos que necesitas con tus propias palabras",
+  "ask.lead": "Cuéntanos qué quieres enseñar a qué robot, quién debería grabarlo, tu presupuesto y los sensores imprescindibles. Muse Spark diseña las misiones a partir de tu pedido y solo se abren a quienes cumplen las condiciones, así los datos llegan con la distribución que pediste — sin ajustes aparte.",
+  "ask.example": "p. ej. \"Somos una empresa manufacturera. Necesitamos datos para entrenar un robot de carga y descarga de paquetes. Cualquier género, hasta 50 y tantos años, presupuesto de ₩5.000.000; las articulaciones de la mano y la fuerza de agarre son imprescindibles.\"",
+  "ask.placeholder": "Describe libremente los datos que necesitas", "ask.send": "Enviar",
+  "plan.title": "Misiones propuestas", "plan.empty": "Cuando empieces la conversación, aquí aparecerán las misiones, condiciones de participación, sensores y la cotización.",
+  "senses.h2": "Sin sensores táctiles, solo con los dispositivos de casa", "senses.lead": "No repartimos equipos nuevos. Recogemos los datos con el teléfono y el reloj que los participantes ya tienen, y los dispositivos se calibran entre sí.",
+  "s1.tag": "Tacto", "s1.h3": "Fuerza de agarre · contacto", "s1.p": "El reloj vibra brevemente cada 0,5 s y mide cómo resuena la muñeca para leer la fuerza mientras se sujeta un objeto: bajo · medio · alto y una puntuación de 0–100 (sin báscula, una calibración por persona).",
+  "s1.l1": "Agarrar · soltar · resbalar: video + SAM 3.1", "s1.l2": "Apoyar · frotar: sonido de contacto + impacto en la muñeca",
+  "s2.tag": "Vista", "s2.h3": "Video ocultado · articulaciones · objetos", "s2.p": "21 puntos × ambas manos, 33 articulaciones del cuerpo (3D) y la región del objeto manipulado. El rostro del participante se sustituye por una persona virtual fotorrealista.",
+  "s2.l1": "Oculta personas, niños, pantallas, espejos, marcos y documentos", "s2.l2": "Instrucciones por paso (Muse Spark)",
+  "s3.tag": "Oído", "s3.h3": "Sonido · sonidos de contacto", "s3.p": "Micrófonos del teléfono y del reloj. El habla con datos personales se transcribe y solo se silencia ese fragmento (Voice Transcribe).",
+  "s3.l1": "Nivel de sonido · eventos sonoros", "s3.l2": "Los dispositivos se sincronizan con una baliza acústica de 18–20 kHz",
+  "s4.tag": "Sensación corporal", "s4.h3": "Movimiento · frecuencia cardíaca · temperatura", "s4.p": "IMU de muñeca, frecuencia cardíaca, HRR y cambio de temperatura de la piel (solo grabaciones con consentimiento biométrico). Solo valores en bruto y las respuestas del propio participante, sin juicios ni consejos.",
+  "s4.l1": "Cuánto le costó a la persona → robots que entienden a las personas y trabajan con ellas",
+  "sample.h2": "Datos de ejemplo — línea de tiempo de 4 sentidos", "sample.lead": "Escenas de un episodio, con fuerza de agarre, frecuencia cardíaca, sonido y etiquetas de pasos en la misma línea de tiempo. Haz clic en la línea de tiempo para ir a esa escena.",
+  "sample.cert": "Certificado de calidad", "sample.frameAlt": "Escena ocultada", "sample.none": "Sin ejemplos",
+  "lg.grip": "Fuerza de agarre (bajo · medio · alto, 0–100)", "lg.hr": "Frecuencia cardíaca (lpm)", "lg.sound": "Nivel de sonido", "lg.contact": "Fase de contacto", "lg.marks": "▲ sonido de contacto confirmado · ◆ «Me equivoqué»",
+  "cat.h2": "Catálogo", "cat.lead": "Cifras calculadas directamente de los certificados de calidad de las grabaciones procesadas (nada inventado).",
+  "cat.mission": "Misión", "cat.use": "Uso", "cat.rec": "Grabaciones", "cat.verified": "Pasos verificados", "cat.synth": "Prueba sintética",
+  "lv.basic": "Básico", "lv.premium": "Premium", "lv.bio": "Biométrico",
+  "buy.h2": "Niveles y precios",
+  "buy.lead": "Por hora aceptada (que pasó la revisión), tomando como referencia el precio de mercado de datos en primera persona etiquetados ($30–60 por hora). Los niveles son combinaciones de sensores predefinidas; abajo también puedes elegir los paquetes de sensores uno a uno.",
+  "sens.h3": "Elegir paquetes de sensores", "sens.preset": "· combinación del nivel {name}", "sens.custom": "· combinación personalizada", "customCombo": "Combinación personalizada",
+  "quote.h3": "Cotización", "quote.missions": "Misiones (vacío = todas)", "quote.hours": "Horas", "quote.custom": "Recolección a medida (×1,5, mínimo 10 horas, cuota inicial)", "quote.refine": "Solicitud de refinado (10%)",
+  "order.h3": "Pedido", "ph.org": "Empresa u organización", "ph.email": "Correo electrónico", "ph.note": "Requisitos (opcional)", "order.btn": "Hacer pedido",
+  "order.note": "Cuando el operador confirme el contrato y el pago y apruebe el pedido, aparecerá en esta página un enlace de descarga de un solo uso (7 días, 5 descargas).",
+  "footer": "DataCash · Meta Global AI Developer Hackathon (Push the Frontier) · Cada grabación tiene registro del consentimiento y la retirada del participante; si se retira, sale de la venta.",
+  "synthNote": " · «Prueba sintética» indica datos de grabaciones sintéticas con verdad conocida, usados para validar el proceso (no se venden).",
+  "u.min": " min", "u.h": " h",
+  "grip.none": "sin agarre", "grip.1": "bajo", "grip.2": "medio", "grip.3": "alto",
+  "perHour": " / hora", "levelSub": "{min} por minuto · recompensa al participante {reward} por hora", "plusPerHour": "+{p}/h",
+  "sync": "Sincronización: {chosen} · error por sentido (ms) ", "scene": "Muse Spark: {task} (completado: {done})", "stepOk": "Verificado por sensores", "stepNo": "Sin verificar",
+  "lane.grip": "Agarre", "lane.hr": "Pulso", "lane.sound": "Sonido", "lane.contact": "Contacto",
+  "q.line": "{level} · {h} h × {per}", "q.discount": "Descuento por volumen", "q.discountPct": "{p}% aplicado", "q.setup": "Cuota inicial de recolección a medida", "q.refine": "Solicitud de refinado",
+  "q.avail": "Disponible ahora mismo: {h} h", "q.availCustom": " (la recolección a medida reúne datos nuevos)",
+  "st.pending": "Pendiente de aprobación", "st.building": "Preparando el paquete", "st.ready": "Listo", "st.failed": "Error",
+  "order.id": "Pedido {id}", "order.dl": "Descargar paquete LeRobot ({mb} MB)", "order.until": "Hasta el {date} · {n}/5 descargas",
+  "chat.matching": "Comparando con los datos almacenados…", "chat.draft": "Aquí tienes un borrador inmediato. Muse Spark está afinando las misiones…", "chat.designing": "Muse Spark está diseñando las misiones…",
+  "chat.retry": "Inténtalo de nuevo", "chat.lostDraft": "Se perdió la conexión con Muse Spark; mostramos el borrador", "chat.lost": "Se perdió la conexión",
+  "age.any": "Cualquier edad (adultos)",
+  "age.19~29세": "19–29 años", "age.30대": "30–39 años", "age.40대": "40–49 años", "age.50대": "50–59 años", "age.60대 이상": "60 años o más",
+  "gen.any": "Cualquier género", "gen.female": "Mujeres", "gen.male": "Hombres",
+  "opt.existing": "Datos existentes", "opt.existing.d": "Recibe al instante datos almacenados de las mismas misiones · sin cuota inicial",
+  "opt.new": "Nueva recolección", "opt.new.d": "Abre las misiones a quienes cumplen las condiciones y recoge datos nuevos · cuota inicial incluida",
+  "opt.mix": "Mezcla", "opt.mix.d": "Usa primero los datos almacenados y recoge lo que falte",
+  "why.conditions": "Las condiciones de participación son específicas y los datos almacenados no las cumplen; recomendamos una nueva recolección",
+  "why.no_stock": "Esta misión aún no tiene datos almacenados, así que es una nueva recolección",
+  "why.stock_enough": "Los datos almacenados bastan: es lo más barato y se recibe al instante",
+  "why.stock_short": "Los datos almacenados no alcanzan, así que recomendamos mezclar — es la mayor cantidad de horas dentro del presupuesto",
+  "why.stock_small": "Hay muy pocos datos almacenados, así que una nueva recolección da más horas dentro del presupuesto",
+  "why.budget_small": "El presupuesto es pequeño; solo alcanza para datos almacenados",
+  "rare.uncommon": "Condiciones algo difíciles de reunir", "rare.rare": "Condiciones difíciles de reunir", "rare.very_rare": "Condiciones muy poco comunes",
+  "d.mix": "Existentes {a} + nuevos {b}", "d.existing": "{h} / {s} en stock · {p} por hora", "d.new": "{h} · {p} por hora{r} + cuota inicial {s}", "d.rarity": " (condiciones ×{r})",
+  "rec": "Recomendado", "overBudget": " · supera el presupuesto", "stockMission": "Misión almacenada", "noMatch": "No encontramos ninguna misión almacenada que encaje — Muse Spark diseñará una nueva.",
+  "how": "¿Cómo quieres recibirlo?", "budget": "Presupuesto {b}", "newReward": "Recompensa al participante en nueva recolección: {p} por hora",
+  "rq.order": "Pedir así", "rq.open": "Enviar la solicitud y abrir las misiones", "rq.more": "Cuéntanos un poco más sobre qué hay que grabar.",
+  "rq.ordered": "Pedido {id} · datos almacenados {h} · {total} (cuando se apruebe, descárgalo abajo en Cotizar y comprar)",
+  "rq.opened": "Solicitud {id} · las misiones ya están abiertas en la app", "rq.progress": "{title} — {a} / {b} · {n} grabaciones",
+  "rq.note": "Solo la ven quienes cumplen las condiciones. Los datos se suben al catálogo a medida que llegan y podrás recibirlos con un pedido tras firmar el contrato.",
+  "sn.video": "Video (obligatorio)", "sd.video": "Video en primera persona ocultado y con rostro sustituido · IMU del teléfono · regiones de objetos (SAM 3.1) · etiquetas de pasos y movimientos básicos · éxito/errores · error de sincronización",
+  "sn.pose": "Articulaciones de manos y cuerpo", "sd.pose": "21 puntos de mano × 2 · 33 puntos del cuerpo (coordenadas de imagen y en metros)",
+  "sn.audio": "Audio", "sd.audio": "Nivel de sonido · eventos sonoros · sonidos de contacto confirmados",
+  "sn.wrist": "IMU de muñeca", "sd.wrist": "Acelerómetro y giroscopio del reloj (sincronización en ms)",
+  "sn.touch": "Tacto", "sd.touch": "Fase de contacto · fuerza de agarre bajo · medio · alto + puntuación 0–100 · rasgos GripSense (vibración activa del reloj)",
+  "sn.physio": "Biometría", "sd.physio": "Frecuencia cardíaca · HRR · cambio de temperatura de la piel + respuestas tras la misión (solo grabaciones con consentimiento biométrico)",
+  "ld.basic": "Video ocultado y con rostro sustituido + IMU del teléfono + articulaciones de manos y cuerpo + regiones de objetos + instrucciones por paso + eventos de contacto + éxito/errores + certificado de calidad",
+  "ld.premium": "Básico + IMU de muñeca (sincronización en ms) + tacto: fase de contacto y fuerza de agarre medida con el reloj (GripSense)",
+  "ld.bio": "Premium + frecuencia cardíaca, HRR y cambio de temperatura de la piel + respuestas tras la misión (solo grabaciones con consentimiento biométrico)"
+}
+};
+function t(key, vars) {
+  const d = I18N[LANG] || I18N.en;
+  let s = key in d ? d[key] : key in I18N.en ? I18N.en[key] : key in I18N.ko ? I18N.ko[key] : key;
+  if (vars) s = s.replace(/\{(\w+)\}/g, (m, k) => k in vars ? vars[k] : m);
+  return s;
+}
+// 한국어는 서버가 준 이름(원문) 그대로, 다른 언어는 id 로 번역
+const lvName = (id, ko) => LANG === "ko" ? (ko ?? t("lv." + id)) : t("lv." + id);
+const lvDesc = (id, ko) => LANG === "ko" || !(("ld." + id) in (I18N[LANG] || {})) ? (ko ?? "") : t("ld." + id);
+const sensorById = id => (CAT && CAT.sensors || []).find(x => x.id === id) || {id, name: id, desc: ""};
+const snName = id => LANG === "ko" ? sensorById(id).name : (("sn." + id) in (I18N[LANG] || {}) ? t("sn." + id) : sensorById(id).name);
+const snDesc = id => LANG === "ko" ? sensorById(id).desc : (("sd." + id) in (I18N[LANG] || {}) ? t("sd." + id) : sensorById(id).desc);
+const ageLabel = a => t("age." + a) === "age." + a ? a : t("age." + a);   // 값("19~29세")은 그대로 보내고 보이는 것만 번역
+function applyStatic() {
+  document.documentElement.lang = LANG;
+  document.querySelectorAll("[data-i18n]").forEach(e => { e.textContent = t(e.dataset.i18n); });
+  document.querySelectorAll("[data-i18n-html]").forEach(e => { e.innerHTML = t(e.dataset.i18nHtml); });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach(e => { e.placeholder = t(e.dataset.i18nPlaceholder); });
+  document.querySelectorAll("[data-i18n-alt]").forEach(e => { e.alt = t(e.dataset.i18nAlt); });
+}
+
+const grade = (lv, sc) => lv == null || lv < 0 ? "-" : lv === 0 ? t("grip.none") : `${t("grip." + lv)} (${Math.round(sc)})`;   // 예: 중 (57)
 const $ = s => document.querySelector(s);
-const won = n => (Math.round(n) || 0).toLocaleString("ko-KR") + "원";
-const hrs = h => h <= 0 ? "-" : h < 1 ? (h * 60).toFixed(1) + "분" : h.toFixed(2) + "시간";
+const won = n => LANG === "ko" ? (Math.round(n) || 0).toLocaleString("ko-KR") + "원"
+  : new Intl.NumberFormat(LOCALE[LANG], {style: "currency", currency: "KRW", maximumFractionDigits: 0}).format(Math.round(n) || 0);
+const num = (x, d) => LANG === "ko" ? x.toFixed(d) : (+x).toLocaleString(LOCALE[LANG], {minimumFractionDigits: d, maximumFractionDigits: d});
+const numv = x => LANG === "ko" ? String(x) : (+x).toLocaleString(LOCALE[LANG], {maximumFractionDigits: 2});
+const hrs = h => h <= 0 ? "-" : h < 1 ? num(h * 60, 1) + t("u.min") : num(h, 2) + t("u.h");
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-let CAT = null, LEVEL = "premium", TL = null, SID = null;
+let CAT = null, LEVEL = "premium", TL = null, SID = null, ORDER = null;
 
 async function load() {
-  CAT = await (await fetch("/api/market/catalog")).json();
-  $("#k-rec").textContent = CAT.totals.recordings;
+  CAT = await (await fetch(`/api/market/catalog?lang=${encodeURIComponent(LANG)}`)).json();
+  renderCatalog();
+  if (SID && TL) { $("#sampleSel").value = SID; renderSample(); }   // 언어를 바꿀 때: 보던 예시 그대로 다시 그리기
+  quote();
+}
+function renderCatalog() {
+  const was = new Set(picked());
+  $("#k-rec").textContent = numv(CAT.totals.recordings);
   $("#k-hours").textContent = hrs(CAT.totals.hours);
   $("#catBody").innerHTML = CAT.missions.map(m => `<tr>
-    <td><b>${esc(m.title)}</b><div class="note">${esc(m.title_en)}</div></td><td class="note">${esc(m.purpose)}${(m.primitives || []).length ? `<div class="prims">${m.primitives.map(esc).join(" → ")}</div>` : ""}</td>
-    <td>${m.recordings}${m.synthetic_only ? ' <span class="pill">합성 시험</span>' : ""}</td>
+    <td><b>${esc(m.title)}</b>${LANG !== "en" ? `<div class="note">${esc(m.title_en)}</div>` : ""}</td><td class="note">${esc(m.purpose)}${(m.primitives || []).length ? `<div class="prims">${m.primitives.map(esc).join(" → ")}</div>` : ""}</td>
+    <td>${m.recordings}${m.synthetic_only ? ` <span class="pill">${esc(t("cat.synth"))}</span>` : ""}</td>
     <td>${hrs(m.hours.basic)}</td><td>${hrs(m.hours.premium)}</td><td>${hrs(m.hours.bio)}</td>
     <td>${m.steps ? `<span class="pill ok">${m.verified_steps}/${m.steps}</span>` : "-"}</td></tr>`).join("");
   $("#levels").innerHTML = CAT.levels.map(l => `<div class="card level ${l.id === LEVEL ? "sel" : ""}" data-l="${l.id}" style="cursor:pointer">
-    <h3>${esc(l.name)}</h3><div class="price">${won(l.per_hour)}<small> / 시간</small></div>
-    <div class="note">분당 ${won(l.per_hour / 60)} · 촬영자 보상 시간당 ${won(l.reward_per_hour)}</div><p>${esc(l.desc)}</p></div>`).join("");
+    <h3>${esc(lvName(l.id, l.name))}</h3><div class="price">${won(l.per_hour)}<small>${esc(t("perHour"))}</small></div>
+    <div class="note">${esc(t("levelSub", {min: won(l.per_hour / 60), reward: won(l.reward_per_hour)}))}</div><p>${esc(lvDesc(l.id, l.desc))}</p></div>`).join("");
   document.querySelectorAll(".level").forEach(e => e.onclick = () => { LEVEL = e.dataset.l; SENS = null; load_levels(); quote(); });
   $("#sensors").innerHTML = CAT.sensors.map(x => `<label data-s="${esc(x.id)}" class="${x.id === "video" ? "fixed" : ""}"><input type="checkbox" value="${esc(x.id)}">
-    <b>${esc(x.name)}<span class="p">+${won(x.per_hour)}/시간</span></b><div class="d">${esc(x.desc)}</div></label>`).join("");
+    <b>${esc(snName(x.id))}<span class="p">${esc(t("plusPerHour", {p: won(x.per_hour)}))}</span></b><div class="d">${esc(snDesc(x.id))}</div></label>`).join("");
   document.querySelectorAll("#sensors label").forEach(l => l.onclick = e => {
     e.preventDefault();
     if (l.dataset.s === "video") return;
@@ -254,15 +660,14 @@ async function load() {
     SENS = [...cur]; load_levels(); quote();
   });
   load_levels();
-  $("#mChecks").innerHTML = CAT.missions.map(m => `<label><input type="checkbox" value="${esc(m.id)}">${esc(m.title)}</label>`).join("");
+  $("#mChecks").innerHTML = CAT.missions.map(m => `<label class="${was.has(m.id) ? "on" : ""}"><input type="checkbox" value="${esc(m.id)}" ${was.has(m.id) ? "checked" : ""}>${esc(m.title)}</label>`).join("");
   document.querySelectorAll("#mChecks label").forEach(l => l.onclick = e => { setTimeout(() => { l.classList.toggle("on", l.querySelector("input").checked); quote(); }, 0); });
-  const FIRST = "lift_box";   // 처음 보여 줄 예시: 무거운 상자 옮기기 (닿음·쥐는 세기·워치가 가장 잘 보이는 녹화)
+  const FIRST = "20261029_230651";   // 처음 보여 줄 예시: 물병 든 무거운 상자 옮기기
   const samples = CAT.missions.flatMap(m => m.samples.map(s => ({s, m})))
-    .sort((a, b) => (b.m.id === FIRST) - (a.m.id === FIRST));
-  $("#sampleSel").innerHTML = samples.map(x => `<option value="${esc(x.s)}">${esc(x.m.title)} · ${esc(x.s)}</option>`).join("") || "<option>예시 없음</option>";
-  if (CAT.missions.some(m => m.synthetic_only)) $("#synthNote").textContent = " · '합성 시험' 표시는 정답을 아는 합성 녹화로 파이프라인을 검증한 데이터입니다 (판매 대상 아님).";
-  if (samples.length) loadSample(samples[0].s);
-  quote();
+    .sort((a, b) => (b.s === FIRST) - (a.s === FIRST) || (b.m.id === "lift_box") - (a.m.id === "lift_box"));
+  $("#sampleSel").innerHTML = samples.map(x => `<option value="${esc(x.s)}">${esc(x.m.title)} · ${esc(x.s)}</option>`).join("") || `<option>${esc(t("sample.none"))}</option>`;
+  $("#synthNote").textContent = CAT.missions.some(m => m.synthetic_only) ? t("synthNote") : "";
+  if (!SID && samples.length) loadSample(samples[0].s);
 }
 let SENS = null;   // 직접 고른 센서 묶음 (null 이면 등급의 조합)
 function sensorsNow() { return SENS || (CAT.levels.find(l => l.id === LEVEL) || CAT.levels[0]).sensors; }
@@ -270,19 +675,24 @@ function load_levels() {
   const now = new Set(sensorsNow()), preset = CAT.levels.find(l => l.sensors.length === now.size && l.sensors.every(s => now.has(s)));
   document.querySelectorAll(".level").forEach(e => e.classList.toggle("sel", !!preset && e.dataset.l === preset.id));
   document.querySelectorAll("#sensors label").forEach(l => l.classList.toggle("on", now.has(l.dataset.s) || l.dataset.s === "video"));
-  $("#sensSum").textContent = preset ? `· ${preset.name} 등급 조합` : "· 맞춤 조합";
+  $("#sensSum").textContent = preset ? t("sens.preset", {name: lvName(preset.id, preset.name)}) : t("sens.custom");
 }
 
 async function loadSample(sid) {
   SID = sid; $("#cert").hidden = true;
   TL = await (await fetch(`/api/market/sample/${encodeURIComponent(sid)}/timeline`)).json();
   $("#scrub").max = TL.frames - 1; $("#scrub").value = 0;
+  renderSample();
+  setFrame(0);
+}
+function renderSample() {
+  if (!TL) return;
   const s = TL.sync || {};
-  $("#syncNote").textContent = `동기화: ${s.chosen || "-"} · 감각별 오차(ms) ` + Object.entries(s.error_ms || {}).map(([k, v]) => `${k} ${v}`).join(", ");
-  $("#sampleNote").textContent = TL.scene ? `Muse Spark: ${TL.scene.task} (완료: ${TL.scene.completed})` : "";
+  $("#syncNote").textContent = t("sync", {chosen: s.chosen || "-"}) + Object.entries(s.error_ms || {}).map(([k, v]) => `${k} ${v}`).join(", ");
+  $("#sampleNote").textContent = TL.scene ? t("scene", {task: TL.scene.task, done: TL.scene.completed}) : "";
   $("#stepList").innerHTML = (TL.steps || []).map(st => `<li><b>${st.start_s.toFixed(1)}–${st.end_s.toFixed(1)}s</b>
-    <span>${esc(st.instruction)}</span>${st.verified === true ? '<span class="pill ok">센서 확인</span>' : st.verified === false ? '<span class="pill">미확인</span>' : ""}</li>`).join("");
-  setFrame(0); draw();
+    <span>${esc(st.instruction)}</span>${st.verified === true ? `<span class="pill ok">${esc(t("stepOk"))}</span>` : st.verified === false ? `<span class="pill">${esc(t("stepNo"))}</span>` : ""}</li>`).join("");
+  draw();
 }
 function setFrame(i) { $("#frame").src = `/api/market/sample/${encodeURIComponent(SID)}/frame/${i}`; draw(i); }
 $("#scrub").oninput = e => setFrame(+e.target.value);
@@ -297,7 +707,7 @@ function draw(cur = +$("#scrub").value) {
   const x = i => 40 + (W - 60) * i / Math.max(1, n - 1);
   const lanes = [[20, 110], [130, 210], [230, 290], [305, 340]];
   g.font = "12px sans-serif"; g.fillStyle = "#8a8a8e";
-  ["쥐는 세기", "심박", "소리", "접촉"].forEach((s, k) => g.fillText(s, 0, lanes[k][0] + 10));
+  [t("lane.grip"), t("lane.hr"), t("lane.sound"), t("lane.contact")].forEach((s, k) => g.fillText(s, 0, lanes[k][0] + 10));
   (TL.steps || []).forEach((st, k) => { const a = x(st.start_s * n / TL.t[n - 1]), b = x(st.end_s * n / TL.t[n - 1]);
     g.fillStyle = k % 2 ? "rgba(255,175,95,.10)" : "rgba(255,95,95,.07)"; g.fillRect(a, 0, b - a, H); });
   function line(arr, lane, color, lo, hi) {
@@ -313,22 +723,32 @@ function draw(cur = +$("#scrub").value) {
   g.fillStyle = "#2E9BF0"; (TL.contact_sound || []).forEach((v, i) => { if (v > 0) { g.beginPath(); g.moveTo(x(i), lanes[2][0] - 2); g.lineTo(x(i) - 6, lanes[2][0] - 12); g.lineTo(x(i) + 6, lanes[2][0] - 12); g.fill(); } });
   g.fillStyle = "#333"; (TL.self_mark || []).forEach((v, i) => { if (v > 0) { g.save(); g.translate(x(i), 8); g.rotate(Math.PI / 4); g.fillRect(-5, -5, 10, 10); g.restore(); } });
   g.strokeStyle = "#333"; g.lineWidth = 1; g.beginPath(); g.moveTo(x(cur), 0); g.lineTo(x(cur), H); g.stroke();
-  g.fillStyle = "#333"; g.fillText(`${(TL.t[cur] || 0).toFixed(2)}s · 쥐는 세기 ${grade(TL.grip_level?.[cur], TL.grip_score?.[cur])}` + (TL.hr ? ` · 심박 ${TL.hr[cur] ?? "-"}` : ""), Math.min(W - 220, x(cur) + 6), H - 4);
+  g.fillStyle = "#333"; g.fillText(`${(TL.t[cur] || 0).toFixed(2)}s · ${t("lane.grip")} ${grade(TL.grip_level?.[cur], TL.grip_score?.[cur])}` + (TL.hr ? ` · ${t("lane.hr")} ${TL.hr[cur] ?? "-"}` : ""), Math.min(W - 220, x(cur) + 6), H - 4);
 }
 $("#chart").onclick = e => { if (!TL) return; const r = e.target.getBoundingClientRect(); const fx = (e.clientX - r.left) / r.width * e.target.width;
   const i = Math.round((fx - 40) / (e.target.width - 60) * (TL.t.length - 1)); $("#scrub").value = Math.max(0, Math.min(TL.t.length - 1, i)); setFrame(+$("#scrub").value); };
 
 function picked() { return [...document.querySelectorAll("#mChecks input:checked")].map(i => i.value); }
+// 견적의 등급 이름: 한국어는 서버 값(level_ko), 다른 언어는 센서 조합이 같은 등급을 찾아 번역
+function quoteLevel(q) {
+  if (LANG === "ko") return q.level_ko;
+  const s = new Set(q.sensors || []), pre = (CAT ? CAT.levels : []).find(l => l.sensors.length === s.size && l.sensors.every(x => s.has(x)));
+  return pre ? lvName(pre.id) : t("customCombo");
+}
+let QSEQ = 0;
 async function quote() {
+  const my = ++QSEQ;
   const body = {missions: picked(), level: LEVEL, sensors: sensorsNow(), hours: +$("#hours").value || 1, custom: $("#custom").checked, refine: $("#refine").checked};
   const q = await (await fetch("/api/market/quote", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)})).json();
-  $("#qLines").innerHTML = `<div><span>${esc(q.level_ko)} · ${q.hours}시간 × ${won(q.per_hour)}</span><span>${won(q.data)}</span></div>` +
-    `<div><span class="note">${(q.sensors_ko || []).map(esc).join(" · ")}</span><span></span></div>` +
-    (q.discount_pct ? `<div><span>묶음 할인</span><span>${q.discount_pct}% 적용</span></div>` : "") +
-    (q.setup ? `<div><span>맞춤 수집 착수비</span><span>${won(q.setup)}</span></div>` : "") +
-    (q.refine ? `<div><span>정제 요청</span><span>${won(q.refine)}</span></div>` : "");
+  if (my !== QSEQ) return;
+  const sensNames = LANG === "ko" ? (q.sensors_ko || []) : (q.sensors || []).map(snName);
+  $("#qLines").innerHTML = `<div><span>${esc(t("q.line", {level: quoteLevel(q), h: numv(q.hours), per: won(q.per_hour)}))}</span><span>${won(q.data)}</span></div>` +
+    `<div><span class="note">${sensNames.map(esc).join(" · ")}</span><span></span></div>` +
+    (q.discount_pct ? `<div><span>${esc(t("q.discount"))}</span><span>${esc(t("q.discountPct", {p: q.discount_pct}))}</span></div>` : "") +
+    (q.setup ? `<div><span>${esc(t("q.setup"))}</span><span>${won(q.setup)}</span></div>` : "") +
+    (q.refine ? `<div><span>${esc(t("q.refine"))}</span><span>${won(q.refine)}</span></div>` : "");
   $("#qTotal").textContent = won(q.total);
-  $("#qAvail").textContent = `지금 바로 받을 수 있는 분량: ${q.available_hours}시간` + (q.custom ? " (맞춤 수집은 새로 모읍니다)" : "");
+  $("#qAvail").textContent = t("q.avail", {h: numv(q.available_hours)}) + (q.custom ? t("q.availCustom") : "");
 }
 ["#hours", "#custom", "#refine"].forEach(s => $(s).oninput = quote);
 $("#orderBtn").onclick = async () => {
@@ -337,69 +757,139 @@ $("#orderBtn").onclick = async () => {
   const r = await fetch("/api/market/orders", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
   const o = await r.json();
   if (!r.ok) { $("#orderBox").innerHTML = `<div class="note" style="color:var(--primary-dark)">${esc(o.detail)}</div>`; return; }
-  localStorage.setItem("dc_order", o.id); poll(o.id);
+  try { localStorage.setItem("dc_order", o.id); } catch (e) {}
+  poll(o.id);
 };
 async function poll(id) {
   const o = await (await fetch(`/api/market/orders/${encodeURIComponent(id)}`)).json();
-  const label = {pending: "승인 대기", building: "묶음 만드는 중", ready: "준비됨", failed: "실패"}[o.status] || o.status;
-  $("#orderBox").innerHTML = `<div class="card" style="background:var(--bg)"><b>주문 ${esc(o.id)}</b> · ${label} · ${won(o.quote.total)}
-    ${o.download ? `<div style="margin-top:8px"><a class="btn small" href="${o.download}">LeRobot 묶음 내려받기 (${o.size_mb}MB)</a>
-    <div class="note">${esc((o.expires || "").slice(0, 10))}까지 · ${o.downloads}/5번</div></div>` : ""}${o.error ? `<div class="note">${esc(o.error)}</div>` : ""}</div>`;
+  ORDER = o; renderOrder();
   if (o.status === "pending" || o.status === "building") setTimeout(() => poll(id), 4000);
+}
+function renderOrder() {
+  const o = ORDER; if (!o || !o.id) return;
+  const label = ["pending", "building", "ready", "failed"].includes(o.status) ? t("st." + o.status) : o.status;
+  $("#orderBox").innerHTML = `<div class="card" style="background:var(--bg)"><b>${esc(t("order.id", {id: o.id}))}</b> · ${esc(label)} · ${won(o.quote.total)}
+    ${o.download ? `<div style="margin-top:8px"><a class="btn small" href="${o.download}">${esc(t("order.dl", {mb: o.size_mb}))}</a>
+    <div class="note">${esc(t("order.until", {date: (o.expires || "").slice(0, 10), n: o.downloads}))}</div></div>` : ""}${o.error ? `<div class="note">${esc(o.error)}</div>` : ""}</div>`;
 }
 try { const id = localStorage.getItem("dc_order"); if (id) poll(id); } catch (e) {}
 
-// ---------- 말로 의뢰 → 미션 ----------
+// ---------- 말로 의뢰 → 미션 (바로 초안 → Muse Spark 가 다듬기) · 기존 데이터 / 신규 수집 / 섞기 ----------
 const CHAT = [];
-let PLAN = null;
+let PLAN = null, CHOICE = null, PICK = null, SEQ = 0, REQ = null;
 function bubble(text, me) {
   const d = document.createElement("div"); d.className = "msg " + (me ? "me" : "bot"); d.textContent = text;
   $("#msgs").appendChild(d); $("#msgs").scrollTop = 1e9; return d;
 }
+const post = (u, body) => fetch(u, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
 $("#askBtn").onclick = async () => {
-  const t = $("#askText").value.trim(); if (!t) return;
-  $("#askText").value = ""; CHAT.push({role: "user", content: t}); bubble(t, true);
-  const wait = bubble("미션을 설계하는 중… (Muse Spark)", false); $("#askBtn").disabled = true;
-  try {
-    const r = await fetch("/api/market/request/chat", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({messages: CHAT})});
+  const tx = $("#askText").value.trim(); if (!tx) return;
+  $("#askText").value = ""; CHAT.push({role: "user", content: tx}); bubble(tx, true);
+  const my = ++SEQ;
+  const wait = bubble(t("chat.matching"), false);
+  try {                                  // ① 바로 (모델 없이)
+    const r = await post("/api/market/request/instant", {messages: CHAT, lang: LANG});
+    if (r.ok) { const j = await r.json(); if (my === SEQ) { PLAN = j.plan; CHOICE = j.choice; showPlan(); }
+      wait.textContent = (j.plan.missions.length ? t("chat.draft") : t("chat.designing")); }
+  } catch (e) {}
+  try {                                  // ② Muse Spark (약 10초)
+    const r = await post("/api/market/request/chat", {messages: CHAT, lang: LANG});
     const j = await r.json();
-    if (!r.ok) { wait.textContent = j.detail || "다시 시도해 주세요"; return; }
+    if (!r.ok) { wait.textContent = j.detail || t("chat.retry"); return; }
     const q = (j.plan.questions || []).length ? "\n\n" + j.plan.questions.map(x => "· " + x).join("\n") : "";
     wait.textContent = j.reply + q; CHAT.push({role: "assistant", content: j.reply + q});
-    PLAN = j.plan; showPlan(j.plan, j.quote);
-  } catch (e) { wait.textContent = "연결이 끊겼어요"; } finally { $("#askBtn").disabled = false; }
+    if (my === SEQ) { PLAN = j.plan; CHOICE = j.choice; showPlan(); }
+  } catch (e) { wait.textContent = PLAN ? t("chat.lostDraft") : t("chat.lost"); }
 };
 $("#askText").onkeydown = e => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); $("#askBtn").click(); } };
-const AGES = ["19~29세", "30대", "40대", "50대", "60대 이상"], GEN = {any: "성별 무관", female: "여성", male: "남성"};
-function showPlan(p, q) {
-  const ages = p.eligibility.age_bands.length === AGES.length ? "연령 무관 (성인)" : p.eligibility.age_bands.join(" · ");
-  $("#planBox").innerHTML = `<h3 style="margin-top:0">${esc(p.title || "제안된 미션")}</h3>
-    <div class="note">${esc(p.domain)} · ${esc(p.robot_use)}</div>
-    <div class="tags"><span>${esc(ages)}</span><span>${esc(GEN[p.eligibility.gender] || "")}</span>${q.sensors_ko.map(x => `<span>${esc(x)}</span>`).join("")}</div>
-    ${p.missions.map(m => `<div class="mis"><b>${esc(m.title)}</b><div class="note">${esc(m.guide)}</div>
-      <div class="prims">${m.primitives.map(esc).join(" → ")}</div>
-      <div class="tags">${m.situations.slice(0, 8).map(x => `<span>${esc(x)}</span>`).join("")}</div></div>`).join("")}
-    <div class="lines" style="margin-top:14px"><div><span>맞춤 수집 ${q.hours}시간 × ${won(q.per_hour)}</span><span>${won(q.data)}</span></div>
-      <div><span>착수비</span><span>${won(q.setup)}</span></div>
-      ${p.budget_krw ? `<div><span>예산 ${won(p.budget_krw)}</span><span>${q.within_budget ? "안에 맞춤" : "초과"}</span></div>` : ""}</div>
-    <div class="row" style="justify-content:space-between;margin-top:8px"><span class="note">촬영자 보상 시간당 ${won(q.reward_per_hour)}</span><span class="total">${won(q.total)}</span></div>
-    ${p.ready && p.missions.length ? `<div style="display:grid;gap:8px;margin-top:14px"><input id="rqOrg" placeholder="회사·기관 이름"><input id="rqEmail" type="email" placeholder="이메일">
-      <button class="btn" id="rqBtn">이대로 의뢰하고 미션 열기</button><div id="rqBox"></div></div>` : `<div class="note" style="margin-top:12px">질문에 답하면 의뢰할 수 있어요.</div>`}`;
+const AGES = ["19~29세", "30대", "40대", "50대", "60대 이상"];   // API 값 (보낼 때는 그대로)
+const hasHangul = s => /[가-힣]/.test(String(s || ""));
+// 보관 미션은 카탈로그(지금 언어)에서 제목·안내를 가져오고, 새 미션은 한국어가 아니면 title_en 으로
+function planMission(m) {
+  if (LANG === "ko") return m;
+  const c = m.id && CAT && CAT.missions.find(x => x.id === m.id);
+  if (c) return {...m, title: c.title, guide: c.guide};
+  return {...m, title: hasHangul(m.title) && m.title_en ? m.title_en : m.title};
+}
+function showPlan() {
+  const p = PLAN, c = CHOICE; if (!p || !c) return;
+  if (!PICK || !c.options[PICK]) PICK = c.recommended;
+  const ages = p.eligibility.age_bands.length === AGES.length ? t("age.any") : p.eligibility.age_bands.map(ageLabel).join(" · ");
+  const po = c.options[PICK] || {};
+  const sens = LANG === "ko" ? ((po.sensors_ko || (po.new || {}).sensors_ko) || [])
+    : (po.sensors || (po.new || {}).sensors || p.sensors || []).map(snName);
+  const card = k => { const o = c.options[k]; if (!o) return "";
+    const detail = k === "mix" ? t("d.mix", {a: hrs(o.existing_hours), b: hrs(o.new_hours)})
+      : k === "existing" ? t("d.existing", {h: hrs(o.hours), s: hrs(o.stock_hours), p: won(o.per_hour)})
+      : t("d.new", {h: hrs(o.hours), p: won(o.per_hour), r: o.rarity > 1 ? t("d.rarity", {r: numv(o.rarity)}) : "", s: won(o.setup)});
+    const over = c.budget_krw && o.total > c.budget_krw * 1.001;
+    return `<label class="mis" style="display:block;cursor:pointer;border-color:${PICK === k ? "var(--primary)" : "var(--line)"}">
+      <input type="radio" name="src" value="${k}" ${PICK === k ? "checked" : ""} style="margin-right:6px">
+      <b>${esc(t("opt." + k))}</b>${k === c.recommended ? ` <span class="tag" style="background:var(--primary-soft);color:var(--primary-dark)">${esc(t("rec"))}</span>` : ""}
+      <span style="float:right" class="total">${won(o.total)}</span>
+      <div class="note">${esc(t("opt." + k + ".d"))}</div><div class="note">${esc(detail)}${over ? esc(t("overBudget")) : ""}</div></label>`; };
+  const ms = p.missions.map(planMission);
+  const title = LANG === "ko" ? p.title : (ms.length && (p.title === p.missions[0].title || /[가-힣]/.test(p.title || "")) ? ms[0].title : p.title);
+  $("#planBox").innerHTML = `<h3 style="margin-top:0">${esc(title || t("plan.title"))}</h3>
+    ${p.domain || p.robot_use ? `<div class="note">${esc(p.domain)} · ${esc(p.robot_use)}</div>` : ""}
+    <div class="tags"><span>${esc(ages)}</span><span>${esc(t("gen." + p.eligibility.gender) === "gen." + p.eligibility.gender ? "" : t("gen." + p.eligibility.gender))}</span>${sens.map(x => `<span>${esc(x)}</span>`).join("")}
+      ${c.rarity !== "normal" ? `<span style="background:var(--accent-soft)">${esc(t("rare." + c.rarity))}${c.rare_reason ? " · " + esc(c.rare_reason.replace(/60대 이상|19~29세|30대|40대|50대/g, ageLabel)) : ""} ×${c.rarity_mult}</span>` : ""}</div>
+    ${ms.map(m => `<div class="mis"><b>${esc(m.title)}</b>${m.existing || m.id ? ` <span class="note">${esc(t("stockMission"))}</span>` : ""}<div class="note">${esc(m.guide)}</div>
+      ${m.primitives.length ? `<div class="prims">${m.primitives.map(esc).join(" → ")}</div>` : ""}
+      ${(m.situations || []).length && (LANG === "ko" || !m.situations.some(hasHangul)) ? `<div class="tags">${m.situations.slice(0, 6).map(x => `<span>${esc(x)}</span>`).join("")}</div>` : ""}</div>`).join("")
+      || `<div class="note">${esc(t("noMatch"))}</div>`}
+    <h3 style="margin:16px 0 6px">${esc(t("how"))}</h3>
+    ${c.budget_krw ? `<div class="note">${esc(t("budget", {b: won(c.budget_krw)}))}</div>` : ""}
+    <div class="note" style="margin-bottom:6px">${c.why && ("why." + c.why) in I18N.ko ? esc(t("why." + c.why)) : ""}</div>
+    ${["existing", "mix", "new"].map(card).join("")}
+    <div class="note" style="margin-top:6px">${esc(t("newReward", {p: won(c.reward_per_hour)}))}</div>
+    ${p.missions.length ? `<div style="display:grid;gap:8px;margin-top:14px"><input id="rqOrg" placeholder="${esc(t("ph.org"))}" value="${esc(($("#rqOrg") || {}).value || "")}"><input id="rqEmail" type="email" placeholder="${esc(t("ph.email"))}" value="${esc(($("#rqEmail") || {}).value || "")}">
+      <button class="btn" id="rqBtn">${esc(PICK === "existing" ? t("rq.order") : t("rq.open"))}</button><div id="rqBox"></div></div>`
+      : `<div class="note" style="margin-top:12px">${esc(t("rq.more"))}</div>`}`;
+  document.querySelectorAll('input[name="src"]').forEach(x => x.onchange = () => { PICK = x.value; showPlan(); });
   if ($("#rqBtn")) $("#rqBtn").onclick = submitRequest;
+  if (REQ) showRequest(REQ.j, REQ.pre, true);
 }
 async function submitRequest() {
-  const r = await fetch("/api/market/request", {method: "POST", headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({plan: PLAN, org: $("#rqOrg").value, email: $("#rqEmail").value, messages: CHAT})});
-  const j = await r.json();
-  if (!r.ok) { $("#rqBox").innerHTML = `<div class="note" style="color:var(--primary-dark)">${esc(j.detail)}</div>`; return; }
-  localStorage.setItem("dc_request", j.id); showRequest(j);
+  const o = CHOICE.options[PICK], org = $("#rqOrg").value, email = $("#rqEmail").value, out = [];
+  const bad = j => { $("#rqBox").innerHTML = `<div class="note" style="color:var(--primary-dark)">${esc(j.detail || t("chat.retry"))}</div>`; };
+  if (PICK === "existing" || PICK === "mix") {
+    const ex = PICK === "mix" ? o.existing : o;
+    const r = await post("/api/market/orders", {org, email, missions: (CHOICE.options.existing || {}).missions || [], sensors: ex.sensors, hours: ex.hours,
+      note: "말로 의뢰 · " + (PLAN.title || "")});
+    const j = await r.json(); if (!r.ok) return bad(j);
+    try { localStorage.setItem("dc_order", j.id); } catch (e) {}
+    poll(j.id); out.push(esc(t("rq.ordered", {id: j.id, h: hrs(ex.hours), total: won(j.quote.total)})));
+  }
+  if (PICK === "new" || PICK === "mix") {
+    const nw = PICK === "mix" ? o.new : o;
+    const r = await post("/api/market/request", {plan: {...PLAN, hours: nw.hours}, org, email, messages: CHAT});
+    const j = await r.json(); if (!r.ok) return bad(j);
+    try { localStorage.setItem("dc_request", j.id); } catch (e) {}
+    showRequest(j, out); return;
+  }
+  $("#rqBox").innerHTML = `<div class="card" style="background:var(--bg)">${out.join("<br>")}</div>`;
 }
-function showRequest(j) {
-  $("#rqBox").innerHTML = `<div class="card" style="background:var(--bg)"><b>의뢰 ${esc(j.id)} · 미션이 앱에 열렸어요</b>
-    ${j.missions.map(m => `<div class="note" style="margin-top:6px">${esc(m.title)} — ${hrs(m.collected_hours)} / ${hrs(m.target_hours)} · 녹화 ${m.recordings}편</div>`).join("")}
-    <div class="note" style="margin-top:6px">조건에 맞는 사람에게만 보여요. 모이는 대로 카탈로그에 올라가고, 계약 뒤 주문으로 받을 수 있어요.</div></div>`;
-  setTimeout(async () => { const r = await fetch(`/api/market/request/${encodeURIComponent(j.id)}`); if (r.ok && $("#rqBox")) showRequest(await r.json()); }, 8000);
+function showRequest(j, pre, redraw) {
+  REQ = {j, pre};
+  if (!$("#rqBox")) return;
+  $("#rqBox").innerHTML = `<div class="card" style="background:var(--bg)">${(pre || []).map(x => `<div class="note">${x}</div>`).join("")}<b>${esc(t("rq.opened", {id: j.id}))}</b>
+    ${j.missions.map(m => `<div class="note" style="margin-top:6px">${esc(t("rq.progress", {title: planMission(m).title, a: hrs(m.collected_hours), b: hrs(m.target_hours), n: m.recordings}))}</div>`).join("")}
+    <div class="note" style="margin-top:6px">${esc(t("rq.note"))}</div></div>`;
+  if (redraw) return;
+  setTimeout(async () => { const r = await fetch(`/api/market/request/${encodeURIComponent(j.id)}`); if (r.ok && $("#rqBox")) showRequest(await r.json(), pre); }, 8000);
 }
+
+// ---------- 언어 고르기 ----------
+$("#langSel").innerHTML = LANGS.map(([k, name]) => `<option value="${k}" ${k === LANG ? "selected" : ""}>${name}</option>`).join("");
+$("#langSel").onchange = async e => {
+  LANG = e.target.value;
+  try { localStorage.setItem("dc_lang", LANG); } catch (err) {}
+  applyStatic(); renderOrder();
+  await load();                          // 카탈로그를 새 언어로 받은 뒤 의뢰 카드도 다시 (보관 미션 제목·안내가 카탈로그에서 옴)
+  showPlan();
+};
+applyStatic();
 load();
 </script>
 </body>

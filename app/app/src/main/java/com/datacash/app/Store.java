@@ -19,6 +19,10 @@ final class Store {
         return c.getSharedPreferences("datacash", Context.MODE_PRIVATE);
     }
 
+    /** 화면 언어 (en · ko · ja · zh-CN · es, 기본 en). */
+    static String lang(Context c) { return p(c).getString("lang", "en"); }
+    static void setLang(Context c, String code) { p(c).edit().putString("lang", code).commit(); }
+
     static String server(Context c) { return p(c).getString("server", BuildConfig.DEFAULT_SERVER); }
     static String token(Context c) { String t = p(c).getString("token", ""); return t.isEmpty() ? BuildConfig.DEFAULT_TOKEN : t; }
     /** 이 폰의 고정 id (쥐는 힘 보정을 사람·폰마다 저장하는 열쇠). */

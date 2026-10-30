@@ -27,8 +27,8 @@ import java.util.List;
  * 앞 카메라가 기본, 오른쪽 버튼으로 뒤 카메라 (가족 얼굴을 찍어 줄 때) — 바꿔도 찍은 장은 남는다.
  * 등록된 '본인' 얼굴로 녹화 1단계에서 본인을 확인하고, 녹화 속 참여자를 알아본다. 동의한 가족은 가리지 않고 가상 얼굴로.
  */
-public class FaceActivity extends Activity implements TextureView.SurfaceTextureListener {
-    private static final String[] PROMPTS = {"정면을 봐 주세요", "고개를 왼쪽으로 살짝 돌려 주세요", "고개를 오른쪽으로 살짝 돌려 주세요"};
+public class FaceActivity extends BaseActivity implements TextureView.SurfaceTextureListener {
+    private String[] PROMPTS;      // 정면 · 왼쪽 · 오른쪽 (R.array.face_prompts)
     private final List<byte[]> shots = new ArrayList<>();
     private String pid, name;
     private TextureView preview;
@@ -44,6 +44,7 @@ public class FaceActivity extends Activity implements TextureView.SurfaceTexture
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
+        PROMPTS = getResources().getStringArray(R.array.face_prompts);
         pid = getIntent().getStringExtra("pid");
         name = getIntent().getStringExtra("name");
         FrameLayout root = new FrameLayout(this);
@@ -59,11 +60,11 @@ public class FaceActivity extends Activity implements TextureView.SurfaceTexture
         top.setOrientation(LinearLayout.VERTICAL);
         top.setBackground(Ui.round(0x99000000, Ui.dp(this, 18)));
         top.setPadding(Ui.dp(this, 16), Ui.dp(this, 14), Ui.dp(this, 16), Ui.dp(this, 14));
-        top.addView(Ui.text(this, (name == null ? "" : name) + " 님 얼굴 등록", 17, Color.WHITE, true));
+        top.addView(Ui.text(this, getString(R.string.face_enroll_title, name == null ? "" : name), 17, Color.WHITE, true));
         step = Ui.text(this, "", 13, Ui.ACCENT, true);
         step.setPadding(0, Ui.dp(this, 8), 0, 0);
         top.addView(step);
-        TextView note = Ui.text(this, "사진은 얼굴 특징값을 만든 뒤 바로 지워져요", 12, 0xCCFFFFFF, false);
+        TextView note = Ui.text(this, getString(R.string.photo_deleted), 12, 0xCCFFFFFF, false);
         note.setPadding(0, Ui.dp(this, 6), 0, 0);
         top.addView(note);
         FrameLayout.LayoutParams tp = new FrameLayout.LayoutParams(-1, -2, Gravity.TOP);
@@ -89,13 +90,13 @@ public class FaceActivity extends Activity implements TextureView.SurfaceTexture
         bar.setBackgroundColor(0xE6000000);
         RecordRing shoot = new RecordRing(this);
         shoot.setCameraStyle();
-        shoot.setContentDescription("찍기");
+        shoot.setContentDescription(getString(R.string.take_photo));
         shoot.setOnClickListener(v -> capture());
         bar.addView(shoot, new FrameLayout.LayoutParams(Ui.dp(this, 74), Ui.dp(this, 74), Gravity.CENTER));
         FrameLayout sw = new FrameLayout(this);
         sw.setBackground(Ui.pressable(0x55FFFFFF, Ui.dp(this, 26)));
         sw.addView(new Icon(this, Icon.SWITCH, Color.WHITE), new FrameLayout.LayoutParams(Ui.dp(this, 26), Ui.dp(this, 26), Gravity.CENTER));
-        sw.setContentDescription("앞뒤 카메라 바꾸기");
+        sw.setContentDescription(getString(R.string.switch_camera));
         sw.setOnClickListener(v -> { front = !front; reopen(); paint(); });
         FrameLayout.LayoutParams sp = new FrameLayout.LayoutParams(Ui.dp(this, 52), Ui.dp(this, 52), Gravity.END | Gravity.CENTER_VERTICAL);
         sp.rightMargin = Ui.dp(this, 36);
@@ -130,7 +131,7 @@ public class FaceActivity extends Activity implements TextureView.SurfaceTexture
         camera = new CameraRecorder(this);
         camera.open(st, new CameraRecorder.Ready() {
             @Override public void ok() { runOnUiThread(() -> { Ui.applyFit(FaceActivity.this, preview); startLoop(); }); }
-            @Override public void fail(String why) { runOnUiThread(() -> msg.setText("카메라: " + why)); }
+            @Override public void fail(String why) { runOnUiThread(() -> msg.setText(getString(R.string.camera_fail, why))); }
         }, front);
     }
 
@@ -158,13 +159,13 @@ public class FaceActivity extends Activity implements TextureView.SurfaceTexture
         if (isFinishing() || busy) { looping = false; return; }
         streak = ok ? streak + 1 : 0;
         oval.setOk(ok);
-        if (ok) msg.setText(streak >= 3 ? "좋아요, 그대로 잠깐만요" : "얼굴이 보여요");
+        if (ok) msg.setText(streak >= 3 ? R.string.same_face_ok : R.string.face_visible);
         else paintHint();
         if (streak >= 5) {
             streak = 0;
             capture();
             if (shots.size() > 0 && shots.size() < PROMPTS.length) {
-                prompt.setText("✓ 좋아요 · 다음: " + PROMPTS[shots.size()]);
+                prompt.setText(getString(R.string.good_next, PROMPTS[shots.size()]));
                 ui.postDelayed(() -> { oval.setOk(false); paint(); faceLoop(); }, 1200);
                 return;
             }
@@ -173,7 +174,7 @@ public class FaceActivity extends Activity implements TextureView.SurfaceTexture
     }
 
     private void paintHint() {
-        msg.setText("얼굴이 동그라미 안에 오게" + (front ? "" : "\n(뒤 카메라 · 가족 얼굴을 찍어 주세요)"));
+        msg.setText(getString(R.string.face_in_circle) + (front ? "" : "\n" + getString(R.string.back_camera_hint)));
     }
 
     private void reopen() {
@@ -199,7 +200,7 @@ public class FaceActivity extends Activity implements TextureView.SurfaceTexture
 
     private void upload() {
         busy = true;
-        prompt.setText("올리는 중…");
+        prompt.setText(R.string.uploading_ellipsis);
         msg.setText("");
         new Thread(() -> {
             try {
@@ -211,21 +212,21 @@ public class FaceActivity extends Activity implements TextureView.SurfaceTexture
                     busy = false;
                     oval.setOk(false);
                     if ("enrolled".equals(r.optString("face"))) {
-                        Toast.makeText(this, "얼굴을 등록했어요", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, R.string.face_registered_toast, Toast.LENGTH_SHORT).show();
                         setResult(RESULT_OK);
                         finish();
                     } else {
                         paint();
-                        prompt.setText(r.optString("face_error", "다시 찍어 주세요"));
-                        msg.setText("정면부터 다시 세 장을 찍어 주세요");
+                        prompt.setText(r.optString("face_error", getString(R.string.retake)));
+                        msg.setText(R.string.retake_three);
                         startLoop();
                     }
                 });
             } catch (Exception e) {
                 runOnUiThread(() -> {
                     busy = false;
-                    prompt.setText("올리지 못했어요 · " + Uploader.reason(e));
-                    msg.setText("찍기 버튼을 누르면 다시 올려요");
+                    prompt.setText(getString(R.string.upload_failed_reason, Uploader.reason(e)));
+                    msg.setText(R.string.tap_to_retry);
                     looping = false;
                 });
             }

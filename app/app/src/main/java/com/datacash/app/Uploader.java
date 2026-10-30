@@ -22,10 +22,17 @@ final class Uploader {
 
     interface Progress { void on(String step, int pct); }
 
+    /** 서버가 오류 코드로 답했을 때 (네트워크 실패와 구별). 글은 "HTTP 코드: 본문". */
+    static final class HttpError extends Exception {
+        final int code;
+        HttpError(int code, String body) { super("HTTP " + code + ": " + body); this.code = code; }
+    }
+
     private static HttpURLConnection open(Context c, String method, String path) throws Exception {
         HttpURLConnection h = (HttpURLConnection) new URL(Store.server(c) + path).openConnection();
         h.setRequestMethod(method);
         h.setRequestProperty("X-DC-Token", Store.token(c));
+        h.setRequestProperty("X-DC-Lang", Store.lang(c));        // 서버가 미션 글·안내를 이 언어로
         h.setConnectTimeout(8000);
         h.setReadTimeout(60000);
         return h;
@@ -35,7 +42,7 @@ final class Uploader {
         int code = h.getResponseCode();
         InputStream in = code < 400 ? h.getInputStream() : h.getErrorStream();
         String s = in == null ? "{}" : new String(in.readAllBytes(), "UTF-8");
-        if (code >= 400) throw new Exception("서버 " + code + ": " + s);
+        if (code >= 400) throw new HttpError(code, s);
         return s.trim().startsWith("[") ? new JSONObject().put("list", new JSONArray(s)) : new JSONObject(s);
     }
 
@@ -91,7 +98,7 @@ final class Uploader {
                 while ((k = in.read(b)) > 0) {
                     o.write(b, 0, k);
                     done += k;
-                    p.on("올리는 중", (int) (100 * done / Math.max(1, total)));
+                    p.on(c.getString(R.string.state_uploading), (int) (100 * done / Math.max(1, total)));
                 }
             }
             json(h);
@@ -153,16 +160,16 @@ final class Uploader {
         Files.write(f, o.toString(2));
     }
 
-    static String stateKo(String s) {
+    static String stateLabel(Context c, String s) {
         switch (s) {
-            case "uploading": return "올리는 중";
-            case "queued": case "processing": return "처리 중";
-            case "done": return "승인";
-            case "rejected": return "반려";
-            case "failed": return "실패";
-            case "upload_failed": return "다시 올리기";
-            case "collected": return "보관됨";
-            default: return "저장됨";
+            case "uploading": return c.getString(R.string.state_uploading);
+            case "queued": case "processing": return c.getString(R.string.state_processing);
+            case "done": return c.getString(R.string.state_done);
+            case "rejected": return c.getString(R.string.state_rejected);
+            case "failed": return c.getString(R.string.state_failed);
+            case "upload_failed": return c.getString(R.string.upload_again);
+            case "collected": return c.getString(R.string.state_collected);
+            default: return c.getString(R.string.state_saved);
         }
     }
 }

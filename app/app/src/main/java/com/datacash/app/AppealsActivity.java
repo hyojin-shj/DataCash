@@ -19,16 +19,17 @@ import java.util.Locale;
  * 이의 신청 현황: 신청마다 세 단계 (자동 확인 → 검토자 확인 → 결과)와 단계별 기록.
  * 인정된 추가 보상은 여기서 한 번만 적립한다. 신청은 내 녹화 기록에서 한다 (ask).
  */
-public class AppealsActivity extends Activity {
-    static final String[][] REASONS = {{"reward", "보상이 적어요"}, {"failed", "처리가 실패했어요"}, {"privacy", "가려야 할 게 보여요"},
-            {"label", "라벨·단계가 틀려요"}, {"other", "기타"}};
+public class AppealsActivity extends BaseActivity {
+    /** 사유: 서버 값 · 보이는 이름. */
+    static final String[] REASON_KEYS = {"reward", "failed", "privacy", "label", "other"};
+    static final int[] REASON_NAMES = {R.string.reason_reward, R.string.reason_failed, R.string.reason_privacy, R.string.reason_label, R.string.reason_other};
     private LinearLayout list;
 
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
-        LinearLayout body = Ui.page(this, "이의 신청 현황", true);
-        TextView intro = Ui.text(this, "먼저 자동으로 확인하고, 자동으로 끝나지 않으면 검토자가 확인해요. '가려야 할 게 보여요'는 신청하는 즉시 판매에서 빠져요. 하루 5번까지 신청할 수 있어요.",
+        LinearLayout body = Ui.page(this, getString(R.string.menu_appeals), true);
+        TextView intro = Ui.text(this, getString(R.string.appeals_intro),
                 13, Ui.SUB, false);
         intro.setPadding(Ui.dp(this, 4), 0, Ui.dp(this, 4), Ui.dp(this, 14));
         body.addView(intro);
@@ -70,7 +71,7 @@ public class AppealsActivity extends Activity {
                 runOnUiThread(() -> {
                     list.removeAllViews();
                     LinearLayout c = Ui.listCard(this);
-                    c.addView(Ui.row(this, Icon.CLOUD, Ui.SUB, Ui.FIELD, "서버에 연결 안 됨", Uploader.reason(e), null, null));
+                    c.addView(Ui.row(this, Icon.CLOUD, Ui.SUB, Ui.FIELD, getString(R.string.server_offline), Uploader.reason(e), null, null));
                     Ui.add(this, list, c);
                 });
             }
@@ -89,8 +90,8 @@ public class AppealsActivity extends Activity {
         }
         LinearLayout stats = Ui.card(this);
         stats.setOrientation(LinearLayout.HORIZONTAL);
-        String[][] cells = {{"진행 중", String.valueOf(open)}, {"인정", String.valueOf(ok)}, {"기각", String.valueOf(no)},
-                {"되찾은 보상", String.format(Locale.KOREA, "%,d원", won)}};
+        String[][] cells = {{getString(R.string.in_progress), String.valueOf(open)}, {getString(R.string.accepted), String.valueOf(ok)},
+                {getString(R.string.dismissed), String.valueOf(no)}, {getString(R.string.recovered), Ui.won(this, won)}};
         for (String[] c : cells) {
             LinearLayout cell = new LinearLayout(this);
             cell.setOrientation(LinearLayout.VERTICAL);
@@ -106,20 +107,20 @@ public class AppealsActivity extends Activity {
         for (java.io.File d : Store.sessions(this)) {
             JSONObject st = Uploader.localState(d);
             if (!st.optString("state").equals("rejected") || appealed.contains(d.getName())) continue;
-            TextView b = Ui.chip(this, "이의 신청", Ui.PRIMARY_DARK, Ui.PRIMARY_SOFT);
+            TextView b = Ui.chip(this, getString(R.string.appeal), Ui.PRIMARY_DARK, Ui.PRIMARY_SOFT);
             b.setOnClickListener(v -> ask(this, d.getName(), this::load));
-            can.addView(Ui.row(this, Icon.FILM, Ui.SUB, Ui.FIELD, st.optString("title", "녹화"), "반려 · " + st.optString("error", ""), b, null));
+            can.addView(Ui.row(this, Icon.FILM, Ui.SUB, Ui.FIELD, st.optString("title", getString(R.string.recording)), getString(R.string.rejected_line, st.optString("error", "")), b, null));
         }
         java.util.List<JSONObject> going = new java.util.ArrayList<>(), done = new java.util.ArrayList<>();
         for (int i = 0; i < as.length(); i++) {
             JSONObject a = as.optJSONObject(i);
             (a.optString("state").equals("accepted") || a.optString("state").equals("rejected") ? done : going).add(a);
         }
-        section("진행 중", going, "진행 중인 이의 신청이 없어요");
-        section("결과", done, "아직 결과가 없어요");
-        list.addView(Ui.sectionTitle(this, "이의 신청할 수 있는 녹화"));
-        if (can.getChildCount() == 0) can.addView(Ui.row(this, Icon.LIST, Ui.SUB, Ui.FIELD, "반려된 녹화가 없어요",
-                "승인된 녹화도 내 녹화 기록에서 신청할 수 있어요", null, null));
+        section(getString(R.string.in_progress), going, getString(R.string.no_in_progress));
+        section(getString(R.string.results), done, getString(R.string.no_results));
+        list.addView(Ui.sectionTitle(this, getString(R.string.appealable)));
+        if (can.getChildCount() == 0) can.addView(Ui.row(this, Icon.LIST, Ui.SUB, Ui.FIELD, getString(R.string.no_rejected),
+                getString(R.string.no_rejected_desc), null, null));
         Ui.add(this, list, can);
     }
 
@@ -140,11 +141,11 @@ public class AppealsActivity extends Activity {
             top.addView(Ui.text(this, a.optString("reason_ko"), 17, Ui.INK, true), Ui.weight());
             int fg = state.equals("accepted") ? Ui.OK : state.equals("rejected") ? Ui.PRIMARY_DARK : Ui.ACCENT_INK;
             int bg = state.equals("accepted") ? Ui.OK_SOFT : state.equals("rejected") ? Ui.PRIMARY_SOFT : Ui.ACCENT_SOFT;
-            String label = state.equals("accepted") ? (extra > 0 ? String.format(Locale.KOREA, "인정 +%,d원", extra) : "인정")
-                    : state.equals("rejected") ? "인정 안 됨" : state.equals("reprocessing") ? "다시 처리 중" : "검토 중";
+            String label = state.equals("accepted") ? (extra > 0 ? getString(R.string.accepted_plus, extra) : getString(R.string.accepted))
+                    : getString(state.equals("rejected") ? R.string.not_accepted : state.equals("reprocessing") ? R.string.reprocessing : R.string.reviewing);
             top.addView(Ui.chip(this, label, fg, bg));
             c.addView(top);
-            TextView sid = Ui.text(this, "녹화 " + a.optString("sid") + (a.optString("detail").isEmpty() ? "" : " · " + a.optString("detail")),
+            TextView sid = Ui.text(this, getString(R.string.recording_sid, a.optString("sid")) + (a.optString("detail").isEmpty() ? "" : " · " + a.optString("detail")),
                     12, Ui.SUB, false);
             sid.setPadding(0, Ui.dp(this, 6), 0, Ui.dp(this, 12));
             c.addView(sid);
@@ -165,7 +166,7 @@ public class AppealsActivity extends Activity {
     private View stages(String state) {
         int reached = state.equals("accepted") || state.equals("rejected") ? 3 : state.equals("review") ? 2 : 1;
         LinearLayout row = new LinearLayout(this);
-        String[] names = {"자동 확인", "검토자 확인", "결과"};
+        String[] names = {getString(R.string.stage_auto), getString(R.string.stage_reviewer), getString(R.string.stage_result)};
         for (int i = 0; i < 3; i++) {
             boolean on = i < reached;
             TextView t = Ui.text(this, names[i], 12, on ? Ui.PRIMARY_DARK : Ui.LINE_DARK, true);
@@ -182,15 +183,16 @@ public class AppealsActivity extends Activity {
         LinearLayout box = new LinearLayout(a);
         box.setOrientation(LinearLayout.VERTICAL);
         box.setPadding(Ui.dp(a, 20), Ui.dp(a, 8), Ui.dp(a, 20), 0);
-        final String[] pick = {REASONS[0][0]};
+        final String[] pick = {REASON_KEYS[0]};
         LinearLayout chips = new LinearLayout(a);
         chips.setOrientation(LinearLayout.VERTICAL);
-        for (String[] r : REASONS) {
-            TextView c = Ui.text(a, r[1], 15, Ui.INK, false);
-            c.setTag(r[0]);
+        for (int k = 0; k < REASON_KEYS.length; k++) {
+            String key = REASON_KEYS[k];
+            TextView c = Ui.text(a, a.getString(REASON_NAMES[k]), 15, Ui.INK, false);
+            c.setTag(key);
             c.setPadding(Ui.dp(a, 14), Ui.dp(a, 11), Ui.dp(a, 14), Ui.dp(a, 11));
             c.setOnClickListener(v -> {
-                pick[0] = r[0];
+                pick[0] = key;
                 for (int i = 0; i < chips.getChildCount(); i++) {
                     TextView x = (TextView) chips.getChildAt(i);
                     boolean on = x.getTag().equals(pick[0]);
@@ -202,10 +204,10 @@ public class AppealsActivity extends Activity {
         }
         chips.getChildAt(0).performClick();
         box.addView(chips);
-        EditText detail = Ui.input(a, "자세히 (선택)", "", 0);
+        EditText detail = Ui.input(a, a.getString(R.string.detail_hint), "", 0);
         box.addView(detail, Ui.margins(a, -1, -2, 0, 0, 8, 0, 0));
-        new AlertDialog.Builder(a).setTitle("이의 신청").setView(box).setNegativeButton("취소", null)
-                .setPositiveButton("신청", (d, w) -> new Thread(() -> {
+        new AlertDialog.Builder(a).setTitle(R.string.appeal).setView(box).setNegativeButton(R.string.cancel, null)
+                .setPositiveButton(R.string.submit, (d, w) -> new Thread(() -> {
                     try {
                         JSONObject r = Uploader.callJson(a, "POST", "/api/sessions/" + sid + "/appeal",
                                 new JSONObject().put("reason", pick[0]).put("detail", detail.getText().toString()));

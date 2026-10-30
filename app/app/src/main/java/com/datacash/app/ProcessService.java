@@ -43,18 +43,23 @@ public class ProcessService extends Service {
     }
 
     @Override
+    protected void attachBaseContext(Context base) {
+        super.attachBaseContext(Lang.wrap(base));       // 알림도 고른 언어로
+    }
+
+    @Override
     public void onCreate() {
         super.onCreate();
         NotificationManager nm = getSystemService(NotificationManager.class);
-        nm.createNotificationChannel(new NotificationChannel(CH_WORK, "녹화 처리", NotificationManager.IMPORTANCE_LOW));
-        nm.createNotificationChannel(new NotificationChannel(CH_REWARD, "보상 적립", NotificationManager.IMPORTANCE_HIGH));
+        nm.createNotificationChannel(new NotificationChannel(CH_WORK, getString(R.string.ch_work), NotificationManager.IMPORTANCE_LOW));
+        nm.createNotificationChannel(new NotificationChannel(CH_REWARD, getString(R.string.ch_reward), NotificationManager.IMPORTANCE_HIGH));
         lock = ((PowerManager) getSystemService(POWER_SERVICE)).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "datacash:process");
         lock.acquire(2 * 60 * 60 * 1000L);
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Notification n = note(CH_WORK, "녹화를 처리하고 있어요", "앱을 닫아도 계속돼요", true);
+        Notification n = note(CH_WORK, getString(R.string.n_work_title), getString(R.string.n_work_text), true);
         if (Build.VERSION.SDK_INT >= 29) startForeground(ID_WORK, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);
         else startForeground(ID_WORK, n);
         String path = intent == null ? null : intent.getStringExtra("dir");
@@ -82,24 +87,24 @@ public class ProcessService extends Service {
     }
 
     private boolean upload(File dir) {
-        String title = Uploader.localState(dir).optString("title", "녹화");
+        String title = Uploader.localState(dir).optString("title", getString(R.string.recording));
         try {
             if (!Uploader.localState(dir).has("state") || "upload_failed".equals(Uploader.localState(dir).optString("state"))
                     || "saved".equals(Uploader.localState(dir).optString("state"))
                     || "uploading".equals(Uploader.localState(dir).optString("state"))) {
                 Discover.ensure(this);
-                Uploader.upload(this, dir, (step, pct) -> progress(title + " 녹화 · 올리는 중 " + pct + "%", "서버에서 얼굴을 바꾸고 가린 뒤 원본은 바로 지워요"));
+                Uploader.upload(this, dir, (step, pct) -> progress(getString(R.string.n_uploading, title, pct), getString(R.string.n_uploading_text)));
             }
             return true;
         } catch (Exception e) {
             Uploader.save(dir, "state", "upload_failed");
-            note(CH_REWARD, title + " 녹화를 올리지 못했어요", "내 녹화 기록에서 '다시 올리기'를 눌러 주세요", false, dir.getName().hashCode());
+            note(CH_REWARD, getString(R.string.n_upload_failed, title), getString(R.string.n_upload_failed_text), false, dir.getName().hashCode());
             return false;
         }
     }
 
     private void await(File dir) {
-        String title = Uploader.localState(dir).optString("title", "녹화");
+        String title = Uploader.localState(dir).optString("title", getString(R.string.recording));
         try {
             long t0 = System.currentTimeMillis();
             while (System.currentTimeMillis() - t0 < 30 * 60_000L) {
@@ -107,7 +112,7 @@ public class ProcessService extends Service {
                 String s = st.optString("state");
                 boolean paid = st.optJSONObject("payout") != null;
                 if (s.equals("done") && paid || s.equals("rejected") || s.equals("failed") || s.equals("collected")) { result(dir, title, st); return; }
-                progress(title + " 녹화 · 검수 중", "가리기 · 라벨 · 4감 맞추기 — 끝나면 알려 드릴게요");
+                progress(getString(R.string.n_reviewing, title), getString(R.string.n_reviewing_text));
                 Thread.sleep(20_000);
             }
         } catch (Exception ignored) {
@@ -128,12 +133,12 @@ public class ProcessService extends Service {
             JSONObject py = st.optJSONObject("payout");
             int won = py != null ? py.optInt("amount") : st.optInt("reward");
             boolean sent = py != null && py.optString("status").equals("sent");
-            note(CH_REWARD, String.format(Locale.KOREA, "띠링! %s 미션 %,d원 적립", title, won),
-                    sent ? py.optString("label") + " 으로 입금됐어요" : "계좌를 연결하면 바로 입금돼요", false, dir.getName().hashCode());
+            note(CH_REWARD, getString(R.string.n_paid, title, won),
+                    sent ? getString(R.string.paid_to, py.optString("label")) : getString(R.string.link_to_get_paid), false, dir.getName().hashCode());
         } else if (s.equals("collected")) {
-            note(CH_REWARD, title + " 녹화를 보관했어요", "검수·보상은 나중에 한꺼번에 해요", false, dir.getName().hashCode());
+            note(CH_REWARD, getString(R.string.n_collected, title), getString(R.string.n_collected_text), false, dir.getName().hashCode());
         } else if (s.equals("rejected")) {
-            note(CH_REWARD, title + " 미션 검수 결과", st.optString("error", "반려됐어요") + " · 이의 신청할 수 있어요", false, dir.getName().hashCode());
+            note(CH_REWARD, getString(R.string.n_rejected, title), getString(R.string.n_rejected_text, st.optString("error", getString(R.string.rejected_default))), false, dir.getName().hashCode());
         }
     }
 

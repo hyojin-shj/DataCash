@@ -68,6 +68,35 @@ from ..payout import Payouts
 from ..requests import Requests, eligible
 from ..people import People, embed_jpeg
 
+LANGS = ("en", "ko", "ja", "zh-CN", "es")
+
+
+def norm_lang(lang: Optional[str]) -> str:
+    """'ko-KR'·'zh'·'zh-Hans'·'ja_JP' → 지원 언어 코드. 모르면 ''(한국어 원문 그대로)."""
+    s = (lang or "").strip().replace("_", "-").lower()
+    if not s:
+        return ""
+    if s.startswith("zh"):
+        return "zh-CN"
+    head = s.split("-")[0]
+    return head if head in LANGS else ""
+
+
+def localize_mission(m: dict, lang: Optional[str]) -> dict:
+    """미션의 title·guide·purpose 를 lang 으로 바꾼 사본. 번역이 없으면 en → title_en, 그것도 없으면 한국어 원문."""
+    lang = norm_lang(lang)
+    if not lang or lang == "ko":
+        return m
+    tr = (m.get("i18n") or {}).get(lang) or {}
+    out = dict(m)
+    for k in ("title", "guide", "purpose"):
+        if tr.get(k):
+            out[k] = tr[k]
+        elif lang == "en" and k == "title" and m.get("title_en"):
+            out[k] = m["title_en"]
+    return out
+
+
 FILES = {"meta.json", "video.mp4", "video_frames.csv", "audio.wav", "audio.json", "phone_imu.csv", "beacon.csv",
          "watch_imu.csv", "watch_audio.wav", "watch_audio.json", "watch_vib.csv", "watch_hr.csv", "watch_ibi.csv", "watch_skin.csv",
          "clock_sync.csv", "phone_server_sync.csv", "watch_server_sync.csv", "watch_meta.json"}
@@ -237,8 +266,8 @@ class Store:
         """기본 미션 + 구매 기업 의뢰로 열린 미션."""
         return self.base_missions() + self.requests.live_missions()
 
-    def catalog(self) -> dict:
-        ms = self.all_missions()
+    def catalog(self, lang: Optional[str] = None) -> dict:
+        ms = [localize_mission(m, lang) for m in self.all_missions()]
         rows = self.accepted()
         out = []
         for m in ms:
@@ -355,6 +384,7 @@ class ChatMsg(BaseModel):
 
 class ChatIn(BaseModel):
     messages: List[ChatMsg] = Field(min_length=1, max_length=24)
+    lang: str = Field("en", pattern="^(en|ko|ja|zh-CN|es)$")
 
 
 class RequestIn(BaseModel):
@@ -415,7 +445,7 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
     # ---- 앱 ----
     @app.get("/api/missions")
     def missions(x_dc_token: Optional[str] = Header(None), x_dc_age: Optional[str] = Header(None),
-                 x_dc_gender: Optional[str] = Header(None)):
+                 x_dc_gender: Optional[str] = Header(None), x_dc_lang: Optional[str] = Header(None)):
         auth(x_dc_token)
         import urllib.parse
 
@@ -434,7 +464,7 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
                 m["collected_hours"] = round(cat.get(m["id"], {}).get("hours", {}).get("basic", 0), 3)
                 m["scarce"], m["bonus_pct"] = False, 0
         prims = json.loads((Path(__file__).parents[1] / "missions.json").read_text()).get("primitives_ko", {})
-        return {"missions": ms, "primitives_ko": prims}
+        return {"missions": [localize_mission(m, x_dc_lang) for m in ms], "primitives_ko": prims}
 
     @app.put("/api/sessions/{sid}/files/{name}")
     async def upload(sid: str, name: str, request: Request, x_dc_token: Optional[str] = Header(None)):
@@ -712,8 +742,8 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
         return FileResponse(p)
 
     @app.get("/api/market/catalog")
-    def catalog():
-        return st.catalog()
+    def catalog(lang: Optional[str] = None):
+        return st.catalog(lang)
 
     def _ds(sid: str) -> Path:
         p = root / "out" / sid / "lerobot"
@@ -809,6 +839,15 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
                 return FileResponse(o["file"], filename=Path(o["file"]).name, media_type="application/zip")
         raise HTTPException(404)
 
+    @app.post("/api/market/request/instant")
+    def request_instant(b: ChatIn):
+        """모델 없이 바로 (0.1초): 문장에서 예산·연령·센서를 읽고 보관 미션과 짝지어 기존·신규·섞기를 보여 준다."""
+        from ..requests import instant, options
+
+        cat = st.catalog()
+        plan = instant([m.model_dump() for m in b.messages], cat)
+        return {"plan": plan, "choice": options(plan, cat)}
+
     @app.post("/api/market/request/chat")
     def request_chat(b: ChatIn, request: Request):
         if not st.use_api:
@@ -826,7 +865,7 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
         from ..requests import chat
 
         try:
-            return chat([m.model_dump() for m in b.messages])
+            return chat([m.model_dump() for m in b.messages], catalog=st.catalog(), lang=b.lang)
         except Exception as e:
             raise HTTPException(502, f"의뢰를 이해하지 못했어요: {type(e).__name__}")
 

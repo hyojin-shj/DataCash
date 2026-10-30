@@ -17,37 +17,43 @@ import java.net.URL;
  * 스마트 기기 연결: 데이터 서버(주소·토큰, 저장하고 연결 확인) + 워치(갤럭시 워치에 데이터캐시 워치 앱을 켜 두면
  * 폰 녹화에 자동으로 합류 — 폰과 워치는 서버를 거쳐 시계를 맞춘다) + 쥐는 세기 맞추기.
  */
-public class DevicesActivity extends Activity {
+public class DevicesActivity extends BaseActivity {
     private TextView status;
 
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
-        LinearLayout body = Ui.page(this, "스마트 기기 연결", true);
-        TextView intro = Ui.text(this, "기기를 연결하면 영상과 손목 움직임·쥐는 힘·심박이 같은 시간축으로 맞춰진 고품질 등급이 되어 보상이 더 높아요.",
+        LinearLayout body = Ui.page(this, getString(R.string.menu_devices), true, Lang.button(this));
+        TextView intro = Ui.text(this, getString(R.string.devices_intro),
                 13, Ui.SUB, false);
         intro.setPadding(Ui.dp(this, 4), 0, Ui.dp(this, 4), Ui.dp(this, 14));
         body.addView(intro);
 
+        LinearLayout lang = Ui.listCard(this);             // 앱 언어 (머리줄 단추와 같은 창)
+        String[] langNames = getResources().getStringArray(R.array.lang_names);
+        lang.addView(Ui.row(this, Icon.LIST, Ui.VIOLET, Ui.VIOLET_SOFT, getString(R.string.lang_section), langNames[Lang.index(this)],
+                null, v -> Lang.pick(this)));
+        Ui.add(this, body, lang);
+
         LinearLayout srv = Ui.card(this);
-        srv.addView(Ui.row(this, Icon.CLOUD, Ui.PRIMARY, Ui.PRIMARY_SOFT, "데이터 서버", "녹화가 끝나면 여기로 올라가 검수돼요", null, null),
+        srv.addView(Ui.row(this, Icon.CLOUD, Ui.PRIMARY, Ui.PRIMARY_SOFT, getString(R.string.data_server), getString(R.string.data_server_desc), null, null),
                 Ui.margins(this, -1, -2, 0, -12, -12, -12, 8));
-        EditText url = Ui.input(this, "서버 주소 (예: http://192.168.0.10:8800)", Store.server(this), InputType.TYPE_TEXT_VARIATION_URI);
+        EditText url = Ui.input(this, getString(R.string.server_hint), Store.server(this), InputType.TYPE_TEXT_VARIATION_URI);
         srv.addView(url, Ui.margins(this, -1, -2, 0, 0, 0, 0, 10));
-        EditText tok = Ui.input(this, "토큰 (서버 화면에 나온 값)", Store.token(this),
+        EditText tok = Ui.input(this, getString(R.string.token_hint), Store.token(this),
                 InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
         srv.addView(tok, Ui.margins(this, -1, -2, 0, 0, 0, 0, 14));
-        srv.addView(Ui.button(this, "저장하고 연결 확인", true, v -> {
+        srv.addView(Ui.button(this, getString(R.string.save_and_check), true, v -> {
             Store.setServer(this, url.getText().toString(), tok.getText().toString());
             check();
         }));
-        srv.addView(Ui.button(this, "같은 와이파이에서 자동으로 찾기", false, v -> {
-            status.setText("서버 찾는 중…");
+        srv.addView(Ui.button(this, getString(R.string.auto_find), false, v -> {
+            status.setText(R.string.finding);
             new Thread(() -> {
                 String found = Discover.find(this);
                 runOnUiThread(() -> {
                     if (found == null) {
-                        status.setText("못 찾았어요 · 서버가 켜져 있고 같은 와이파이인지 확인해 주세요");
+                        status.setText(R.string.not_found);
                         status.setTextColor(Ui.PRIMARY_DARK);
                         return;
                     }
@@ -63,42 +69,41 @@ public class DevicesActivity extends Activity {
         Ui.add(this, body, srv);
 
         LinearLayout watch = Ui.card(this);
-        watch.addView(Ui.row(this, Icon.WATCH, Ui.ACCENT_INK, Ui.ACCENT_SOFT, "갤럭시 워치", "손목 움직임 · 능동 진동 촉각(GripSense 방식) · 심박", null, null),
+        watch.addView(Ui.row(this, Icon.WATCH, Ui.ACCENT_INK, Ui.ACCENT_SOFT, getString(R.string.galaxy_watch), getString(R.string.watch_desc), null, null),
                 Ui.margins(this, -1, -2, 0, -12, -12, -12, 8));
-        watch.addView(Ui.text(this, "1. 워치에 데이터캐시 워치 앱을 깔고 켜 두세요 (같은 서버 주소)\n"
-                + "2. 폰에서 녹화를 시작하면 워치 기록이 자동으로 같이 시작돼요\n"
-                + "3. 끝나면 워치가 알아서 올리고, 서버가 폰과 시계를 맞춰요 — 둘을 직접 이을 필요 없어요", 13, Ui.SUB, false));
-        watch.addView(Ui.button(this, "워치로 쥐는 세기 맞추기 (한 번만)", true, v -> startActivity(new Intent(this, CalibrationActivity.class))),
+        watch.addView(Ui.text(this, getString(R.string.watch_steps), 13, Ui.SUB, false));
+        watch.addView(Ui.button(this, getString(R.string.calib_watch_btn), true, v -> startActivity(new Intent(this, CalibrationActivity.class))),
                 Ui.margins(this, -1, -2, 0, 0, 16, 0, 0));
         Ui.add(this, body, watch);
 
-        body.addView(Ui.sectionTitle(this, "곧 연결할 수 있어요"));
+        body.addView(Ui.sectionTitle(this, getString(R.string.coming_soon)));
         LinearLayout soon = Ui.listCard(this);
-        soon.addView(Ui.row(this, Icon.FILM, Ui.SUB, Ui.FIELD, "홈 카메라", "고정된 각도에서 함께 찍어 3인칭 장면을 더해요", Ui.chip(this, "준비 중", Ui.SUB, Ui.FIELD), null));
-        soon.addView(Ui.row(this, Icon.SPARK, Ui.SUB, Ui.FIELD, "스마트 스피커·허브", "집 안 소리·기기 상태를 같은 시간축에", Ui.chip(this, "준비 중", Ui.SUB, Ui.FIELD), null));
+        soon.addView(Ui.row(this, Icon.FILM, Ui.SUB, Ui.FIELD, getString(R.string.home_camera), getString(R.string.home_camera_desc), Ui.chip(this, getString(R.string.preparing), Ui.SUB, Ui.FIELD), null));
+        soon.addView(Ui.row(this, Icon.SPARK, Ui.SUB, Ui.FIELD, getString(R.string.speaker_hub), getString(R.string.speaker_hub_desc), Ui.chip(this, getString(R.string.preparing), Ui.SUB, Ui.FIELD), null));
         Ui.add(this, body, soon);
         check();
     }
 
     private void check() {
-        status.setText("연결 확인 중…");
+        status.setText(R.string.checking);
         new Thread(() -> {
             String msg;
             try {
                 long a = Clock.now();
                 HttpURLConnection h = (HttpURLConnection) new URL(Store.server(this) + "/api/time").openConnection();
                 h.setRequestProperty("X-DC-Token", Store.token(this));
+                h.setRequestProperty("X-DC-Lang", Store.lang(this));
                 h.setConnectTimeout(2000);
                 h.setReadTimeout(2000);
                 int code = h.getResponseCode();
                 if (code == 200) {
                     new JSONObject(new String(h.getInputStream().readAllBytes(), "UTF-8"));
-                    msg = String.format(java.util.Locale.KOREA, "● 연결됨 · 왕복 %.0fms", (Clock.now() - a) / 1e6);
+                    msg = getString(R.string.connected_rtt, (Clock.now() - a) / 1e6);
                 } else {
-                    msg = code == 401 ? "토큰이 맞지 않아요" : "서버 응답 " + code;
+                    msg = code == 401 ? getString(R.string.token_wrong) : getString(R.string.server_code, code);
                 }
             } catch (Exception e) {
-                msg = "연결 안 됨 · 같은 와이파이인지, 주소가 맞는지 확인해 주세요";
+                msg = getString(R.string.not_connected_check);
             }
             String m = msg;
             runOnUiThread(() -> {

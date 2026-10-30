@@ -21,21 +21,21 @@ import java.util.Locale;
  * 가상 얼굴 미리보기: 판매용 영상(동의 안 한 사람·화면은 가리고, 나와 동의한 사람 얼굴은 가상 인물로 바꾼 것)에서
  * 고르게 뽑은 6장면 + 치환 결과 요약 (몇 장면을 바꿨는지, 재식별 검사). 원본 영상은 보여 주지 않는다.
  */
-public class PreviewActivity extends Activity {
+public class PreviewActivity extends BaseActivity {
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
         File dir = new File(getIntent().getStringExtra("dir"));
-        LinearLayout body = Ui.page(this, "가상 얼굴 미리보기", true);
+        LinearLayout body = Ui.page(this, getString(R.string.preview_title), true);
         JSONObject st = Uploader.localState(dir);
         LinearLayout c = Ui.card(this);
-        c.addView(Ui.text(this, st.optString("title", "녹화"), 17, Ui.INK, true));
-        TextView sum = Ui.text(this, "판매되는 영상은 이렇게 보여요. 가린 곳은 회색, 얼굴은 실존하지 않는 가상 인물이에요.", 13, Ui.SUB, false);
+        c.addView(Ui.text(this, st.optString("title", getString(R.string.recording)), 17, Ui.INK, true));
+        TextView sum = Ui.text(this, getString(R.string.preview_sum), 13, Ui.SUB, false);
         sum.setPadding(0, Ui.dp(this, 6), 0, 0);
         c.addView(sum);
         JSONObject fs = st.optJSONObject("privacy") == null ? null : st.optJSONObject("privacy").optJSONObject("face_swap");
         if (fs != null) {
-            TextView t = Ui.text(this, String.format(Locale.KOREA, "%d장면 중 %d장면 가상 얼굴 · 작은 얼굴 %d · 알아볼 수 있어 모자이크 %d · 재식별 최대 %.2f (0.30 미만이면 통과)",
+            TextView t = Ui.text(this, getString(R.string.preview_stats,
                     fs.optInt("frames"), fs.optInt("swapped"), fs.optInt("small_face_swapped"), fs.optInt("reid_blocked"), fs.optDouble("reid_max")),
                     13, Ui.INK, true);
             t.setPadding(0, Ui.dp(this, 10), 0, 0);
@@ -62,7 +62,7 @@ public class PreviewActivity extends Activity {
                     h.setRequestProperty("X-DC-Token", Store.token(this));
                     h.setRequestProperty("X-DC-Device", Store.deviceId(this));
                     if (h.getResponseCode() != 200) {
-                        if (kk == 0) runOnUiThread(() -> sum.setText("아직 처리 중이에요 · 검수가 끝나면 볼 수 있어요"));
+                        if (kk == 0) runOnUiThread(() -> sum.setText(R.string.preview_pending));
                         return;
                     }
                     try (InputStream in = h.getInputStream()) {

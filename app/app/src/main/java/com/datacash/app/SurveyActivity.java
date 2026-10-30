@@ -19,7 +19,7 @@ import java.util.List;
  * 생체 동의자에게만: 얼마나 힘들었는지 1~5 (심박·체온의 정답 라벨). 기분·피로·몸 상태는 뺐다 (점심 녹화에서 너무 많다는 의견).
  * 녹화 중 '실수 표시'는 따로 기록된다. 뒤로 가기는 건너뛰기.
  */
-public class SurveyActivity extends Activity {
+public class SurveyActivity extends BaseActivity {
     private String outcome, retries;
     private int effort;
     private boolean sent, bio;
@@ -31,21 +31,22 @@ public class SurveyActivity extends Activity {
         super.onCreate(state);
         dir = new File(getIntent().getStringExtra("dir"));
         bio = Store.bioConsent(this);
-        LinearLayout body = Ui.page(this, "미션 후 한마디", false);
+        LinearLayout body = Ui.page(this, getString(R.string.survey_title), false);
         LinearLayout c = Ui.card(this);
-        c.addView(Ui.text(this, bio ? "두 번만 누르면 끝나요. 건너뛰어도 보상은 같아요." : "한 번만 누르면 끝나요. 건너뛰어도 보상은 같아요.", 14, Ui.SUB, false));
-        pick(c, "미션은 어땠어요?", new String[][]{{"success:0", "한 번에\n끝냈어요"}, {"success:1", "다시 하고\n끝냈어요"}, {"failed:", "끝내지\n못했어요"}}, v -> {
+        c.addView(Ui.text(this, getString(bio ? R.string.survey_hint_bio : R.string.survey_hint), 14, Ui.SUB, false));
+        pick(c, getString(R.string.survey_q1), new String[][]{{"success:0", getString(R.string.survey_once)}, {"success:1", getString(R.string.survey_retry)},
+                {"failed:", getString(R.string.survey_failed)}}, v -> {
             String[] p = v.split(":", -1);
             outcome = p[0];
             retries = p[1].isEmpty() ? null : p[1];
             maybeDone();
         });
         if (bio) {
-            pick(c, "얼마나 힘들었어요?", scale(), v -> { effort = Integer.parseInt(v); maybeDone(); });
-            ends(c, "아주 쉬움", "아주 힘듦");
+            pick(c, getString(R.string.survey_q2), scale(), v -> { effort = Integer.parseInt(v); maybeDone(); });
+            ends(c, getString(R.string.survey_easy), getString(R.string.survey_hard));
         }
         Ui.add(this, body, c);
-        Ui.add(this, body, Ui.button(this, "건너뛰기", false, v -> done(true)));
+        Ui.add(this, body, Ui.button(this, getString(R.string.skip), false, v -> done(true)));
     }
 
     /** 다 고르면 잠깐(고른 것이 보이게) 뒤 저장. */
@@ -118,7 +119,7 @@ public class SurveyActivity extends Activity {
         }
         Uploader.save(dir, "state", "saved");
         ProcessService.enqueue(this, dir);          // 앱을 닫아도 올리고 검수 결과를 알려 준다
-        android.widget.Toast.makeText(this, "저장됐어요 · 검수하러 올리는 중이에요", android.widget.Toast.LENGTH_LONG).show();
+        android.widget.Toast.makeText(this, R.string.survey_saved, android.widget.Toast.LENGTH_LONG).show();
         startActivity(new Intent(this, HomeActivity.class).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP));
         finish();
     }

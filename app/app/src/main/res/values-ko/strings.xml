@@ -1,0 +1,390 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">데이터캐시</string>
+    <string name="back">뒤로</string>
+    <string name="cancel">취소</string>
+    <string name="lang_title">언어</string>
+    <string name="money">%1$,d원</string>
+    <string name="money_plus">+%1$,d원</string>
+    <string name="recording">녹화</string>
+    <string name="mission">미션</string>
+    <string name="state_uploading">올리는 중</string>
+    <string name="state_processing">처리 중</string>
+    <string name="state_done">승인</string>
+    <string name="state_rejected">반려</string>
+    <string name="state_failed">실패</string>
+    <string name="upload_again">다시 올리기</string>
+    <string name="state_collected">보관됨</string>
+    <string name="state_saved">저장됨</string>
+    <string name="level_bio">생체 등급</string>
+    <string name="level_premium">고품질 등급</string>
+    <string name="level_basic">기본 등급</string>
+    <string name="server_offline">서버에 연결 안 됨</string>
+    <string name="camera_fail">카메라: %1$s</string>
+    <string name="camera_error">카메라 오류 %1$d</string>
+    <string name="camera_preview_fail">미리보기 실패</string>
+    <string name="camera_session_fail">녹화 세션 실패</string>
+    <string name="switch_camera">앞뒤 카메라 바꾸기</string>
+    <string name="upload_fail_fmt">올리기 실패: %1$s</string>
+    <string name="progress_fmt">%1$s %2$d%%</string>
+    <string name="same_face_ok">좋아요, 그대로 잠깐만요</string>
+    <string name="ch_work">녹화 처리</string>
+    <string name="ch_reward">보상 적립</string>
+    <string name="n_work_title">녹화를 처리하고 있어요</string>
+    <string name="n_work_text">앱을 닫아도 계속돼요</string>
+    <string name="n_uploading">%1$s 녹화 · 올리는 중 %2$d%%</string>
+    <string name="n_uploading_text">서버에서 얼굴을 바꾸고 가린 뒤 원본은 바로 지워요</string>
+    <string name="n_upload_failed">%1$s 녹화를 올리지 못했어요</string>
+    <string name="n_upload_failed_text">내 녹화 기록에서 \'다시 올리기\'를 눌러 주세요</string>
+    <string name="n_reviewing">%1$s 녹화 · 검수 중</string>
+    <string name="n_reviewing_text">가리기 · 라벨 · 4감 맞추기 — 끝나면 알려 드릴게요</string>
+    <string name="n_paid">띠링! %1$s 미션 %2$,d원 적립</string>
+    <string name="paid_to">%1$s 으로 입금됐어요</string>
+    <string name="link_to_get_paid">계좌를 연결하면 바로 입금돼요</string>
+    <string name="n_collected">%1$s 녹화를 보관했어요</string>
+    <string name="n_collected_text">검수·보상은 나중에 한꺼번에 해요</string>
+    <string name="n_rejected">%1$s 미션 검수 결과</string>
+    <string name="rejected_default">반려됐어요</string>
+    <string name="n_rejected_text">%1$s · 이의 신청할 수 있어요</string>
+    <string name="paid_one">%1$s 미션 보상이 입금됐어요</string>
+    <string name="paid_many">%1$d건 미션 보상이 입금됐어요</string>
+    <string name="ding">띠링!</string>
+    <string name="received_to">%1$s 으로 받았어요</string>
+    <string name="nice">좋아요</string>
+    <string name="reward_confirmed">보상 확정 +%1$,d원</string>
+    <string name="link_account">계좌 연결하기</string>
+    <string name="later">나중에</string>
+    <string name="today_won">오늘 +%1$,d원</string>
+    <string name="today_first">오늘 첫 미션</string>
+    <string name="today_count">오늘 %1$d번 찍음</string>
+    <string name="home_sponsored">기업 의뢰 미션</string>
+    <string name="swipe_hint">옆으로 넘겨 보세요</string>
+    <string name="missions_read_fail">미션을 읽지 못했어요: %1$s</string>
+    <string name="more_features">더 많은 기능</string>
+    <string name="menu_payout">보상 받을 계좌</string>
+    <string name="menu_payout_desc">계좌를 연결하면 미션마다 바로 입금</string>
+    <string name="menu_devices">스마트 기기 연결</string>
+    <string name="menu_devices_desc">워치를 이으면 촉각·생체까지 담겨 고품질 등급</string>
+    <string name="menu_calib">쥐는 세기 맞추기</string>
+    <string name="menu_calib_desc">물병을 가볍게·평소처럼·꽉 쥐면 워치가 내 쥐는 세기를 배워요 (한 번만)</string>
+    <string name="menu_people">개인정보 동의 인원</string>
+    <string name="menu_people_desc">함께 찍히는 가족, 동의 받고 추가</string>
+    <string name="menu_history">내 녹화 기록</string>
+    <string name="menu_history_desc">검수 결과와 보상, 이의 신청</string>
+    <string name="menu_appeals">이의 신청 현황</string>
+    <string name="menu_appeals_desc">자동 확인 · 검토자 확인 · 결과</string>
+    <string name="privacy_title">내 데이터는 이렇게 지켜져요</string>
+    <string name="privacy_desc">동의하지 않은 사람·아이·화면·거울은 가리고, 나와 동의한 사람 얼굴은 실존하지 않는 가상 인물로 바꾼 뒤에만 판매돼요</string>
+    <string-array name="things">
+        <item>아이스크림 하나</item>
+        <item>아메리카노 한 잔</item>
+        <item>국밥 한 그릇</item>
+        <item>영화 한 편</item>
+        <item>치킨 한 마리</item>
+        <item>한 달 휴대폰 요금</item>
+        <item>운동화 한 켤레</item>
+        <item>무선 이어폰</item>
+        <item>제주도 여행</item>
+    </string-array>
+    <string name="earned_like">%1$s 값을 벌었어요!</string>
+    <string name="earned_first">첫 미션이면 아이스크림 하나부터!</string>
+    <string name="earned_next">미션 %1$d개 더 하면 %2$s!</string>
+    <string name="earned_title">모은 데이터 보상</string>
+    <string name="today_badge" formatted="false">오늘의 보너스 미션 · 보상 +50%</string>
+    <string name="start_recording">녹화 시작</string>
+    <string name="reward_breakdown">(기본 %1$,d + 보너스 %2$,d · 1분 기준)</string>
+    <string name="tap_next">누르면 다음 상황(%1$d/%2$d) 촬영 화면이 열려요</string>
+    <string name="pick_situation">상황 골라서 찍기</string>
+    <string name="summary_title">오늘 요약</string>
+    <string name="sum_rec">오늘 녹화</string>
+    <string name="count_items">%1$d건</string>
+    <string name="sum_expect">적립 예정</string>
+    <string name="sum_people">동의 인원</string>
+    <string name="face_registered_me">본인 얼굴 등록됨</string>
+    <string name="face_needed_me">본인 얼굴 등록 필요</string>
+    <string name="summary_back">← 앞으로 넘기면 기업이 의뢰한 미션들이 있어요</string>
+    <string name="today_bonus">오늘 보너스</string>
+    <string name="scarce">부족 +%1$d%%</string>
+    <string name="req_purpose">의뢰 · %1$s</string>
+    <string name="req_sponsor_purpose">의뢰 · %1$s · %2$s</string>
+    <string name="situations_count">상황 %1$d/%2$d</string>
+    <string-array name="age_bands">
+        <item>19~29세</item>
+        <item>30대</item>
+        <item>40대</item>
+        <item>50대</item>
+        <item>60대 이상</item>
+    </string-array>
+    <string name="me_name">나</string>
+    <string name="consent_title">시작하기 전에</string>
+    <string name="consent_protect">데이터캐시는 이렇게 지켜요</string>
+    <string name="consent_points">• 판매되는 영상에서 내 얼굴은 실존하지 않는 가상 인물로 바뀌어요\n• 동의하지 않은 가족·화면·거울·액자·서류는 회색으로 가려요\n• 이름·주소가 들린 말은 그 부분만 소리를 꺼요\n• 동의를 철회하면 내 녹화는 판매에서 빠져요</string>
+    <string name="consent_video">(필수) 미션 영상·소리·움직임을 위 방식으로 처리해 로봇 학습 데이터로 판매하는 데 동의해요</string>
+    <string name="consent_bio">(선택) 워치의 심박수·심박 예비량(HRR)·피부온도 변화와 미션 후 응답을 함께 판매하는 데 동의해요 — 건강을 판단하거나 조언하지 않아요</string>
+    <string name="age_band">연령대</string>
+    <string name="gender_label">성별 (선택 — 성별을 정한 의뢰 미션과, 얼굴을 바꿀 가상 인물 고르기에만 써요)</string>
+    <string name="gender_female">여성</string>
+    <string name="gender_male">남성</string>
+    <string name="gender_none">밝히지 않음</string>
+    <string name="consent_start">동의하고 시작하기</string>
+    <string name="consent_need">영상 동의와 연령대가 필요해요</string>
+    <string name="mission_read_fail">미션을 읽지 못했어요</string>
+    <string name="sponsor_line">의뢰 기업 · %1$s</string>
+    <string name="purpose_line">의뢰 목적 · %1$s</string>
+    <string name="today_bonus_amount">오늘의 보너스 +%1$,d원</string>
+    <string name="per_minute">%1$s · 1분 기준</string>
+    <string name="steps_seq">동작 순서 · %1$s</string>
+    <string name="situations_done">상황 %1$d/%2$d 완료</string>
+    <string name="mission_tip">워치를 차고 찍으면 촉각(쥐는 힘)·몸 감각까지 담겨 보상이 더 커요. 녹화 중 실수하면 화면 아래 \'실수 표시\'를 눌러 주세요 — 로봇은 실수에서도 배워요.</string>
+    <string name="situations_pick_title">찍을 상황 고르기 · 조건을 하나씩 바꿔 주세요</string>
+    <string name="recorded_done">찍었어요</string>
+    <string name="again">다시</string>
+    <string name="record_chip">찍기</string>
+    <string name="survey_title">미션 후 한마디</string>
+    <string name="survey_hint_bio">두 번만 누르면 끝나요. 건너뛰어도 보상은 같아요.</string>
+    <string name="survey_hint">한 번만 누르면 끝나요. 건너뛰어도 보상은 같아요.</string>
+    <string name="survey_q1">미션은 어땠어요?</string>
+    <string name="survey_once">한 번에\n끝냈어요</string>
+    <string name="survey_retry">다시 하고\n끝냈어요</string>
+    <string name="survey_failed">끝내지\n못했어요</string>
+    <string name="survey_q2">얼마나 힘들었어요?</string>
+    <string name="survey_easy">아주 쉬움</string>
+    <string name="survey_hard">아주 힘듦</string>
+    <string name="skip">건너뛰기</string>
+    <string name="survey_saved">저장됐어요 · 검수하러 올리는 중이에요</string>
+    <string name="result_title">내 녹화</string>
+    <string name="upload_failed_short">올리지 못했어요</string>
+    <string name="upload_failed_detail">%1$s\n설정에서 서버 주소·토큰을 확인해 주세요. 녹화는 폰에 남아 있어요.</string>
+    <string name="status_fail">상태를 받지 못했어요: %1$s</string>
+    <string name="result_processing">가리기 · 라벨 · 4감 동기화 중이에요. 앱을 닫아도 서버가 계속해요.</string>
+    <string name="result_collected">원본 그대로 미션별로 보관했어요. 가리기 · 라벨 · 검수 · 보상은 나중에 한꺼번에 해요.</string>
+    <string name="calib_learned">쥐는 세기를 배웠어요</string>
+    <string name="calib_detail">가볍게·평소처럼·꽉·손 놓기를 %1$d개 구간에서 배웠어요 · 맞춘 비율 %2$.0f%%\n다음 녹화부터 쥐는 세기가 같이 담겨요</string>
+    <string name="reward_added">+%1$,d원 적립</string>
+    <string name="result_detail">받아들인 분량 %1$.1f분 · 등급 %2$s · 동기화 %3$s</string>
+    <string name="skipped_steps">건너뛴 단계: %1$s</string>
+    <string name="preview_title">가상 얼굴 미리보기</string>
+    <string name="preview_sum">판매되는 영상은 이렇게 보여요. 가린 곳은 회색, 얼굴은 실존하지 않는 가상 인물이에요.</string>
+    <string name="preview_stats">%1$d장면 중 %2$d장면 가상 얼굴 · 작은 얼굴 %3$d · 알아볼 수 있어 모자이크 %4$d · 재식별 최대 %5$.2f (0.30 미만이면 통과)</string>
+    <string name="preview_pending">아직 처리 중이에요 · 검수가 끝나면 볼 수 있어요</string>
+    <string name="devices_intro">기기를 연결하면 영상과 손목 움직임·쥐는 힘·심박이 같은 시간축으로 맞춰진 고품질 등급이 되어 보상이 더 높아요.</string>
+    <string name="lang_section">앱 언어</string>
+    <string name="data_server">데이터 서버</string>
+    <string name="data_server_desc">녹화가 끝나면 여기로 올라가 검수돼요</string>
+    <string name="server_hint">서버 주소 (예: http://192.168.0.10:8800)</string>
+    <string name="token_hint">토큰 (서버 화면에 나온 값)</string>
+    <string name="save_and_check">저장하고 연결 확인</string>
+    <string name="auto_find">같은 와이파이에서 자동으로 찾기</string>
+    <string name="finding">서버 찾는 중…</string>
+    <string name="not_found">못 찾았어요 · 서버가 켜져 있고 같은 와이파이인지 확인해 주세요</string>
+    <string name="galaxy_watch">갤럭시 워치</string>
+    <string name="watch_desc">손목 움직임 · 능동 진동 촉각(GripSense 방식) · 심박</string>
+    <string name="watch_steps">1. 워치에 데이터캐시 워치 앱을 깔고 켜 두세요 (같은 서버 주소)\n2. 폰에서 녹화를 시작하면 워치 기록이 자동으로 같이 시작돼요\n3. 끝나면 워치가 알아서 올리고, 서버가 폰과 시계를 맞춰요 — 둘을 직접 이을 필요 없어요</string>
+    <string name="calib_watch_btn">워치로 쥐는 세기 맞추기 (한 번만)</string>
+    <string name="coming_soon">곧 연결할 수 있어요</string>
+    <string name="home_camera">홈 카메라</string>
+    <string name="home_camera_desc">고정된 각도에서 함께 찍어 3인칭 장면을 더해요</string>
+    <string name="preparing">준비 중</string>
+    <string name="speaker_hub">스마트 스피커·허브</string>
+    <string name="speaker_hub_desc">집 안 소리·기기 상태를 같은 시간축에</string>
+    <string name="checking">연결 확인 중…</string>
+    <string name="connected_rtt">● 연결됨 · 왕복 %1$.0fms</string>
+    <string name="token_wrong">토큰이 맞지 않아요</string>
+    <string name="server_code">서버 응답 %1$d</string>
+    <string name="not_connected_check">연결 안 됨 · 같은 와이파이인지, 주소가 맞는지 확인해 주세요</string>
+    <string-array name="relations">
+        <item>본인</item>
+        <item>배우자</item>
+        <item>가족</item>
+        <item>동거인</item>
+        <item>기타</item>
+    </string-array>
+    <string name="people_intro">영상에 함께 나오는 사람은 동의를 받고 얼굴을 등록해야 가려지지 않아요. 등록한 사람도 판매되는 영상에서는 실존하지 않는 가상 인물 얼굴로 바뀌어요.</string>
+    <string name="people_add_title">동의 인원 추가</string>
+    <string name="name_hint">이름 또는 별칭</string>
+    <string name="relation">관계</string>
+    <string name="adult_check">만 19세 이상 성인이에요</string>
+    <string name="people_agree">(필수) 미션 영상에 나오는 것, 얼굴을 가상 인물로 바꾼 영상·소리·움직임이 로봇 학습 데이터로 판매되는 것에 동의해요. 언제든 철회할 수 있어요.</string>
+    <string name="people_bio">(선택, 본인만) 워치의 심박수·심박 예비량(HRR)·피부온도 변화와 미션 후 응답을 함께 제공하는 데 동의해요 — 건강을 판단하거나 조언하지 않아요</string>
+    <string name="kid_note">아이(만 19세 미만)는 추가할 수 없고 영상에서 항상 가려져요.</string>
+    <string name="agree_add">동의하고 추가</string>
+    <string name="check_server_in_devices">스마트 기기 연결에서 서버를 확인해 주세요</string>
+    <string name="none_yet">아직 없어요</string>
+    <string name="none_yet_desc">먼저 \'본인\'을 추가하고 얼굴을 등록해 주세요 — 녹화 1단계에서 본인을 확인해요</string>
+    <string name="consented_on">%1$s 동의</string>
+    <string name="bio_consented_line">심박수·HRR·피부온도 변화·미션 후 응답 제공 동의</string>
+    <string name="virtual_person_line">가상 인물: %1$s</string>
+    <string name="donor_auto_desc">자동 · 가장 덜 닮은 사람</string>
+    <string name="enroll_failed_line">등록 실패 · %1$s</string>
+    <string name="enroll_needed_line">눌러서 얼굴을 등록해야 영상에 남아요 (안 하면 가려져요)</string>
+    <string name="face_enrolled">얼굴 등록됨</string>
+    <string name="enroll_failed">등록 실패</string>
+    <string name="face_needed">얼굴 등록 필요</string>
+    <string name="donor_n">가상 인물 %1$d (%2$s)</string>
+    <string name="re_enroll">얼굴 다시 등록하기 (사진 3장)</string>
+    <string name="enroll">얼굴 등록하기 (사진 3장)</string>
+    <string name="pick_donor">가상 인물 고르기</string>
+    <string name="bio_withdraw">생체 신호 동의만 철회</string>
+    <string name="bio_agree">생체 신호 제공 동의하기</string>
+    <string name="withdraw_consent">동의 철회</string>
+    <string name="bio_withdrawn">생체 신호 제공 동의를 철회했어요. 다음 녹화부터 심박·체온을 담지 않아요</string>
+    <string name="bio_agreed">생체 신호 제공에 동의했어요</string>
+    <string name="withdraw_confirm">%1$s 님의 동의를 철회할까요? 얼굴 특징값이 지워지고, 다음 녹화부터 가려져요.</string>
+    <string name="withdraw">철회</string>
+    <string name="donor_changed">가상 인물을 바꿨어요</string>
+    <string name="donor_auto_btn">자동 (가장 덜 닮은 사람)</string>
+    <string name="donor_auto_toast">가장 덜 닮은 사람으로 자동으로 골라요</string>
+    <string name="need_name">이름이나 별칭을 적어 주세요</string>
+    <string name="adult_only">만 19세 이상 성인만 추가할 수 있어요</string>
+    <string name="need_agree">필수 동의를 받아야 추가할 수 있어요</string>
+    <string name="pick_age">연령대를 골라 주세요</string>
+    <string name="added_enroll">%1$s 님을 추가했어요 · 얼굴을 등록해 주세요</string>
+    <string name="history_confirmed">확정 보상</string>
+    <string name="history_reviewing">검수 중</string>
+    <string name="no_recordings">아직 녹화가 없어요</string>
+    <string name="no_recordings_desc">홈에서 오늘의 미션을 찍어 보세요</string>
+    <string name="minutes_level">%1$.1f분 · %2$s</string>
+    <string name="paid_done">입금 완료 · %1$s</string>
+    <string name="appeal_extra">이의 신청 인정 +%1$,d원</string>
+    <string name="collected_later">보관됨 · 검수는 나중에</string>
+    <string name="reason_line">이유: %1$s</string>
+    <string name="reason_default">검수 기준에 맞지 않아요</string>
+    <string name="before_upload">올리기 전</string>
+    <string name="uploading_toast">올리는 중이에요</string>
+    <string name="view_result">결과 보기 ›</string>
+    <string name="preview_link">가상 얼굴 미리보기 ›</string>
+    <string name="appeal_link">이의 신청 ›</string>
+    <string-array name="banks">
+        <item>KB국민</item>
+        <item>신한</item>
+        <item>우리</item>
+        <item>하나</item>
+        <item>NH농협</item>
+        <item>IBK기업</item>
+        <item>카카오뱅크</item>
+        <item>토스뱅크</item>
+        <item>케이뱅크</item>
+    </string-array>
+    <string name="received">받은 보상</string>
+    <string name="waiting_status">입금 기다리는 보상 %1$,d원 · 계좌를 연결하면 바로 들어와요</string>
+    <string name="no_account">아직 계좌를 연결하지 않았어요</string>
+    <string name="receive_to">%1$s 으로 받아요</string>
+    <string name="deposit_account">입금받을 계좌</string>
+    <string name="change_account">계좌 바꾸기</string>
+    <string name="linked_line">%1$s · 연결됨</string>
+    <string name="account_hint">계좌번호 (- 없이)</string>
+    <string name="link_and_receive">계좌 연결하고 바로 받기</string>
+    <string name="payout_note">계좌번호 전체는 이 폰에만 저장되고, 서버에는 가린 번호만 보내요. 시험 버전이라 실제 송금 대신 시험 지급으로 기록돼요.</string>
+    <string name="payout_history">입금 내역</string>
+    <string name="waiting_chip">%1$,d원 대기</string>
+    <string name="waiting_account">계좌 연결 대기</string>
+    <string name="no_payouts">아직 입금된 보상이 없어요</string>
+    <string name="no_payouts_desc">미션이 승인되면 여기로 들어와요</string>
+    <string name="check_account">계좌번호를 확인해 주세요</string>
+    <string name="sent_waiting">기다리던 보상 %1$d건을 보냈어요</string>
+    <string name="next_paid">다음 보상부터 바로 입금돼요</string>
+    <string name="saved_local">이 폰에 저장했어요 · 서버에 알리지 못함</string>
+    <string name="reason_reward">보상이 적어요</string>
+    <string name="reason_failed">처리가 실패했어요</string>
+    <string name="reason_privacy">가려야 할 게 보여요</string>
+    <string name="reason_label">라벨·단계가 틀려요</string>
+    <string name="reason_other">기타</string>
+    <string name="appeals_intro">먼저 자동으로 확인하고, 자동으로 끝나지 않으면 검토자가 확인해요. \'가려야 할 게 보여요\'는 신청하는 즉시 판매에서 빠져요. 하루 5번까지 신청할 수 있어요.</string>
+    <string name="in_progress">진행 중</string>
+    <string name="accepted">인정</string>
+    <string name="dismissed">기각</string>
+    <string name="recovered">되찾은 보상</string>
+    <string name="appeal">이의 신청</string>
+    <string name="rejected_line">반려 · %1$s</string>
+    <string name="no_in_progress">진행 중인 이의 신청이 없어요</string>
+    <string name="results">결과</string>
+    <string name="no_results">아직 결과가 없어요</string>
+    <string name="appealable">이의 신청할 수 있는 녹화</string>
+    <string name="no_rejected">반려된 녹화가 없어요</string>
+    <string name="no_rejected_desc">승인된 녹화도 내 녹화 기록에서 신청할 수 있어요</string>
+    <string name="accepted_plus">인정 +%1$,d원</string>
+    <string name="not_accepted">인정 안 됨</string>
+    <string name="reprocessing">다시 처리 중</string>
+    <string name="reviewing">검토 중</string>
+    <string name="recording_sid">녹화 %1$s</string>
+    <string name="stage_auto">자동 확인</string>
+    <string name="stage_reviewer">검토자 확인</string>
+    <string name="stage_result">결과</string>
+    <string name="detail_hint">자세히 (선택)</string>
+    <string name="submit">신청</string>
+    <string-array name="calib_names">
+        <item>손을 놓고 가만히</item>
+        <item>가볍게 쥐세요</item>
+        <item>평소처럼 쥐세요</item>
+        <item>꽉 쥐세요</item>
+    </string-array>
+    <string-array name="calib_hints">
+        <item>물병에서 손을 떼고 팔을 편하게 두세요</item>
+        <item>떨어지지 않을 만큼만 살짝</item>
+        <item>물을 마실 때처럼 평소대로</item>
+        <item>더 이상 못 쥘 만큼 세게 (아프지 않게)</item>
+    </string-array>
+    <string name="calib_intro">워치를 찬 손으로 물병이나 컵을 쥐고, 화면 안내대로 쥐는 세기를 바꿔 주세요. 약 1분 30초, 한 번만 하면 돼요.</string>
+    <string name="calib_why">워치가 진동할 때 손이 떨림을 얼마나 흡수하는지로 쥐는 세기를 배워요 (GripSense 방식). 저울은 필요 없어요.</string>
+    <string name="calib_ready">준비되면 시작을 눌러 주세요</string>
+    <string name="calib_open_watch">워치에서 데이터캐시 워치 앱을 켜 두세요</string>
+    <string name="start">시작</string>
+    <string name="calibrating">맞추는 중…</string>
+    <string name="server_fail_fmt">서버에 연결 안 됨: %1$s</string>
+    <string name="starting">시작해요</string>
+    <string name="wait_watch">워치가 기록을 시작할 때까지 잠깐만요</string>
+    <string name="next_step">다음: %1$s</string>
+    <string name="finished">끝났어요</string>
+    <string name="learning">올려서 내 쥐는 세기를 배우는 중…</string>
+    <string-array name="face_prompts">
+        <item>정면을 봐 주세요</item>
+        <item>고개를 왼쪽으로 살짝 돌려 주세요</item>
+        <item>고개를 오른쪽으로 살짝 돌려 주세요</item>
+    </string-array>
+    <string name="face_enroll_title">%1$s 님 얼굴 등록</string>
+    <string name="photo_deleted">사진은 얼굴 특징값을 만든 뒤 바로 지워져요</string>
+    <string name="take_photo">찍기</string>
+    <string name="face_visible">얼굴이 보여요</string>
+    <string name="good_next">✓ 좋아요 · 다음: %1$s</string>
+    <string name="face_in_circle">얼굴이 동그라미 안에 오게</string>
+    <string name="back_camera_hint">(뒤 카메라 · 가족 얼굴을 찍어 주세요)</string>
+    <string name="uploading_ellipsis">올리는 중…</string>
+    <string name="face_registered_toast">얼굴을 등록했어요</string>
+    <string name="retake">다시 찍어 주세요</string>
+    <string name="retake_three">정면부터 다시 세 장을 찍어 주세요</string>
+    <string name="upload_failed_reason">올리지 못했어요 · %1$s</string>
+    <string name="tap_to_retry">찍기 버튼을 누르면 다시 올려요</string>
+    <string name="mark_idle">＋ 실수 표시</string>
+    <string name="no_person">사람이 나오지 않는 영상입니다</string>
+    <string name="mission_name">%1$s 미션</string>
+    <string name="steps_two">1단계 얼굴 확인 → 2단계 동작 촬영</string>
+    <string name="situation_line">상황 · %1$s</string>
+    <string name="record_btn">녹화</string>
+    <string name="mark_desc">방금 실수했거나 다시 하는 중이면 눌러 주세요</string>
+    <string name="marked">✓ 실수 표시했어요 · %1$d</string>
+    <string name="front_camera">앞 카메라</string>
+    <string name="back_camera">뒤 카메라</string>
+    <string name="timer_off">타이머 끔</string>
+    <string name="timer_toast">녹화 버튼을 누르면 %1$d초 뒤에 시작해요</string>
+    <string name="timer_btn_off">타이머\n끔</string>
+    <string name="timer_secs">%1$d초</string>
+    <string name="timer_desc">타이머 %1$d초</string>
+    <string name="tap_again_cancel">다시 누르면 취소돼요</string>
+    <string name="timer_cancelled">타이머를 취소했어요</string>
+    <string name="in_call">통화 중에는 소리가 녹음되지 않아요. 통화를 끝내고 다시 눌러 주세요</string>
+    <string name="start_fail">시작 실패: %1$s</string>
+    <string name="record_fail">녹화 실패: %1$s</string>
+    <string name="rec_status">● 녹화 %1$d:%2$02d · 상황 · %3$s</string>
+    <string name="quiet_warn">⚠ 소리가 거의 안 들려요 — 마이크를 가리지 않았는지 봐 주세요</string>
+    <string name="step1_title">1단계 · 얼굴 확인</string>
+    <string name="face_look">카메라 가까이에서 정면을 봐 주세요\n얼굴이 동그라미 안에 오게</string>
+    <string name="face_mismatch">등록한 얼굴과 달라 보여요\n밝은 곳에서 안경·모자를 벗고 정면으로</string>
+    <string name="checking_identity">본인인지 확인하는 중…</string>
+    <string name="no_face_check">얼굴 확인 없이 찍어요</string>
+    <string name="no_face_continue">얼굴 없이 진행해요</string>
+    <string name="identity_ok">✓ 본인 확인됐어요</string>
+    <string name="face_ok">✓ 얼굴 확인됐어요</string>
+    <string name="step2_go">2단계 · 이제 동작을 시작하세요</string>
+    <string name="step2_warn">등록된 본인으로 알아보지 못하면 영상에서 가려질 수 있어요\n2단계 · 동작을 시작하세요</string>
+    <string name="save_fail">저장 실패: %1$s</string>
+</resources>

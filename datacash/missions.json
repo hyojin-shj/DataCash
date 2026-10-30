@@ -49,7 +49,29 @@
         "평소 속도로",
         "놓쳤다가 다시 (실수 표시 누르기)",
         "다른 물건·다른 장소에서"
-      ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Pull a tissue",
+          "guide": "Pull tissues out of the box one at a time · 30 s–1 min · repeat 5 times · keep your hand and the box in view",
+          "purpose": "Controlling pull force while pinching a thin, easily torn object with the fingertips"
+        },
+        "ja": {
+          "title": "ティッシュを引き出す",
+          "guide": "ティッシュ箱から 1 枚ずつ引き出す · 30 秒〜1 分 · 5 回くり返す · 手と箱が映るように",
+          "purpose": "薄くて破れやすい物を指先でつまんで引く力の調整"
+        },
+        "zh-CN": {
+          "title": "抽纸巾",
+          "guide": "从纸巾盒里一张一张抽出 · 30 秒–1 分钟 · 重复 5 次 · 让手和盒子都在画面里",
+          "purpose": "用指尖捏住又薄又易破的物体并控制拉力"
+        },
+        "es": {
+          "title": "Sacar un pañuelo",
+          "guide": "Saca pañuelos de la caja uno a uno · 30 s–1 min · repite 5 veces · que se vean la mano y la caja",
+          "purpose": "Controlar la fuerza al pellizcar y tirar de un objeto fino y fácil de romper con la punta de los dedos"
+        }
+      }
     },
     {
       "id": "pick_place_cup",
@@ -81,7 +103,29 @@
         "평소 속도로",
         "놓쳤다가 다시 (실수 표시 누르기)",
         "다른 물건·다른 장소에서"
-      ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Pick and place a cup",
+          "guide": "Pick up a cup and put it somewhere else · 30 s–1 min · repeat 5 times",
+          "purpose": "The most basic pick, move and place, plus the contact at the moment of setting down"
+        },
+        "ja": {
+          "title": "コップをつかんで移す",
+          "guide": "コップをつかんで別の場所に置く · 30 秒〜1 分 · 5 回くり返す",
+          "purpose": "最も基本的なつかむ・移す・置く動作と、置く瞬間の接触"
+        },
+        "zh-CN": {
+          "title": "拿起杯子换个地方放",
+          "guide": "拿起杯子放到别的位置 · 30 秒–1 分钟 · 重复 5 次",
+          "purpose": "最基本的拿起·移动·放下，以及放下瞬间的接触"
+        },
+        "es": {
+          "title": "Tomar y colocar una taza",
+          "guide": "Toma una taza y déjala en otro sitio · 30 s–1 min · repite 5 veces",
+          "purpose": "Lo más básico: tomar, mover y colocar, y el contacto en el momento de apoyar"
+        }
+      }
     },
     {
       "id": "pull_stacked_cup",
@@ -112,7 +156,29 @@
         "평소 속도로",
         "놓쳤다가 다시 (실수 표시 누르기)",
         "다른 물건·다른 장소에서"
-      ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Pull a cup from a stack",
+          "guide": "Pull the top cup off a stack of paper cups or cups · 30 s–1 min · repeat 5 times",
+          "purpose": "Pulling against friction while the other hand holds the stack"
+        },
+        "ja": {
+          "title": "重ねたコップを抜く",
+          "guide": "重ねた紙コップ・コップからいちばん上の 1 個を抜く · 30 秒〜1 分 · 5 回くり返す",
+          "purpose": "摩擦に打ち勝って抜く力と、もう一方の手で支える動作"
+        },
+        "zh-CN": {
+          "title": "从叠放的杯子中取杯",
+          "guide": "从叠在一起的纸杯·杯子中取出最上面的一个 · 30 秒–1 分钟 · 重复 5 次",
+          "purpose": "克服摩擦取出的力量，以及另一只手的扶持"
+        },
+        "es": {
+          "title": "Sacar una taza de una pila",
+          "guide": "Saca el vaso de arriba de una pila de vasos de papel o tazas · 30 s–1 min · repite 5 veces",
+          "purpose": "Fuerza para vencer la fricción mientras la otra mano sujeta la pila"
+        }
+      }
     },
     {
       "id": "tear_pouch",
@@ -143,7 +209,29 @@
         "평소 속도로",
         "놓쳤다가 다시 (실수 표시 누르기)",
         "다른 물건·다른 장소에서"
-      ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Tear open a pouch",
+          "guide": "Tear open a snack bag or sauce pouch with both hands · 30 s–1 min · repeat 3 times",
+          "purpose": "Two-handed coordination and the force and sound at the moment of tearing"
+        },
+        "ja": {
+          "title": "パウチ・袋を開ける",
+          "guide": "お菓子の袋・ソースのパウチを両手で開ける · 30 秒〜1 分 · 3 回くり返す",
+          "purpose": "両手の協調と、破れる瞬間の力・音"
+        },
+        "zh-CN": {
+          "title": "撕开包装袋",
+          "guide": "用双手撕开零食袋·酱料包 · 30 秒–1 分钟 · 重复 3 次",
+          "purpose": "双手协作，以及撕开瞬间的力量和声音"
+        },
+        "es": {
+          "title": "Abrir una bolsita",
+          "guide": "Abre con las dos manos una bolsa de snacks o un sobre de salsa · 30 s–1 min · repite 3 veces",
+          "purpose": "Coordinación de ambas manos y la fuerza y el sonido en el momento de rasgar"
+        }
+      }
     },
     {
       "id": "spray_bottle",
@@ -175,7 +263,29 @@
         "평소 속도로",
         "놓쳤다가 다시 (실수 표시 누르기)",
         "다른 물건·다른 장소에서"
-      ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Use a spray bottle",
+          "guide": "Hold a spray bottle and pull the trigger to spray · 30 s–1 min · repeat 5 times",
+          "purpose": "Pressing with a finger while holding a tool"
+        },
+        "ja": {
+          "title": "霧吹きを使う",
+          "guide": "霧吹きを握り、引き金を引いて吹きかける · 30 秒〜1 分 · 5 回くり返す",
+          "purpose": "道具を握ったまま指で押す操作"
+        },
+        "zh-CN": {
+          "title": "用喷壶喷水",
+          "guide": "握住喷壶扣动扳机喷洒 · 30 秒–1 分钟 · 重复 5 次",
+          "purpose": "握着工具的同时用手指按压的操作"
+        },
+        "es": {
+          "title": "Usar un pulverizador",
+          "guide": "Sujeta el pulverizador y aprieta el gatillo para rociar · 30 s–1 min · repite 5 veces",
+          "purpose": "Presionar con un dedo mientras se sujeta una herramienta"
+        }
+      }
     },
     {
       "id": "squeeze_bottle",
@@ -208,7 +318,29 @@
         "평소 속도로",
         "놓쳤다가 다시 (실수 표시 누르기)",
         "다른 물건·다른 장소에서"
-      ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Squeeze a sauce bottle",
+          "guide": "Squeeze a sauce bottle or toothpaste onto a plate or toothbrush · 30 s–1 min · repeat 3 times",
+          "purpose": "Controlling grip force to squeeze out just the right amount"
+        },
+        "ja": {
+          "title": "ソース・チューブを絞る",
+          "guide": "ソースのボトル・歯みがき粉を絞って皿・歯ブラシに出す · 30 秒〜1 分 · 3 回くり返す",
+          "purpose": "握る力を調整して必要な分だけ絞り出す"
+        },
+        "zh-CN": {
+          "title": "挤酱料·软管",
+          "guide": "把酱料瓶·牙膏挤到盘子·牙刷上 · 30 秒–1 分钟 · 重复 3 次",
+          "purpose": "控制握力，只挤出需要的量"
+        },
+        "es": {
+          "title": "Apretar un bote de salsa",
+          "guide": "Aprieta un bote de salsa o la pasta de dientes sobre un plato o un cepillo · 30 s–1 min · repite 3 veces",
+          "purpose": "Ajustar la fuerza de agarre para sacar solo la cantidad deseada"
+        }
+      }
     },
     {
       "id": "twist_cap",
@@ -240,7 +372,29 @@
         "평소 속도로",
         "놓쳤다가 다시 (실수 표시 누르기)",
         "다른 물건·다른 장소에서"
-      ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Twist a bottle cap",
+          "guide": "Twist open the cap of a water bottle or jam jar and close it again · 30 s–1 min · repeat 3 times",
+          "purpose": "Rotation with one hand holding and the other turning"
+        },
+        "ja": {
+          "title": "ボトルのふたを開け閉めする",
+          "guide": "ペットボトル・ジャムの瓶のふたを回して開け、また閉める · 30 秒〜1 分 · 3 回くり返す",
+          "purpose": "片手で支え、もう片手で回す回転操作"
+        },
+        "zh-CN": {
+          "title": "拧开再拧上瓶盖",
+          "guide": "拧开水瓶·果酱瓶的盖子再拧上 · 30 秒–1 分钟 · 重复 3 次",
+          "purpose": "一只手扶住、另一只手旋转的操作"
+        },
+        "es": {
+          "title": "Girar una tapa",
+          "guide": "Desenrosca la tapa de una botella de agua o un tarro de mermelada y vuelve a cerrarla · 30 s–1 min · repite 3 veces",
+          "purpose": "Giro con una mano sujetando y la otra girando"
+        }
+      }
     },
     {
       "id": "wipe_surface",
@@ -273,7 +427,29 @@
         "평소 속도로",
         "놓쳤다가 다시 (실수 표시 누르기)",
         "다른 물건·다른 장소에서"
-      ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Wipe glasses or a plate",
+          "guide": "Wipe a lens or plate surface with a cloth · 30 s–1 min",
+          "purpose": "Holding an object while the other hand rubs along its surface"
+        },
+        "ja": {
+          "title": "メガネ・皿をふく",
+          "guide": "布でメガネのレンズ・皿の表面をふく · 30 秒〜1 分",
+          "purpose": "物を持ち、もう一方の手で表面に沿ってこする力"
+        },
+        "zh-CN": {
+          "title": "擦眼镜·盘子",
+          "guide": "用布擦拭眼镜片·盘子表面 · 30 秒–1 分钟",
+          "purpose": "拿住物体，另一只手沿表面擦拭的力量"
+        },
+        "es": {
+          "title": "Limpiar gafas o un plato",
+          "guide": "Limpia con un paño los cristales de unas gafas o la superficie de un plato · 30 s–1 min",
+          "purpose": "Sujetar un objeto mientras la otra mano frota a lo largo de su superficie"
+        }
+      }
     },
     {
       "id": "pick_small_fruit",
@@ -306,7 +482,29 @@
         "평소 속도로",
         "놓쳤다가 다시 (실수 표시 누르기)",
         "다른 물건·다른 장소에서"
-      ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Pick grapes",
+          "guide": "Pick grapes off the bunch one by one into a bowl · 30 s–1 min · 5 grapes",
+          "purpose": "Delicate grip: hold gently enough not to crush, then detach"
+        },
+        "ja": {
+          "title": "ぶどう・小さな果物をもぐ",
+          "guide": "ぶどうの房から 1 粒ずつもいで器に入れる · 30 秒〜1 分 · 5 粒",
+          "purpose": "つぶさないように弱く握って取り外す繊細な握り"
+        },
+        "zh-CN": {
+          "title": "摘葡萄·小水果",
+          "guide": "从葡萄串上一颗颗摘下放进碗里 · 30 秒–1 分钟 · 5 颗",
+          "purpose": "轻轻握住不捏碎再摘下的精细抓握"
+        },
+        "es": {
+          "title": "Desgranar uvas",
+          "guide": "Arranca las uvas del racimo una a una y ponlas en un bol · 30 s–1 min · 5 uvas",
+          "purpose": "Agarre delicado: sujetar suave para no aplastar y luego desprender"
+        }
+      }
     },
     {
       "id": "lift_box",
@@ -338,7 +536,29 @@
         "평소 속도로",
         "놓쳤다가 다시 (실수 표시 누르기)",
         "다른 물건·다른 장소에서"
-      ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Lift and carry a box",
+          "guide": "Lift a box, carry it a few steps and set it down · 30 s–1 min · repeat 3 times",
+          "purpose": "Posture, grip force and effort (heart rate) when lifting a heavy object with both hands"
+        },
+        "ja": {
+          "title": "箱を持ち上げて運ぶ",
+          "guide": "箱を持ち上げて数歩運び、下ろす · 30 秒〜1 分 · 3 回くり返す",
+          "purpose": "重さのある物を両手で持ち上げる姿勢・握る力・きつさ（心拍）"
+        },
+        "zh-CN": {
+          "title": "搬起箱子移动",
+          "guide": "抬起箱子走几步再放下 · 30 秒–1 分钟 · 重复 3 次",
+          "purpose": "用双手抬起重物时的姿势·握力·吃力程度（心率）"
+        },
+        "es": {
+          "title": "Levantar y llevar una caja",
+          "guide": "Levanta una caja, llévala unos pasos y déjala · 30 s–1 min · repite 3 veces",
+          "purpose": "Postura, fuerza de agarre y esfuerzo (frecuencia cardíaca) al levantar algo pesado con las dos manos"
+        }
+      }
     },
     {
       "id": "handover",
@@ -372,7 +592,29 @@
         "평소 속도로",
         "놓쳤다가 다시 (실수 표시 누르기)",
         "다른 물건·다른 장소에서"
-      ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Hand an object over",
+          "guide": "Hand an object to another person or receive one · 30 s–1 min · repeat 5 times (the other person's face is masked)",
+          "purpose": "The moment people and robots pass objects to each other (when the holding hand changes)"
+        },
+        "ja": {
+          "title": "物を手渡す",
+          "guide": "ほかの人に物を渡す、または受け取る · 30 秒〜1 分 · 5 回くり返す（相手の顔は隠されます）",
+          "purpose": "人とロボットが物をやり取りする瞬間（持つ手が替わるタイミング）"
+        },
+        "zh-CN": {
+          "title": "递交物品",
+          "guide": "把物品递给别人或从别人手中接过 · 30 秒–1 分钟 · 重复 5 次（对方的脸会被遮盖）",
+          "purpose": "人与机器人交接物品的瞬间（握持的手发生切换的时刻）"
+        },
+        "es": {
+          "title": "Entregar un objeto",
+          "guide": "Da un objeto a otra persona o recíbelo · 30 s–1 min · repite 5 veces (la cara de la otra persona se oculta)",
+          "purpose": "El momento en que personas y robots se pasan objetos (cuando cambia la mano que sujeta)"
+        }
+      }
     },
     {
       "id": "stack_blocks",
@@ -405,7 +647,29 @@
         "평소 속도로",
         "놓쳤다가 다시 (실수 표시 누르기)",
         "다른 물건·다른 장소에서"
-      ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Stack or snap blocks",
+          "guide": "Pick up LEGO or blocks and stack or snap them together · 30 s–1 min · 5 pieces",
+          "purpose": "Precise manipulation placing small objects in exact spots and snapping them in (the 'click' sound)"
+        },
+        "ja": {
+          "title": "ブロックを積む・はめる",
+          "guide": "レゴ・ブロックをつかんで積む、またははめ込む · 30 秒〜1 分 · 5 個",
+          "purpose": "小さな物を正確な位置に置いてはめ込む精密な操作（「カチッ」という音）"
+        },
+        "zh-CN": {
+          "title": "堆叠·拼插积木",
+          "guide": "拿起乐高·积木堆叠或拼插 · 30 秒–1 分钟 · 5 块",
+          "purpose": "把小物体放到准确位置并拼插的精细操作（“咔哒”声）"
+        },
+        "es": {
+          "title": "Apilar o encajar bloques",
+          "guide": "Toma piezas de LEGO o bloques y apílalas o encájalas · 30 s–1 min · 5 piezas",
+          "purpose": "Manipulación precisa para colocar piezas pequeñas en su sitio y encajarlas (el sonido de 'clic')"
+        }
+      }
     },
     {
       "id": "pack_box",
@@ -444,7 +708,29 @@
         "놓쳤다가 다시 (실수 표시 누르기)",
         "다른 물건으로"
       ],
-      "industry": true
+      "industry": true,
+      "i18n": {
+        "en": {
+          "title": "Pack items into a box",
+          "guide": "Put 3–4 items into a box one after another and fold the flaps shut · 30 s–1 min · repeat 5 times · keep the box and your hands fully in view",
+          "purpose": "Logistics and e-commerce packing robots — picking items of different sizes and placing them snugly in a box"
+        },
+        "ja": {
+          "title": "箱に物を詰める",
+          "guide": "物を 3〜4 個、順に箱に入れてふたを折って閉じる · 30 秒〜1 分 · 5 回くり返す · 箱と手が全部映るように",
+          "purpose": "物流・EC の梱包ロボット —— 大きさの違う物をつかんで箱にすき間なく置く"
+        },
+        "zh-CN": {
+          "title": "把物品装箱",
+          "guide": "把 3–4 件物品依次放进箱子并折好盖子 · 30 秒–1 分钟 · 重复 5 次 · 让箱子和手都完整入镜",
+          "purpose": "物流·电商打包机器人 —— 拿起大小不一的物品，严丝合缝地放进箱子"
+        },
+        "es": {
+          "title": "Empacar artículos en una caja",
+          "guide": "Mete 3–4 artículos en una caja uno tras otro y cierra las solapas · 30 s–1 min · repite 5 veces · que se vean la caja y las manos enteras",
+          "purpose": "Robots de empaque para logística y comercio electrónico — tomar artículos de distintos tamaños y colocarlos sin huecos en una caja"
+        }
+      }
     },
     {
       "id": "tape_box",
@@ -479,7 +765,29 @@
         "놓쳤다가 다시 (실수 표시 누르기)",
         "다른 물건으로"
       ],
-      "industry": true
+      "industry": true,
+      "i18n": {
+        "en": {
+          "title": "Seal a box with tape",
+          "guide": "Run one strip of tape across the top of a closed box and cut it · 30 s–1 min · 3–5 times · keep the tape end and fingertips in view",
+          "purpose": "Logistics shipping — two-handed coordination to pull, stick, press-rub and cut tape"
+        },
+        "ja": {
+          "title": "箱をテープで封をする",
+          "guide": "閉じた箱の上面にテープを 1 本貼って切る · 30 秒〜1 分 · 3〜5 回 · テープの端と指先が映るように",
+          "purpose": "物流の出荷 —— テープを引いて貼り、押してこすり、切る両手の協調"
+        },
+        "zh-CN": {
+          "title": "用胶带封箱",
+          "guide": "在合上的箱子顶面贴一道胶带并切断 · 30 秒–1 分钟 · 3–5 次 · 让胶带头和指尖入镜",
+          "purpose": "物流出库 —— 拉出胶带贴上、按压抹平再切断的双手协调"
+        },
+        "es": {
+          "title": "Sellar una caja con cinta",
+          "guide": "Pega una tira de cinta sobre la tapa de una caja cerrada y córtala · 30 s–1 min · 3–5 veces · que se vean el extremo de la cinta y la punta de los dedos",
+          "purpose": "Despacho logístico — coordinación de ambas manos para tirar, pegar, presionar frotando y cortar la cinta"
+        }
+      }
     },
     {
       "id": "restock_shelf",
@@ -517,7 +825,29 @@
         "놓쳤다가 다시 (실수 표시 누르기)",
         "다른 물건으로"
       ],
-      "industry": true
+      "industry": true,
+      "i18n": {
+        "en": {
+          "title": "Restock and face a shelf",
+          "guide": "Move items from a basket onto a shelf and line up the front row · 30 s–1 min · 5 times · keep one whole shelf section in view",
+          "purpose": "Convenience-store and supermarket shelving robots — pick, move, place, then push to line up"
+        },
+        "ja": {
+          "title": "棚に商品を補充して並べる",
+          "guide": "かごの商品を棚に移し、前の列をそろえて立てる · 30 秒〜1 分 · 5 回 · 棚の 1 段が画面に全部映るように",
+          "purpose": "コンビニ・スーパーの陳列ロボット —— つかんで移して置き、押して列をそろえる"
+        },
+        "zh-CN": {
+          "title": "上架补货并理齐",
+          "guide": "把篮子里的物品移到货架上并把前排摆整齐 · 30 秒–1 分钟 · 5 次 · 让一整格货架都在画面里",
+          "purpose": "便利店·超市理货机器人 —— 拿起、移动、放下，再推齐排面"
+        },
+        "es": {
+          "title": "Reponer y alinear un estante",
+          "guide": "Pasa artículos de una cesta al estante y alinea la fila delantera · 30 s–1 min · 5 veces · que se vea entera una balda del estante",
+          "purpose": "Robots de reposición en tiendas y supermercados — tomar, mover, colocar y empujar para alinear"
+        }
+      }
     },
     {
       "id": "pick_from_bin",
@@ -554,7 +884,29 @@
         "놓쳤다가 다시 (실수 표시 누르기)",
         "다른 물건으로"
       ],
-      "industry": true
+      "industry": true,
+      "i18n": {
+        "en": {
+          "title": "Pick items from a bin",
+          "guide": "Take specific items one by one out of a mixed bin or basket and set them aside · 30 s–1 min · 10 times · keep the inside of the bin in view",
+          "purpose": "Warehouse picking — grabbing just one item from among overlapping items"
+        },
+        "ja": {
+          "title": "容器から物を 1 つずつ取り出す（ピッキング）",
+          "guide": "物が混ざった容器・かごから決められた物を 1 つずつ取り出して横に置く · 30 秒〜1 分 · 10 回 · 容器の中が映るように",
+          "purpose": "物流倉庫のピッキング —— 重なった物の中から 1 つだけつかむ"
+        },
+        "zh-CN": {
+          "title": "从箱中逐个取物（拣货）",
+          "guide": "从混放物品的箱子·篮子里逐个取出指定物品放在旁边 · 30 秒–1 分钟 · 10 次 · 让箱子内部入镜",
+          "purpose": "物流仓库拣货 —— 从相互重叠的物品中只抓取一个"
+        },
+        "es": {
+          "title": "Sacar artículos de un contenedor (picking)",
+          "guide": "Saca uno a uno artículos concretos de un contenedor o cesta mezclados y déjalos al lado · 30 s–1 min · 10 veces · que se vea el interior del contenedor",
+          "purpose": "Picking en almacén — tomar un solo artículo entre otros superpuestos"
+        }
+      }
     },
     {
       "id": "fold_cloth",
@@ -590,7 +942,29 @@
         "놓쳤다가 다시 (실수 표시 누르기)",
         "다른 물건으로"
       ],
-      "industry": true
+      "industry": true,
+      "i18n": {
+        "en": {
+          "title": "Fold a towel or T-shirt",
+          "guide": "Fold a towel or T-shirt laid out on a desk and stack it · 1 min · 3–5 times · keep the whole cloth in view",
+          "purpose": "Laundry, apparel logistics and household robots — grabbing, folding, smoothing and pressing cloth that changes shape"
+        },
+        "ja": {
+          "title": "タオル・Tシャツをたたむ",
+          "guide": "机の上に広げたタオルや T シャツをたたんで重ねる · 1 分 · 3〜5 回 · 布全体が画面に映るように",
+          "purpose": "洗濯・衣料物流・家事ロボット —— 形が変わる布をつかみ、折り、広げて押さえる"
+        },
+        "zh-CN": {
+          "title": "叠毛巾·T 恤",
+          "guide": "把摊在桌上的毛巾或 T 恤叠好摞起来 · 1 分钟 · 3–5 次 · 让整块布都在画面里",
+          "purpose": "洗衣·服装物流·家务机器人 —— 抓取会变形的布料，折叠、展开并压平"
+        },
+        "es": {
+          "title": "Doblar una toalla o camiseta",
+          "guide": "Dobla una toalla o camiseta extendida sobre la mesa y apílala · 1 min · 3–5 veces · que se vea toda la tela",
+          "purpose": "Robots de lavandería, logística textil y hogar — agarrar, doblar, estirar y presionar una tela que cambia de forma"
+        }
+      }
     },
     {
       "id": "hang_clothes",
@@ -626,7 +1000,29 @@
         "놓쳤다가 다시 (실수 표시 누르기)",
         "다른 물건으로"
       ],
-      "industry": true
+      "industry": true,
+      "i18n": {
+        "en": {
+          "title": "Hang clothes on a hanger",
+          "guide": "Put a T-shirt on a hanger and hang it on a rod or door handle · 1 min · 3–5 times · keep the clothes and hanger fully in view",
+          "purpose": "Clothing stores and laundry — two-handed coordination to open the cloth and slip in a hanger"
+        },
+        "ja": {
+          "title": "ハンガーに服を掛ける",
+          "guide": "T シャツをハンガーに通し、バー・ドアノブに掛ける · 1 分 · 3〜5 回 · 服とハンガーが全部映るように",
+          "purpose": "衣料品店・洗濯 —— 布を広げてハンガーを通す両手の協調"
+        },
+        "zh-CN": {
+          "title": "把衣服挂上衣架",
+          "guide": "把 T 恤套上衣架，挂到横杆·门把手上 · 1 分钟 · 3–5 次 · 让衣服和衣架完整入镜",
+          "purpose": "服装店·洗衣 —— 撑开布料套入衣架的双手协调"
+        },
+        "es": {
+          "title": "Colgar ropa en una percha",
+          "guide": "Pon una camiseta en una percha y cuélgala en una barra o el pomo de una puerta · 1 min · 3–5 veces · que se vean enteras la ropa y la percha",
+          "purpose": "Tiendas de ropa y lavandería — coordinación de ambas manos para abrir la tela y meter la percha"
+        }
+      }
     },
     {
       "id": "pour_water",
@@ -664,7 +1060,29 @@
         "놓쳤다가 다시 (실수 표시 누르기)",
         "다른 물건으로"
       ],
-      "industry": true
+      "industry": true,
+      "i18n": {
+        "en": {
+          "title": "Pour water into a cup",
+          "guide": "Pour water from a bottle or kettle until the cup is half full, then set it down · 30 s–1 min · 5 times · keep the bottle mouth and cup in view",
+          "purpose": "Food-and-beverage, serving and cooking robots — controlling tilt and speed to pour without spilling"
+        },
+        "ja": {
+          "title": "コップに水を注ぐ",
+          "guide": "ボトルややかんでコップに水を半分ほど注いで置く · 30 秒〜1 分 · 5 回 · ボトルの口とコップが映るように",
+          "purpose": "飲食・配膳・調理ロボット —— 傾きと速さを調整してこぼさずに注ぐ"
+        },
+        "zh-CN": {
+          "title": "往杯里倒水",
+          "guide": "用瓶子或水壶往杯里倒半杯水后放下 · 30 秒–1 分钟 · 5 次 · 让瓶口和杯子入镜",
+          "purpose": "餐饮·送餐·烹饪机器人 —— 控制倾斜角度和速度，倒水不洒"
+        },
+        "es": {
+          "title": "Servir agua en un vaso",
+          "guide": "Sirve agua con una botella o jarra hasta la mitad del vaso y déjala · 30 s–1 min · 5 veces · que se vean la boca de la botella y el vaso",
+          "purpose": "Robots de restauración, servicio y cocina — controlar la inclinación y la velocidad para servir sin derramar"
+        }
+      }
     },
     {
       "id": "plug_cable",
@@ -701,7 +1119,29 @@
         "놓쳤다가 다시 (실수 표시 누르기)",
         "다른 물건으로"
       ],
-      "industry": true
+      "industry": true,
+      "i18n": {
+        "en": {
+          "title": "Plug and unplug a cable",
+          "guide": "Plug a USB or power cable into a charger or power strip and pull it out · 30 s–1 min · 5–10 times · keep the socket in view",
+          "purpose": "Electronics assembly and inspection — precise motion aligning a small connector to plug it in"
+        },
+        "ja": {
+          "title": "充電ケーブルを抜き差しする",
+          "guide": "充電器・電源タップに USB・電源ケーブルを差して抜く · 30 秒〜1 分 · 5〜10 回 · 差し込み口が映るように",
+          "purpose": "電子機器の組立・検査 —— 小さなコネクタの向きを合わせて差し込む精密な動作"
+        },
+        "zh-CN": {
+          "title": "插拔充电线",
+          "guide": "把 USB·电源线插进充电器·插线板再拔出 · 30 秒–1 分钟 · 5–10 次 · 让插孔入镜",
+          "purpose": "电子装配·检测 —— 对准小接口方向并插入的精细动作"
+        },
+        "es": {
+          "title": "Enchufar y desenchufar un cable",
+          "guide": "Conecta un cable USB o de corriente a un cargador o regleta y desconéctalo · 30 s–1 min · 5–10 veces · que se vea el conector",
+          "purpose": "Montaje e inspección electrónica — movimiento preciso para orientar y encajar un conector pequeño"
+        }
+      }
     },
     {
       "id": "screw_bolt",
@@ -736,7 +1176,29 @@
         "놓쳤다가 다시 (실수 표시 누르기)",
         "다른 물건으로"
       ],
-      "industry": true
+      "industry": true,
+      "i18n": {
+        "en": {
+          "title": "Drive a screw with a screwdriver",
+          "guide": "Put a screw in a hole, tighten it with a screwdriver and loosen it · 1 min · 3–5 times · keep the screw head and screwdriver tip in view",
+          "purpose": "Manufacturing assembly — the force and direction of turning a hand tool"
+        },
+        "ja": {
+          "title": "ドライバーでねじを締めて緩める",
+          "guide": "ねじを穴に入れ、ドライバーで締めてから緩める · 1 分 · 3〜5 回 · ねじの頭とドライバーの先が映るように",
+          "purpose": "製造の組立 —— 工具を握って回す力と向き"
+        },
+        "zh-CN": {
+          "title": "用螺丝刀拧紧再拧松螺丝",
+          "guide": "把螺丝放进孔里，用螺丝刀拧紧再拧松 · 1 分钟 · 3–5 次 · 让螺丝头和螺丝刀头入镜",
+          "purpose": "制造装配 —— 握住工具旋转的力量和方向"
+        },
+        "es": {
+          "title": "Atornillar con un destornillador",
+          "guide": "Pon un tornillo en el agujero, apriétalo con un destornillador y aflójalo · 1 min · 3–5 veces · que se vean la cabeza del tornillo y la punta del destornillador",
+          "purpose": "Montaje en fábrica — la fuerza y el sentido al girar una herramienta"
+        }
+      }
     },
     {
       "id": "open_drawer",
@@ -774,7 +1236,29 @@
         "놓쳤다가 다시 (실수 표시 누르기)",
         "다른 물건으로"
       ],
-      "industry": true
+      "industry": true,
+      "i18n": {
+        "en": {
+          "title": "Open a drawer, take out, close",
+          "guide": "Pull a drawer open, take an item out and put it on top, then push the drawer shut · 30 s–1 min · 5 times · keep the drawer handle in view",
+          "purpose": "Home and office service robots — pulling and pushing furniture and taking things out"
+        },
+        "ja": {
+          "title": "引き出しを開けて取り出し閉める",
+          "guide": "引き出しを引いて開け、物を取り出して上に置き、引き出しを押して閉める · 30 秒〜1 分 · 5 回 · 引き出しの取っ手が映るように",
+          "purpose": "家庭・オフィスのサービスロボット —— 家具を引いて押す動作と物の取り出し"
+        },
+        "zh-CN": {
+          "title": "拉开抽屉取物再关上",
+          "guide": "拉开抽屉取出物品放在上面，再把抽屉推上 · 30 秒–1 分钟 · 5 次 · 让抽屉把手入镜",
+          "purpose": "家庭·办公服务机器人 —— 拉、推家具的动作以及取出物品"
+        },
+        "es": {
+          "title": "Abrir un cajón, sacar algo y cerrar",
+          "guide": "Tira del cajón para abrirlo, saca un objeto, déjalo encima y empuja el cajón para cerrarlo · 30 s–1 min · 5 veces · que se vea el tirador del cajón",
+          "purpose": "Robots de servicio en casa y oficina — tirar y empujar muebles y sacar objetos"
+        }
+      }
     }
   ]
 }

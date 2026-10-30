@@ -556,7 +556,7 @@ def over_rate(original_video, donor: Path, frames: int = TRIAL_FRAMES, lp: Optio
         for es in (1.0, 0.5, 0.0):
             g = lp.drive(crop, es)
             gl = fl(g)
-            e1 = reid.embed(lp.paste(f, g, M, gl[0] if gl else None), c)
+            e1 = reid.embed(lp.paste(f, g, M, gl[0] if gl else None, target=lmk), c)   # 실제처럼 눈코입을 맞춰 붙인 얼굴로 (맞추면 더 닮는다)
             sv = reid.sim(e0, e1) if e1 is not None else 0.0
             best = sv if best is None else min(best, sv)
             if st is None:

@@ -25,10 +25,8 @@ import java.util.Locale;
  * 그동안 워치는 0.5초마다 진동하고 손목 자이로·가속도를 기록한다 (서버 /api/live 로 같은 세션).
  * 구간(폰 시계)과 단계를 meta.calibration 에 적어 올리면, 서버가 워치 시계로 옮겨 이 사람·이 워치의 결정 트리를 학습한다.
  */
-public class CalibrationActivity extends Activity {
-    private static final String[] NAMES = {"손을 놓고 가만히", "가볍게 쥐세요", "평소처럼 쥐세요", "꽉 쥐세요"};
-    private static final String[] HINTS = {"물병에서 손을 떼고 팔을 편하게 두세요", "떨어지지 않을 만큼만 살짝",
-            "물을 마실 때처럼 평소대로", "더 이상 못 쥘 만큼 세게 (아프지 않게)"};
+public class CalibrationActivity extends BaseActivity {
+    private String[] NAMES, HINTS;     // 손 놓기 · 가볍게 · 평소처럼 · 꽉 (R.array.calib_names · calib_hints)
     private static final int[] ORDER = {0, 1, 2, 3, 0, 1, 2, 3, 0};
     private static final long STEP_MS = 8000, GAP_MS = 2500;
     private final Handler ui = new Handler(Looper.getMainLooper());
@@ -45,11 +43,13 @@ public class CalibrationActivity extends Activity {
     protected void onCreate(Bundle state) {
         super.onCreate(state);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        LinearLayout body = Ui.page(this, "쥐는 세기 맞추기", true);
+        NAMES = getResources().getStringArray(R.array.calib_names);
+        HINTS = getResources().getStringArray(R.array.calib_hints);
+        LinearLayout body = Ui.page(this, getString(R.string.menu_calib), true);
         LinearLayout c = Ui.card(this);
-        c.addView(Ui.text(this, "워치를 찬 손으로 물병이나 컵을 쥐고, 화면 안내대로 쥐는 세기를 바꿔 주세요. 약 1분 30초, 한 번만 하면 돼요.",
+        c.addView(Ui.text(this, getString(R.string.calib_intro),
                 15, Ui.INK, false));
-        TextView why = Ui.text(this, "워치가 진동할 때 손이 떨림을 얼마나 흡수하는지로 쥐는 세기를 배워요 (GripSense 방식). 저울은 필요 없어요.",
+        TextView why = Ui.text(this, getString(R.string.calib_why),
                 13, Ui.SUB, false);
         why.setPadding(0, Ui.dp(this, 8), 0, 0);
         c.addView(why);
@@ -59,18 +59,18 @@ public class CalibrationActivity extends Activity {
         stage.setGravity(Gravity.CENTER_HORIZONTAL);
         progress = Ui.text(this, "", 13, Ui.ACCENT_INK, true);
         stage.addView(progress, Ui.wrap());
-        big = Ui.text(this, "준비되면 시작을 눌러 주세요", 26, Ui.INK, true);
+        big = Ui.text(this, getString(R.string.calib_ready), 26, Ui.INK, true);
         big.setGravity(Gravity.CENTER);
         big.setPadding(0, Ui.dp(this, 10), 0, Ui.dp(this, 6));
         stage.addView(big, Ui.wrap());
-        hint = Ui.text(this, "워치에서 데이터캐시 워치 앱을 켜 두세요", 14, Ui.SUB, false);
+        hint = Ui.text(this, getString(R.string.calib_open_watch), 14, Ui.SUB, false);
         hint.setGravity(Gravity.CENTER);
         stage.addView(hint, Ui.wrap());
         count = Ui.text(this, "", 56, Ui.PRIMARY, true);
         count.setPadding(0, Ui.dp(this, 10), 0, 0);
         stage.addView(count, Ui.wrap());
         Ui.add(this, body, stage);
-        action = Ui.button(this, "시작", true, v -> start());
+        action = Ui.button(this, getString(R.string.start), true, v -> start());
         Ui.add(this, body, action);
     }
 
@@ -78,17 +78,17 @@ public class CalibrationActivity extends Activity {
         if (running) return;
         running = true;
         action.setEnabled(false);
-        action.setText("맞추는 중…");
+        action.setText(R.string.calibrating);
         dir = new File(Store.sessionsDir(this), Clock.sessionId());
         dir.mkdirs();
         sync = new ServerSync(this);       // 녹화 시작을 서버에 알리면 워치가 같은 세션으로 기록·진동한다
         try {
             sync.start(dir);
         } catch (Exception e) {
-            Toast.makeText(this, "서버에 연결 안 됨: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            Toast.makeText(this, getString(R.string.server_fail_fmt, e.getMessage()), Toast.LENGTH_LONG).show();
         }
-        big.setText("시작해요");
-        hint.setText("워치가 기록을 시작할 때까지 잠깐만요");
+        big.setText(R.string.starting);
+        hint.setText(R.string.wait_watch);
         ui.postDelayed(this::next, 3000);
     }
 
@@ -98,7 +98,7 @@ public class CalibrationActivity extends Activity {
         if (idx >= ORDER.length) { finishAndUpload(); return; }
         int lv = ORDER[idx];
         progress.setText(String.format(Locale.KOREA, "%d / %d", idx + 1, ORDER.length));
-        big.setText("다음: " + NAMES[lv]);
+        big.setText(getString(R.string.next_step, NAMES[lv]));
         hint.setText(HINTS[lv]);
         count.setText("");
         ui.postDelayed(() -> {
@@ -122,8 +122,8 @@ public class CalibrationActivity extends Activity {
     }
 
     private void finishAndUpload() {
-        big.setText("끝났어요");
-        hint.setText("올려서 내 쥐는 세기를 배우는 중…");
+        big.setText(R.string.finished);
+        hint.setText(R.string.learning);
         count.setText("");
         new Thread(() -> {
             try {
@@ -131,16 +131,16 @@ public class CalibrationActivity extends Activity {
                 sync.stop();
                 JSONObject meta = new JSONObject()
                         .put("session_id", dir.getName()).put("format", "datacash/1").put("clock", "BOOTTIME")
-                        .put("mission", new JSONObject().put("id", "grip_calibration").put("title", "쥐는 세기 맞추기"))
+                        .put("mission", new JSONObject().put("id", "grip_calibration").put("title", getString(R.string.menu_calib)))
                         .put("devices", new JSONObject().put("phone", new JSONObject().put("model", Build.MANUFACTURER + " " + Build.MODEL)
                                 .put("android", Build.VERSION.RELEASE).put("id", Store.deviceId(this))))
                         .put("participant", new JSONObject().put("consent", Store.consentJson(this)).put("age_band", Store.ageBand(this)))
                         .put("calibration", new JSONObject().put("method", "gripsense").put("clock", "phone")
-                                .put("levels", new JSONArray().put("안 쥠").put("가볍게").put("평소처럼").put("꽉")).put("segments", segments))
+                                .put("levels", new JSONArray(java.util.Arrays.asList(getResources().getStringArray(R.array.grip_level_values)))).put("segments", segments))
                         .put("recorded_at", Clock.wallIso());
                 Files.write(new File(dir, "meta.json"), meta.toString(2));
-                Uploader.save(dir, "title", "쥐는 세기 맞추기");
-                Uploader.upload(this, dir, (s, p) -> ui.post(() -> hint.setText(s + " " + p + "%")));
+                Uploader.save(dir, "title", getString(R.string.menu_calib));
+                Uploader.upload(this, dir, (s, p) -> ui.post(() -> hint.setText(getString(R.string.progress_fmt, s, p))));
                 ui.post(() -> {
                     startActivity(new Intent(this, ResultActivity.class).putExtra("dir", dir.getAbsolutePath()));
                     finish();
@@ -148,9 +148,9 @@ public class CalibrationActivity extends Activity {
             } catch (Exception e) {
                 ui.post(() -> {
                     action.setEnabled(true);
-                    action.setText("다시 올리기");
+                    action.setText(R.string.upload_again);
                     action.setOnClickListener(v -> new Thread(this::retry, "calibration").start());
-                    Toast.makeText(this, "올리기 실패: " + Uploader.reason(e), Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, getString(R.string.upload_fail_fmt, Uploader.reason(e)), Toast.LENGTH_LONG).show();
                 });
             }
         }, "calibration").start();
@@ -158,10 +158,10 @@ public class CalibrationActivity extends Activity {
 
     private void retry() {
         try {
-            Uploader.upload(this, dir, (s, p) -> ui.post(() -> hint.setText(s + " " + p + "%")));
+            Uploader.upload(this, dir, (s, p) -> ui.post(() -> hint.setText(getString(R.string.progress_fmt, s, p))));
             ui.post(() -> { startActivity(new Intent(this, ResultActivity.class).putExtra("dir", dir.getAbsolutePath())); finish(); });
         } catch (Exception e) {
-            ui.post(() -> Toast.makeText(this, "올리기 실패: " + Uploader.reason(e), Toast.LENGTH_LONG).show());
+            ui.post(() -> Toast.makeText(this, getString(R.string.upload_fail_fmt, Uploader.reason(e)), Toast.LENGTH_LONG).show());
         }
     }
 

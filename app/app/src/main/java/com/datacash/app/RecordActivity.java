@@ -56,7 +56,7 @@ import java.util.concurrent.Executors;
  * 서버에 등록한 본인과 맞춰 봄), 10초가 지나면 '얼굴 없이 진행'. 2단계 '동작 촬영' — '실수했어요' 버튼.
  * 서버는 1단계 얼굴로 참여자를 알아보고, 1단계 구간은 판매 데이터에서 뺀다 (meta.json face_check).
  */
-public class RecordActivity extends Activity implements TextureView.SurfaceTextureListener {
+public class RecordActivity extends BaseActivity implements TextureView.SurfaceTextureListener {
     private static final int[] TIMERS = {0, 3, 5, 10};
     private static final int FACE_STREAK = 5;              // 0.2초 × 5 = 1초 이어서
     private static final long FACE_MISMATCH_MS = 4_000;
@@ -78,7 +78,7 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
 
     private LinearLayout top, controls, zoomBar;
     private TextView status, countdown, timerBtn, markBtn;
-    private static final String MARK_IDLE = "＋ 실수 표시";
+    private String MARK_IDLE;      // R.string.mark_idle (onCreate 에서)
     private final Runnable markIdle = () -> markBtn.setText(marks.isEmpty() ? MARK_IDLE
             : String.format(Locale.KOREA, "%s · %d", MARK_IDLE, marks.size()));
     private RecordRing recBtn;
@@ -98,6 +98,7 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
+        MARK_IDLE = getString(R.string.mark_idle);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         prefs = getSharedPreferences("datacash", MODE_PRIVATE);
         timerSeconds = prefs.getInt("rec_timer", 0);
@@ -151,7 +152,7 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
         faceSub = shadowText(15, false);
         faceSub.setPadding(0, Ui.dp(this, 6), 0, 0);
         box.addView(faceSub);
-        faceSkip = Ui.text(this, "사람이 나오지 않는 영상입니다", 14, Color.WHITE, true);   // 삼각대로 손·물건만 찍을 때
+        faceSkip = Ui.text(this, getString(R.string.no_person), 14, Color.WHITE, true);   // 삼각대로 손·물건만 찍을 때
         faceSkip.setPadding(Ui.dp(this, 18), Ui.dp(this, 10), Ui.dp(this, 18), Ui.dp(this, 10));
         faceSkip.setBackground(Ui.round(0x88000000, Ui.dp(this, 20)));
         faceSkip.setVisibility(View.GONE);
@@ -166,11 +167,11 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
         top.setOrientation(LinearLayout.VERTICAL);
         top.setBackground(Ui.round(0x99000000, Ui.dp(this, 18)));
         top.setPadding(Ui.dp(this, 16), Ui.dp(this, 14), Ui.dp(this, 16), Ui.dp(this, 14));
-        top.addView(Ui.text(this, String.format(Locale.KOREA, "%s 미션  +%,d원", title, Store.perMission(this)), 17, Color.WHITE, true));
-        TextView seq = Ui.text(this, steps.isEmpty() ? "1단계 얼굴 확인 → 2단계 동작 촬영" : "1단계 얼굴 확인 → 2단계 동작 촬영 · " + steps, 13, Ui.ACCENT, true);
+        top.addView(Ui.text(this, getString(R.string.mission_name, title) + "  " + Ui.plusWon(this, Store.perMission(this)), 17, Color.WHITE, true));
+        TextView seq = Ui.text(this, steps.isEmpty() ? getString(R.string.steps_two) : getString(R.string.steps_two) + " · " + steps, 13, Ui.ACCENT, true);
         seq.setPadding(0, Ui.dp(this, 8), 0, 0);
         top.addView(seq);
-        status = Ui.text(this, "상황 · " + situation, 13, 0xDDFFFFFF, false);
+        status = Ui.text(this, getString(R.string.situation_line, situation), 13, 0xDDFFFFFF, false);
         status.setPadding(0, Ui.dp(this, 6), 0, 0);
         top.addView(status);
         root.addView(top);
@@ -197,13 +198,13 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
         paintTimer();
         recBtn = new RecordRing(this);
         recBtn.setCameraStyle();
-        recBtn.setContentDescription("녹화");
+        recBtn.setContentDescription(getString(R.string.record_btn));
         recBtn.setOnClickListener(v -> press());
         FrameLayout sw = new FrameLayout(this);
         sw.setBackground(Ui.pressable(0x55000000, Ui.dp(this, 26)));
         Icon swi = new Icon(this, Icon.SWITCH, Color.WHITE);
         sw.addView(swi, new FrameLayout.LayoutParams(Ui.dp(this, 26), Ui.dp(this, 26), Gravity.CENTER));
-        sw.setContentDescription("앞뒤 카메라 바꾸기");
+        sw.setContentDescription(getString(R.string.switch_camera));
         sw.setOnClickListener(v -> switchCamera());
         switchBtn = sw;
         controls.addView(timerBtn, new LinearLayout.LayoutParams(Ui.dp(this, 52), Ui.dp(this, 52)));
@@ -215,12 +216,12 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
         markBtn = Ui.text(this, MARK_IDLE, 13, Color.WHITE, true);
         markBtn.setPadding(Ui.dp(this, 14), Ui.dp(this, 8), Ui.dp(this, 14), Ui.dp(this, 8));
         markBtn.setBackground(Ui.pressable(0x66000000, Ui.dp(this, 18)));
-        markBtn.setContentDescription("방금 실수했거나 다시 하는 중이면 눌러 주세요");
+        markBtn.setContentDescription(getString(R.string.mark_desc));
         markBtn.setVisibility(View.GONE);
         markBtn.setOnClickListener(v -> {
             if (!recording) return;
             marks.add(Clock.now());
-            markBtn.setText(String.format(Locale.KOREA, "✓ 실수 표시했어요 · %d", marks.size()));
+            markBtn.setText(getString(R.string.marked, marks.size()));
             ui.removeCallbacks(markIdle);
             ui.postDelayed(markIdle, 1500);
         });
@@ -288,7 +289,7 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
         camera = new CameraRecorder(this);
         camera.open(st, new CameraRecorder.Ready() {
             @Override public void ok() { ui.post(() -> { buildZoomBar(); Ui.applyFit(RecordActivity.this, preview); }); }
-            @Override public void fail(String why) { ui.post(() -> Toast.makeText(RecordActivity.this, "카메라: " + why, Toast.LENGTH_LONG).show()); }
+            @Override public void fail(String why) { ui.post(() -> Toast.makeText(RecordActivity.this, getString(R.string.camera_fail, why), Toast.LENGTH_LONG).show()); }
         }, front);
     }
 
@@ -299,7 +300,7 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
         if (camera != null) camera.close();
         camera = null;
         if (preview.isAvailable()) openCamera(preview.getSurfaceTexture());
-        say(front ? "앞 카메라" : "뒤 카메라");
+        say(getString(front ? R.string.front_camera : R.string.back_camera));
     }
 
     /** 배율 버튼: 이 카메라가 되는 것만 (0.5 · 1 · 2 · 5). */
@@ -340,13 +341,13 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
         timerSeconds = TIMERS[(i + 1) % TIMERS.length];
         prefs.edit().putInt("rec_timer", timerSeconds).apply();
         paintTimer();
-        say(timerSeconds == 0 ? "타이머 끔" : "녹화 버튼을 누르면 " + timerSeconds + "초 뒤에 시작해요");
+        say(timerSeconds == 0 ? getString(R.string.timer_off) : getString(R.string.timer_toast, timerSeconds));
     }
 
     private void paintTimer() {
-        timerBtn.setText(timerSeconds == 0 ? "타이머\n끔" : timerSeconds + "초");
+        timerBtn.setText(timerSeconds == 0 ? getString(R.string.timer_btn_off) : getString(R.string.timer_secs, timerSeconds));
         timerBtn.setTextSize(timerSeconds == 0 ? 10 : 15);
-        timerBtn.setContentDescription(timerSeconds == 0 ? "타이머 끔" : "타이머 " + timerSeconds + "초");
+        timerBtn.setContentDescription(timerSeconds == 0 ? getString(R.string.timer_off) : getString(R.string.timer_desc, timerSeconds));
     }
 
     private void press() {
@@ -356,7 +357,7 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
         if (timerSeconds == 0) { start(); return; }
         countdownLeft = timerSeconds;
         countdown.setVisibility(View.VISIBLE);
-        say("다시 누르면 취소돼요");
+        say(getString(R.string.tap_again_cancel));
         countdownTick();
     }
 
@@ -377,7 +378,7 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
         countdownLeft = 0;
         ui.removeCallbacks(tickRunner);
         countdown.setVisibility(View.GONE);
-        say("타이머를 취소했어요");
+        say(getString(R.string.timer_cancelled));
     }
 
     private void say(String s) {
@@ -391,7 +392,7 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
         android.media.AudioManager am = (android.media.AudioManager) getSystemService(AUDIO_SERVICE);
         if (am != null && (am.getMode() == android.media.AudioManager.MODE_IN_CALL
                 || am.getMode() == android.media.AudioManager.MODE_IN_COMMUNICATION)) {
-            Toast.makeText(this, "통화 중에는 소리가 녹음되지 않아요. 통화를 끝내고 다시 눌러 주세요", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, R.string.in_call, Toast.LENGTH_LONG).show();
             return;
         }
         busy = true;
@@ -408,7 +409,7 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
             sync = new ServerSync(this);   // 서버에 녹화 시작을 알리고 시각을 주고받는다 (워치가 같이 기록)
             sync.start(dir);
         } catch (Exception e) {
-            Toast.makeText(this, "시작 실패: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            Toast.makeText(this, getString(R.string.start_fail, e.getMessage()), Toast.LENGTH_LONG).show();
             busy = false;
             return;
         }
@@ -429,7 +430,7 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
                 });
             }
             @Override public void fail(String why) {
-                ui.post(() -> { busy = false; Toast.makeText(RecordActivity.this, "녹화 실패: " + why, Toast.LENGTH_LONG).show(); });
+                ui.post(() -> { busy = false; Toast.makeText(RecordActivity.this, getString(R.string.record_fail, why), Toast.LENGTH_LONG).show(); });
             }
         });
     }
@@ -438,8 +439,8 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
         if (!recording) return;
         long s = (Clock.now() - startNs) / 1_000_000_000L;
         boolean quiet = s >= 4 && audio != null && audio.peak < 30;     // 마이크가 막혔거나 다른 앱이 쓰는 중
-        status.setText(String.format(Locale.KOREA, "● 녹화 %d:%02d · 상황 · %s", s / 60, s % 60, situation)
-                + (quiet ? "\n⚠ 소리가 거의 안 들려요 — 마이크를 가리지 않았는지 봐 주세요" : ""));
+        status.setText(getString(R.string.rec_status, (int) (s / 60), (int) (s % 60), situation)
+                + (quiet ? "\n" + getString(R.string.quiet_warn) : ""));
         ui.postDelayed(this::tick, 500);
     }
 
@@ -458,8 +459,8 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
         faceOval.setOk(false);
         faceOval.setVisibility(View.VISIBLE);
         faceSkip.setVisibility(View.VISIBLE);              // 처음부터: 사람이 안 나오는 영상이면 바로 건너뛴다
-        faceTitle.setText("1단계 · 얼굴 확인");
-        faceSub.setText("카메라 가까이에서 정면을 봐 주세요\n얼굴이 동그라미 안에 오게");
+        faceTitle.setText(R.string.step1_title);
+        faceSub.setText(R.string.face_look);
         faceLayer.setVisibility(View.VISIBLE);
         zoomBar.setVisibility(View.GONE);
         markBtn.setVisibility(View.GONE);
@@ -539,7 +540,7 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
                     identity = r.optBoolean("match") ? "checked" : "mismatch";
                 }
             } catch (Exception e) {
-                if (identity.equals("pending")) identity = Uploader.reason(e).contains("얼굴") ? "pending" : "offline";
+                if (identity.equals("pending")) identity = e instanceof Uploader.HttpError && ((Uploader.HttpError) e).code == 422 ? "pending" : "offline";   // 422 = 사진에서 얼굴을 못 찾음
             }
         }).start();
     }
@@ -550,11 +551,11 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
         faceStreak = found ? faceStreak + 1 : 0;
         faceOval.setOk(found && idOk);
         long waited = System.currentTimeMillis() - faceStartMs;
-        if (found && idOk) faceSub.setText("좋아요, 그대로 잠깐만요");
+        if (found && idOk) faceSub.setText(R.string.same_face_ok);
         else if (found && identity.equals("mismatch") && waited > FACE_MISMATCH_MS)
-            faceSub.setText("등록한 얼굴과 달라 보여요\n밝은 곳에서 안경·모자를 벗고 정면으로");
-        else if (found) faceSub.setText("본인인지 확인하는 중…");
-        else faceSub.setText("카메라 가까이에서 정면을 봐 주세요\n얼굴이 동그라미 안에 오게");
+            faceSub.setText(R.string.face_mismatch);
+        else if (found) faceSub.setText(R.string.checking_identity);
+        else faceSub.setText(R.string.face_look);
         if (faceStreak >= FACE_STREAK && idOk) endFaceCheck(true);
         else faceLoop();
     }
@@ -567,10 +568,9 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
         faceEndNs = Clock.now();
         faceSkip.setVisibility(View.GONE);
         faceOval.setVisibility(passed ? View.VISIBLE : View.GONE);
-        faceTitle.setText(noPerson ? "얼굴 확인 없이 찍어요" : !passed ? "얼굴 없이 진행해요"
-                : identity.equals("checked") ? "✓ 본인 확인됐어요" : "✓ 얼굴 확인됐어요");
-        faceSub.setText(passed || noPerson ? "2단계 · 이제 동작을 시작하세요"
-                : "등록된 본인으로 알아보지 못하면 영상에서 가려질 수 있어요\n2단계 · 동작을 시작하세요");
+        faceTitle.setText(noPerson ? R.string.no_face_check : !passed ? R.string.no_face_continue
+                : identity.equals("checked") ? R.string.identity_ok : R.string.face_ok);
+        faceSub.setText(passed || noPerson ? R.string.step2_go : R.string.step2_warn);
         markBtn.setVisibility(View.VISIBLE);
         ui.postDelayed(() -> faceOval.setVisibility(View.GONE), 700);
         ui.postDelayed(() -> {
@@ -624,7 +624,7 @@ public class RecordActivity extends Activity implements TextureView.SurfaceTextu
                     finish();
                 });
             } catch (Exception e) {
-                ui.post(() -> { busy = false; Toast.makeText(this, "저장 실패: " + e.getMessage(), Toast.LENGTH_LONG).show(); });
+                ui.post(() -> { busy = false; Toast.makeText(this, getString(R.string.save_fail, e.getMessage()), Toast.LENGTH_LONG).show(); });
             }
         }).start();
     }

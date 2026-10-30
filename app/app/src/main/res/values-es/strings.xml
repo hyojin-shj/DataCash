@@ -1,0 +1,390 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">DataCash</string>
+    <string name="back">Atrás</string>
+    <string name="cancel">Cancelar</string>
+    <string name="lang_title">Idioma</string>
+    <string name="money">₩%1$,d</string>
+    <string name="money_plus">+₩%1$,d</string>
+    <string name="recording">Grabación</string>
+    <string name="mission">Misión</string>
+    <string name="state_uploading">Subiendo</string>
+    <string name="state_processing">Procesando</string>
+    <string name="state_done">Aprobada</string>
+    <string name="state_rejected">Rechazada</string>
+    <string name="state_failed">Falló</string>
+    <string name="upload_again">Volver a subir</string>
+    <string name="state_collected">Archivada</string>
+    <string name="state_saved">Guardada</string>
+    <string name="level_bio">Nivel biométrico</string>
+    <string name="level_premium">Nivel premium</string>
+    <string name="level_basic">Nivel básico</string>
+    <string name="server_offline">Sin conexión con el servidor</string>
+    <string name="camera_fail">Cámara: %1$s</string>
+    <string name="camera_error">Error de cámara %1$d</string>
+    <string name="camera_preview_fail">Falló la vista previa</string>
+    <string name="camera_session_fail">Falló la sesión de grabación</string>
+    <string name="switch_camera">Cambiar cámara delantera/trasera</string>
+    <string name="upload_fail_fmt">Error al subir: %1$s</string>
+    <string name="progress_fmt">%1$s %2$d%%</string>
+    <string name="same_face_ok">Bien, quédate quieto un momento</string>
+    <string name="ch_work">Procesamiento de grabaciones</string>
+    <string name="ch_reward">Recompensas</string>
+    <string name="n_work_title">Procesando tus grabaciones</string>
+    <string name="n_work_text">Sigue aunque cierres la app</string>
+    <string name="n_uploading">%1$s · subiendo %2$d%%</string>
+    <string name="n_uploading_text">El servidor cambia los rostros y oculta lo necesario, y luego borra el original</string>
+    <string name="n_upload_failed">No se pudo subir %1$s</string>
+    <string name="n_upload_failed_text">Toca «Volver a subir» en Mis grabaciones</string>
+    <string name="n_reviewing">%1$s · en revisión</string>
+    <string name="n_reviewing_text">Ocultando · etiquetando · sincronizando los 4 sentidos — te avisaremos al terminar</string>
+    <string name="n_paid">¡Ding! Misión %1$s · +₩%2$,d</string>
+    <string name="paid_to">Pagado a %1$s</string>
+    <string name="link_to_get_paid">Vincula una cuenta para cobrar al instante</string>
+    <string name="n_collected">Grabación %1$s archivada</string>
+    <string name="n_collected_text">La revisión y la recompensa se harán más tarde, todo junto</string>
+    <string name="n_rejected">Resultado de la revisión: %1$s</string>
+    <string name="rejected_default">Rechazada</string>
+    <string name="n_rejected_text">%1$s · Puedes apelar</string>
+    <string name="paid_one">Se pagó la recompensa de la misión %1$s</string>
+    <string name="paid_many">Se pagaron %1$d recompensas de misiones</string>
+    <string name="ding">¡Ding!</string>
+    <string name="received_to">Recibido en %1$s</string>
+    <string name="nice">¡Genial!</string>
+    <string name="reward_confirmed">Recompensa confirmada +₩%1$,d</string>
+    <string name="link_account">Vincular cuenta</string>
+    <string name="later">Más tarde</string>
+    <string name="today_won">Hoy +₩%1$,d</string>
+    <string name="today_first">Primera misión de hoy</string>
+    <string name="today_count">%1$d grabadas hoy</string>
+    <string name="home_sponsored">Misiones de empresas</string>
+    <string name="swipe_hint">Desliza hacia el lado</string>
+    <string name="missions_read_fail">No se pudieron cargar las misiones: %1$s</string>
+    <string name="more_features">Más funciones</string>
+    <string name="menu_payout">Cuenta de cobro</string>
+    <string name="menu_payout_desc">Vincula una cuenta y cobra tras cada misión</string>
+    <string name="menu_devices">Conectar dispositivos</string>
+    <string name="menu_devices_desc">Con el reloj se captan tacto y biometría: nivel premium</string>
+    <string name="menu_calib">Calibrar la fuerza de agarre</string>
+    <string name="menu_calib_desc">Aprieta una botella suave, normal y fuerte para que el reloj aprenda tu agarre (solo una vez)</string>
+    <string name="menu_people">Personas con consentimiento</string>
+    <string name="menu_people_desc">Añade a familiares que salen en cámara, con su consentimiento</string>
+    <string name="menu_history">Mis grabaciones</string>
+    <string name="menu_history_desc">Resultados, recompensas y apelaciones</string>
+    <string name="menu_appeals">Estado de las apelaciones</string>
+    <string name="menu_appeals_desc">Revisión automática · Revisor · Resultado</string>
+    <string name="privacy_title">Así protegemos tus datos</string>
+    <string name="privacy_desc">Se ocultan las personas sin consentimiento, niños, pantallas y espejos, y tu rostro y el de quienes aceptaron se cambian por personas que no existen antes de vender nada</string>
+    <string-array name="things">
+        <item>un helado</item>
+        <item>un americano</item>
+        <item>un plato caliente</item>
+        <item>una entrada de cine</item>
+        <item>un pollo frito</item>
+        <item>un mes de teléfono</item>
+        <item>unas zapatillas</item>
+        <item>unos auriculares inalámbricos</item>
+        <item>un viaje a Jeju</item>
+    </string-array>
+    <string name="earned_like">¡Ya ganaste para %1$s!</string>
+    <string name="earned_first">¡Con tu primera misión ya tienes para un helado!</string>
+    <string name="earned_next">¡%1$d misiones más y tienes para %2$s!</string>
+    <string name="earned_title">Recompensas acumuladas</string>
+    <string name="today_badge" formatted="false">Misión extra de hoy · +50% de recompensa</string>
+    <string name="start_recording">Empezar a grabar</string>
+    <string name="reward_breakdown">(base %1$,d + extra %2$,d · por minuto)</string>
+    <string name="tap_next">Toca para grabar la siguiente situación (%1$d/%2$d)</string>
+    <string name="pick_situation">Elegir situación y grabar</string>
+    <string name="summary_title">Resumen de hoy</string>
+    <string name="sum_rec">Grabaciones de hoy</string>
+    <string name="count_items">%1$d</string>
+    <string name="sum_expect">Por cobrar</string>
+    <string name="sum_people">Consentimiento</string>
+    <string name="face_registered_me">Tu rostro está registrado</string>
+    <string name="face_needed_me">Registra tu rostro</string>
+    <string name="summary_back">← Desliza hacia atrás para ver las misiones de empresas</string>
+    <string name="today_bonus">Extra de hoy</string>
+    <string name="scarce">Demanda +%1$d%%</string>
+    <string name="req_purpose">Encargo · %1$s</string>
+    <string name="req_sponsor_purpose">Encargo · %1$s · %2$s</string>
+    <string name="situations_count">Situaciones %1$d/%2$d</string>
+    <string-array name="age_bands">
+        <item>19–29</item>
+        <item>30–39</item>
+        <item>40–49</item>
+        <item>50–59</item>
+        <item>60+</item>
+    </string-array>
+    <string name="me_name">Yo</string>
+    <string name="consent_title">Antes de empezar</string>
+    <string name="consent_protect">Así te protege DataCash</string>
+    <string name="consent_points">• En los videos que se venden, tu rostro se cambia por una persona que no existe\n• Familiares sin consentimiento, pantallas, espejos, cuadros y documentos se cubren en gris\n• Si se oye un nombre o una dirección, solo esa parte se silencia\n• Si retiras tu consentimiento, tus grabaciones dejan de venderse</string>
+    <string name="consent_video">(Obligatorio) Acepto que el video, el sonido y el movimiento de mis misiones se procesen como se indica arriba y se vendan como datos de entrenamiento para robots</string>
+    <string name="consent_bio">(Opcional) Acepto vender también la frecuencia cardíaca, la reserva de frecuencia cardíaca (HRR), los cambios de temperatura de la piel del reloj y mis respuestas tras la misión — nunca se usan para juzgar ni aconsejar sobre salud</string>
+    <string name="age_band">Edad</string>
+    <string name="gender_label">Género (opcional — solo para misiones de empresas que lo piden y para elegir la persona virtual de tu rostro)</string>
+    <string name="gender_female">Mujer</string>
+    <string name="gender_male">Hombre</string>
+    <string name="gender_none">Prefiero no decirlo</string>
+    <string name="consent_start">Aceptar y empezar</string>
+    <string name="consent_need">Debes aceptar el video y elegir tu edad</string>
+    <string name="mission_read_fail">No se pudo cargar la misión</string>
+    <string name="sponsor_line">Empresa · %1$s</string>
+    <string name="purpose_line">Objetivo · %1$s</string>
+    <string name="today_bonus_amount">Extra de hoy +₩%1$,d</string>
+    <string name="per_minute">%1$s · por minuto</string>
+    <string name="steps_seq">Pasos · %1$s</string>
+    <string name="situations_done">%1$d/%2$d situaciones hechas</string>
+    <string name="mission_tip">Graba con el reloj puesto para captar el tacto (fuerza de agarre) y las señales del cuerpo y ganar más. Si te equivocas al grabar, toca «+ Marcar error» abajo — los robots también aprenden de los errores.</string>
+    <string name="situations_pick_title">Elige una situación · cambia una condición a la vez</string>
+    <string name="recorded_done">Grabada</string>
+    <string name="again">Repetir</string>
+    <string name="record_chip">Grabar</string>
+    <string name="survey_title">Después de la misión</string>
+    <string name="survey_hint_bio">Solo dos toques. Si lo omites, la recompensa es la misma.</string>
+    <string name="survey_hint">Solo un toque. Si lo omites, la recompensa es la misma.</string>
+    <string name="survey_q1">¿Cómo te fue la misión?</string>
+    <string name="survey_once">A la\nprimera</string>
+    <string name="survey_retry">Tras\nreintentar</string>
+    <string name="survey_failed">No pude\nterminar</string>
+    <string name="survey_q2">¿Qué tan difícil fue?</string>
+    <string name="survey_easy">Muy fácil</string>
+    <string name="survey_hard">Muy difícil</string>
+    <string name="skip">Omitir</string>
+    <string name="survey_saved">Guardada · subiendo para revisión</string>
+    <string name="result_title">Mi grabación</string>
+    <string name="upload_failed_short">No se pudo subir</string>
+    <string name="upload_failed_detail">%1$s\nRevisa la dirección del servidor y el token en ajustes. La grabación sigue en tu teléfono.</string>
+    <string name="status_fail">No se pudo obtener el estado: %1$s</string>
+    <string name="result_processing">Ocultando · etiquetando · sincronizando los 4 sentidos. El servidor sigue aunque cierres la app.</string>
+    <string name="result_collected">Guardada tal cual, por misión. El ocultado, el etiquetado, la revisión y la recompensa se harán después, todo junto.</string>
+    <string name="calib_learned">Fuerza de agarre aprendida</string>
+    <string name="calib_detail">Aprendido suave · normal · fuerte · soltar en %1$d tramos · acierto %2$.0f%%\nDesde tu próxima grabación se incluirá la fuerza de agarre</string>
+    <string name="reward_added">+₩%1$,d ganados</string>
+    <string name="result_detail">Aceptado %1$.1f min · nivel %2$s · sincronización %3$s</string>
+    <string name="skipped_steps">Pasos omitidos: %1$s</string>
+    <string name="preview_title">Vista previa del rostro virtual</string>
+    <string name="preview_sum">Así se ve el video que se vende. Las zonas ocultas son grises y los rostros son de personas que no existen.</string>
+    <string name="preview_stats">Rostro virtual en %2$d de %1$d escenas · rostros pequeños %3$d · pixelados por reconocibles %4$d · re-ID máx. %5$.2f (pasa por debajo de 0.30)</string>
+    <string name="preview_pending">Aún se está procesando · podrás verla al terminar la revisión</string>
+    <string name="devices_intro">Conecta dispositivos para sincronizar el video con el movimiento de muñeca, la fuerza de agarre y el pulso en una sola línea de tiempo: el nivel premium paga más.</string>
+    <string name="lang_section">Idioma de la app</string>
+    <string name="data_server">Servidor de datos</string>
+    <string name="data_server_desc">Al terminar, las grabaciones se suben aquí para revisarse</string>
+    <string name="server_hint">Dirección del servidor (p. ej., http://192.168.0.10:8800)</string>
+    <string name="token_hint">Token (el valor que muestra el servidor)</string>
+    <string name="save_and_check">Guardar y probar conexión</string>
+    <string name="auto_find">Buscar automáticamente en la misma Wi-Fi</string>
+    <string name="finding">Buscando el servidor…</string>
+    <string name="not_found">No se encontró · comprueba que el servidor esté encendido y en la misma Wi-Fi</string>
+    <string name="galaxy_watch">Galaxy Watch</string>
+    <string name="watch_desc">Movimiento de muñeca · tacto por vibración activa (GripSense) · pulso</string>
+    <string name="watch_steps">1. Instala la app de DataCash en tu reloj y déjala abierta (misma dirección del servidor)\n2. Al empezar a grabar en el teléfono, el reloj empieza a registrar automáticamente\n3. Al terminar, el reloj sube los datos solo y el servidor sincroniza teléfono y reloj — no hace falta emparejarlos</string>
+    <string name="calib_watch_btn">Calibrar el agarre con el reloj (solo una vez)</string>
+    <string name="coming_soon">Muy pronto</string>
+    <string name="home_camera">Cámara del hogar</string>
+    <string name="home_camera_desc">Graba desde un ángulo fijo para añadir una vista en tercera persona</string>
+    <string name="preparing">En preparación</string>
+    <string name="speaker_hub">Altavoz inteligente · hub</string>
+    <string name="speaker_hub_desc">Sonidos de casa y estado de dispositivos en la misma línea de tiempo</string>
+    <string name="checking">Comprobando conexión…</string>
+    <string name="connected_rtt">● Conectado · ida y vuelta %1$.0f ms</string>
+    <string name="token_wrong">El token no coincide</string>
+    <string name="server_code">Respuesta del servidor %1$d</string>
+    <string name="not_connected_check">Sin conexión · comprueba que estés en la misma Wi-Fi y que la dirección sea correcta</string>
+    <string-array name="relations">
+        <item>Yo</item>
+        <item>Pareja</item>
+        <item>Familia</item>
+        <item>Conviviente</item>
+        <item>Otro</item>
+    </string-array>
+    <string name="people_intro">Quien salga en el video debe dar su consentimiento y registrar su rostro; si no, se oculta. Incluso las personas registradas aparecen con el rostro de alguien que no existe en los videos que se venden.</string>
+    <string name="people_add_title">Añadir persona</string>
+    <string name="name_hint">Nombre o apodo</string>
+    <string name="relation">Relación</string>
+    <string name="adult_check">Tengo 19 años o más</string>
+    <string name="people_agree">(Obligatorio) Acepto aparecer en los videos de misiones y que el video, el sonido y el movimiento, con mi rostro cambiado por una persona virtual, se vendan como datos de entrenamiento para robots. Puedo retirarlo cuando quiera.</string>
+    <string name="people_bio">(Opcional, solo «Yo») Acepto aportar también la frecuencia cardíaca, la reserva de frecuencia cardíaca (HRR), los cambios de temperatura de la piel del reloj y mis respuestas tras la misión — nunca se usan para juzgar ni aconsejar sobre salud</string>
+    <string name="kid_note">Los menores de 19 años no se pueden añadir y siempre se ocultan en los videos.</string>
+    <string name="agree_add">Aceptar y añadir</string>
+    <string name="check_server_in_devices">Revisa el servidor en Conectar dispositivos</string>
+    <string name="none_yet">Todavía nadie</string>
+    <string name="none_yet_desc">Primero añade «Yo» y registra tu rostro — el paso 1 de la grabación comprueba que eres tú</string>
+    <string name="consented_on">Consentimiento %1$s</string>
+    <string name="bio_consented_line">Aceptó compartir pulso · HRR · cambios de temperatura de la piel · respuestas tras la misión</string>
+    <string name="virtual_person_line">Persona virtual: %1$s</string>
+    <string name="donor_auto_desc">Automático · la persona menos parecida</string>
+    <string name="enroll_failed_line">Error de registro · %1$s</string>
+    <string name="enroll_needed_line">Toca para registrar el rostro y seguir visible en los videos (si no, se oculta)</string>
+    <string name="face_enrolled">Rostro registrado</string>
+    <string name="enroll_failed">Error de registro</string>
+    <string name="face_needed">Falta el rostro</string>
+    <string name="donor_n">Persona virtual %1$d (%2$s)</string>
+    <string name="re_enroll">Volver a registrar el rostro (3 fotos)</string>
+    <string name="enroll">Registrar el rostro (3 fotos)</string>
+    <string name="pick_donor">Elegir persona virtual</string>
+    <string name="bio_withdraw">Retirar solo el consentimiento biométrico</string>
+    <string name="bio_agree">Aceptar compartir datos biométricos</string>
+    <string name="withdraw_consent">Retirar consentimiento</string>
+    <string name="bio_withdrawn">Retiraste el consentimiento biométrico. Desde la próxima grabación no se registrarán pulso ni temperatura</string>
+    <string name="bio_agreed">Aceptaste compartir datos biométricos</string>
+    <string name="withdraw_confirm">¿Retirar el consentimiento de %1$s? Se borrarán sus datos faciales y se ocultará desde la próxima grabación.</string>
+    <string name="withdraw">Retirar</string>
+    <string name="donor_changed">Persona virtual cambiada</string>
+    <string name="donor_auto_btn">Automático (la menos parecida)</string>
+    <string name="donor_auto_toast">Elegiremos automáticamente a la persona menos parecida</string>
+    <string name="need_name">Escribe un nombre o apodo</string>
+    <string name="adult_only">Solo se pueden añadir personas de 19 años o más</string>
+    <string name="need_agree">Se necesita el consentimiento obligatorio para añadir</string>
+    <string name="pick_age">Elige una edad</string>
+    <string name="added_enroll">%1$s añadido · ahora registra su rostro</string>
+    <string name="history_confirmed">Recompensas confirmadas</string>
+    <string name="history_reviewing">En revisión</string>
+    <string name="no_recordings">Aún no hay grabaciones</string>
+    <string name="no_recordings_desc">Prueba la misión de hoy desde Inicio</string>
+    <string name="minutes_level">%1$.1f min · %2$s</string>
+    <string name="paid_done">Pagado · %1$s</string>
+    <string name="appeal_extra">Apelación aceptada +₩%1$,d</string>
+    <string name="collected_later">Archivada · revisión más tarde</string>
+    <string name="reason_line">Motivo: %1$s</string>
+    <string name="reason_default">No cumple los criterios de revisión</string>
+    <string name="before_upload">Sin subir</string>
+    <string name="uploading_toast">Subiendo</string>
+    <string name="view_result">Ver resultado ›</string>
+    <string name="preview_link">Vista previa del rostro virtual ›</string>
+    <string name="appeal_link">Apelar ›</string>
+    <string-array name="banks">
+        <item>KB Kookmin</item>
+        <item>Shinhan</item>
+        <item>Woori</item>
+        <item>Hana</item>
+        <item>NH NongHyup</item>
+        <item>IBK</item>
+        <item>KakaoBank</item>
+        <item>Toss Bank</item>
+        <item>K Bank</item>
+    </string-array>
+    <string name="received">Recompensas recibidas</string>
+    <string name="waiting_status">₩%1$,d pendientes de pago · vincula una cuenta para recibirlos al instante</string>
+    <string name="no_account">Aún no has vinculado una cuenta</string>
+    <string name="receive_to">Se paga a %1$s</string>
+    <string name="deposit_account">Cuenta de depósito</string>
+    <string name="change_account">Cambiar cuenta</string>
+    <string name="linked_line">%1$s · vinculada</string>
+    <string name="account_hint">Número de cuenta (solo dígitos)</string>
+    <string name="link_and_receive">Vincular cuenta y cobrar ya</string>
+    <string name="payout_note">El número completo solo se guarda en este teléfono; al servidor solo le llega un número oculto. Es una versión de prueba, así que los pagos se registran como pagos de prueba, no como transferencias reales.</string>
+    <string name="payout_history">Historial de pagos</string>
+    <string name="waiting_chip">₩%1$,d pendiente</string>
+    <string name="waiting_account">Esperando cuenta</string>
+    <string name="no_payouts">Aún no hay recompensas pagadas</string>
+    <string name="no_payouts_desc">Llegan aquí cuando se aprueban las misiones</string>
+    <string name="check_account">Revisa el número de cuenta</string>
+    <string name="sent_waiting">Se enviaron %1$d recompensas pendientes</string>
+    <string name="next_paid">Las próximas recompensas se pagarán al instante</string>
+    <string name="saved_local">Guardado en este teléfono · no se pudo avisar al servidor</string>
+    <string name="reason_reward">La recompensa es baja</string>
+    <string name="reason_failed">Falló el procesamiento</string>
+    <string name="reason_privacy">Se ve algo que debía ocultarse</string>
+    <string name="reason_label">Etiquetas o pasos incorrectos</string>
+    <string name="reason_other">Otro</string>
+    <string name="appeals_intro">Primero lo revisamos automáticamente y, si no se resuelve, lo revisa una persona. «Se ve algo que debía ocultarse» retira la grabación de la venta al instante. Puedes apelar hasta 5 veces al día.</string>
+    <string name="in_progress">En curso</string>
+    <string name="accepted">Aceptada</string>
+    <string name="dismissed">Desestimada</string>
+    <string name="recovered">Recuperado</string>
+    <string name="appeal">Apelar</string>
+    <string name="rejected_line">Rechazada · %1$s</string>
+    <string name="no_in_progress">No hay apelaciones en curso</string>
+    <string name="results">Resultados</string>
+    <string name="no_results">Aún no hay resultados</string>
+    <string name="appealable">Grabaciones que puedes apelar</string>
+    <string name="no_rejected">No hay grabaciones rechazadas</string>
+    <string name="no_rejected_desc">También puedes apelar grabaciones aprobadas desde Mis grabaciones</string>
+    <string name="accepted_plus">Aceptada +₩%1$,d</string>
+    <string name="not_accepted">No aceptada</string>
+    <string name="reprocessing">Reprocesando</string>
+    <string name="reviewing">En revisión</string>
+    <string name="recording_sid">Grabación %1$s</string>
+    <string name="stage_auto">Automática</string>
+    <string name="stage_reviewer">Revisor</string>
+    <string name="stage_result">Resultado</string>
+    <string name="detail_hint">Detalles (opcional)</string>
+    <string name="submit">Enviar</string>
+    <string-array name="calib_names">
+        <item>Suelta y quédate quieto</item>
+        <item>Aprieta suave</item>
+        <item>Aprieta normal</item>
+        <item>Aprieta fuerte</item>
+    </string-array>
+    <string-array name="calib_hints">
+        <item>Quita la mano de la botella y relaja el brazo</item>
+        <item>Lo justo para que no se caiga</item>
+        <item>Como cuando bebes agua</item>
+        <item>Tan fuerte como puedas (sin hacerte daño)</item>
+    </string-array>
+    <string name="calib_intro">Con la mano del reloj, sujeta una botella o una taza y cambia la fuerza según indique la pantalla. Unos 1 min 30 s, solo una vez.</string>
+    <string name="calib_why">El reloj aprende tu agarre según cuánto absorbe la mano su vibración (GripSense). No hace falta báscula.</string>
+    <string name="calib_ready">Toca Empezar cuando estés listo</string>
+    <string name="calib_open_watch">Abre la app de DataCash en tu reloj</string>
+    <string name="start">Empezar</string>
+    <string name="calibrating">Calibrando…</string>
+    <string name="server_fail_fmt">Sin conexión con el servidor: %1$s</string>
+    <string name="starting">Empezamos</string>
+    <string name="wait_watch">Espera un momento a que el reloj empiece a registrar</string>
+    <string name="next_step">Siguiente: %1$s</string>
+    <string name="finished">Listo</string>
+    <string name="learning">Subiendo para aprender tu agarre…</string>
+    <string-array name="face_prompts">
+        <item>Mira de frente</item>
+        <item>Gira la cabeza un poco a la izquierda</item>
+        <item>Gira la cabeza un poco a la derecha</item>
+    </string-array>
+    <string name="face_enroll_title">Registrar el rostro de %1$s</string>
+    <string name="photo_deleted">Las fotos se borran justo después de crear los datos faciales</string>
+    <string name="take_photo">Tomar foto</string>
+    <string name="face_visible">Rostro detectado</string>
+    <string name="good_next">✓ Bien · Siguiente: %1$s</string>
+    <string name="face_in_circle">Mantén la cara dentro del círculo</string>
+    <string name="back_camera_hint">(Cámara trasera · fotografía el rostro de tu familiar)</string>
+    <string name="uploading_ellipsis">Subiendo…</string>
+    <string name="face_registered_toast">Rostro registrado</string>
+    <string name="retake">Vuelve a tomarla</string>
+    <string name="retake_three">Toma las tres fotos de nuevo, empezando de frente</string>
+    <string name="upload_failed_reason">No se pudo subir · %1$s</string>
+    <string name="tap_to_retry">Toca el botón de captura para volver a subir</string>
+    <string name="mark_idle">+ Marcar error</string>
+    <string name="no_person">En este video no sale nadie</string>
+    <string name="mission_name">Misión %1$s</string>
+    <string name="steps_two">Paso 1 verificación facial → Paso 2 grabar la acción</string>
+    <string name="situation_line">Situación · %1$s</string>
+    <string name="record_btn">Grabar</string>
+    <string name="mark_desc">Tócalo si te equivocaste o estás repitiendo</string>
+    <string name="marked">✓ Error marcado · %1$d</string>
+    <string name="front_camera">Cámara delantera</string>
+    <string name="back_camera">Cámara trasera</string>
+    <string name="timer_off">Temporizador apagado</string>
+    <string name="timer_toast">La grabación empieza %1$d s después de tocar el botón</string>
+    <string name="timer_btn_off">Temp.\napagado</string>
+    <string name="timer_secs">%1$d s</string>
+    <string name="timer_desc">Temporizador %1$d s</string>
+    <string name="tap_again_cancel">Toca de nuevo para cancelar</string>
+    <string name="timer_cancelled">Temporizador cancelado</string>
+    <string name="in_call">No se puede grabar sonido durante una llamada. Termina la llamada y vuelve a tocar</string>
+    <string name="start_fail">No se pudo empezar: %1$s</string>
+    <string name="record_fail">Falló la grabación: %1$s</string>
+    <string name="rec_status">● Grabando %1$d:%2$02d · Situación · %3$s</string>
+    <string name="quiet_warn">⚠ Casi no se oye nada — comprueba que el micrófono no esté tapado</string>
+    <string name="step1_title">Paso 1 · Verificación facial</string>
+    <string name="face_look">Acércate a la cámara y mira de frente\nMantén la cara dentro del círculo</string>
+    <string name="face_mismatch">No se parece al rostro registrado\nMira de frente con buena luz, sin gafas ni gorra</string>
+    <string name="checking_identity">Comprobando que eres tú…</string>
+    <string name="no_face_check">Grabando sin verificación facial</string>
+    <string name="no_face_continue">Continuando sin rostro</string>
+    <string name="identity_ok">✓ Identidad confirmada</string>
+    <string name="face_ok">✓ Rostro confirmado</string>
+    <string name="step2_go">Paso 2 · Empieza la acción</string>
+    <string name="step2_warn">Si no se te reconoce como la persona registrada, podrías quedar oculto en el video\nPaso 2 · Empieza la acción</string>
+    <string name="save_fail">No se pudo guardar: %1$s</string>
+</resources>

@@ -1,0 +1,390 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">DataCash</string>
+    <string name="back">返回</string>
+    <string name="cancel">取消</string>
+    <string name="lang_title">语言</string>
+    <string name="money">₩%1$,d</string>
+    <string name="money_plus">+₩%1$,d</string>
+    <string name="recording">录制</string>
+    <string name="mission">任务</string>
+    <string name="state_uploading">上传中</string>
+    <string name="state_processing">处理中</string>
+    <string name="state_done">已通过</string>
+    <string name="state_rejected">未通过</string>
+    <string name="state_failed">失败</string>
+    <string name="upload_again">重新上传</string>
+    <string name="state_collected">已存档</string>
+    <string name="state_saved">已保存</string>
+    <string name="level_bio">生物特征等级</string>
+    <string name="level_premium">高品质等级</string>
+    <string name="level_basic">基础等级</string>
+    <string name="server_offline">未连接服务器</string>
+    <string name="camera_fail">相机：%1$s</string>
+    <string name="camera_error">相机错误 %1$d</string>
+    <string name="camera_preview_fail">预览失败</string>
+    <string name="camera_session_fail">录制会话失败</string>
+    <string name="switch_camera">切换前后摄像头</string>
+    <string name="upload_fail_fmt">上传失败：%1$s</string>
+    <string name="progress_fmt">%1$s %2$d%%</string>
+    <string name="same_face_ok">很好，保持不动稍等一下</string>
+    <string name="ch_work">录制处理</string>
+    <string name="ch_reward">报酬到账</string>
+    <string name="n_work_title">正在处理你的录制</string>
+    <string name="n_work_text">关闭 App 也会继续</string>
+    <string name="n_uploading">%1$s 录制 · 上传中 %2$d%%</string>
+    <string name="n_uploading_text">服务器替换人脸并完成遮盖后，会立即删除原始文件</string>
+    <string name="n_upload_failed">%1$s 录制上传失败</string>
+    <string name="n_upload_failed_text">请在“我的录制”中点按“重新上传”</string>
+    <string name="n_reviewing">%1$s 录制 · 审核中</string>
+    <string name="n_reviewing_text">遮盖 · 标注 · 四感同步——完成后会通知你</string>
+    <string name="n_paid">叮！%1$s 任务获得 ₩%2$,d</string>
+    <string name="paid_to">已转入 %1$s</string>
+    <string name="link_to_get_paid">绑定账户即可立即到账</string>
+    <string name="n_collected">已存档 %1$s 录制</string>
+    <string name="n_collected_text">审核和报酬稍后统一处理</string>
+    <string name="n_rejected">%1$s 任务审核结果</string>
+    <string name="rejected_default">未通过</string>
+    <string name="n_rejected_text">%1$s · 可以申诉</string>
+    <string name="paid_one">%1$s 任务的报酬已到账</string>
+    <string name="paid_many">%1$d 个任务的报酬已到账</string>
+    <string name="ding">叮！</string>
+    <string name="received_to">已存入 %1$s</string>
+    <string name="nice">太好了</string>
+    <string name="reward_confirmed">报酬已确认 +₩%1$,d</string>
+    <string name="link_account">绑定账户</string>
+    <string name="later">以后再说</string>
+    <string name="today_won">今天 +₩%1$,d</string>
+    <string name="today_first">今天的第一个任务</string>
+    <string name="today_count">今天录了 %1$d 次</string>
+    <string name="home_sponsored">企业委托任务</string>
+    <string name="swipe_hint">左右滑动查看</string>
+    <string name="missions_read_fail">无法读取任务：%1$s</string>
+    <string name="more_features">更多功能</string>
+    <string name="menu_payout">收款账户</string>
+    <string name="menu_payout_desc">绑定账户后，每完成一个任务立即到账</string>
+    <string name="menu_devices">连接智能设备</string>
+    <string name="menu_devices_desc">连接手表可记录触觉和生物特征，升级为高品质等级</string>
+    <string name="menu_calib">校准握力</string>
+    <string name="menu_calib_desc">轻握、正常握、用力握水瓶，手表就能学会你的握力（只需一次）</string>
+    <string name="menu_people">已同意的人员</string>
+    <string name="menu_people_desc">添加同框出镜的家人（需征得同意）</string>
+    <string name="menu_history">我的录制</string>
+    <string name="menu_history_desc">审核结果、报酬与申诉</string>
+    <string name="menu_appeals">申诉进度</string>
+    <string name="menu_appeals_desc">自动核查 · 人工审核 · 结果</string>
+    <string name="privacy_title">你的数据这样受到保护</string>
+    <string name="privacy_desc">未同意的人、儿童、屏幕和镜子会被遮盖，你和已同意者的脸换成不存在的虚拟人物后才会出售</string>
+    <string-array name="things">
+        <item>一个冰淇淋</item>
+        <item>一杯美式咖啡</item>
+        <item>一碗汤饭</item>
+        <item>一场电影</item>
+        <item>一只炸鸡</item>
+        <item>一个月话费</item>
+        <item>一双运动鞋</item>
+        <item>一副无线耳机</item>
+        <item>一趟济州岛旅行</item>
+    </string-array>
+    <string name="earned_like">已经赚到%1$s的钱啦！</string>
+    <string name="earned_first">完成第一个任务，先赚个冰淇淋！</string>
+    <string name="earned_next">再做 %1$d 个任务就能换%2$s！</string>
+    <string name="earned_title">已获得的数据报酬</string>
+    <string name="today_badge" formatted="false">今日奖励任务 · 报酬 +50%</string>
+    <string name="start_recording">开始录制</string>
+    <string name="reward_breakdown">（基础 %1$,d + 奖励 %2$,d · 按 1 分钟计）</string>
+    <string name="tap_next">点按打开下一个情境（%1$d/%2$d）的录制画面</string>
+    <string name="pick_situation">选择情境录制</string>
+    <string name="summary_title">今日总结</string>
+    <string name="sum_rec">今日录制</string>
+    <string name="count_items">%1$d 条</string>
+    <string name="sum_expect">待到账</string>
+    <string name="sum_people">同意人员</string>
+    <string name="face_registered_me">本人面部已登记</string>
+    <string name="face_needed_me">需要登记本人面部</string>
+    <string name="summary_back">← 往回滑动可查看企业委托的任务</string>
+    <string name="today_bonus">今日奖励</string>
+    <string name="scarce">紧缺 +%1$d%%</string>
+    <string name="req_purpose">委托 · %1$s</string>
+    <string name="req_sponsor_purpose">委托 · %1$s · %2$s</string>
+    <string name="situations_count">情境 %1$d/%2$d</string>
+    <string-array name="age_bands">
+        <item>19–29 岁</item>
+        <item>30 多岁</item>
+        <item>40 多岁</item>
+        <item>50 多岁</item>
+        <item>60 岁以上</item>
+    </string-array>
+    <string name="me_name">我</string>
+    <string name="consent_title">开始之前</string>
+    <string name="consent_protect">DataCash 这样保护你</string>
+    <string name="consent_points">• 出售的视频中，你的脸会换成不存在的虚拟人物\n• 未同意的家人、屏幕、镜子、相框和文件会用灰色遮盖\n• 说出姓名或地址的部分会被静音\n• 撤回同意后，你的录制将不再出售</string>
+    <string name="consent_video">（必选）我同意按上述方式处理任务的视频、声音和动作，并作为机器人训练数据出售</string>
+    <string name="consent_bio">（可选）我同意一并出售手表的心率、心率储备（HRR）、皮肤温度变化及任务后的回答——不会据此判断健康或提供建议</string>
+    <string name="age_band">年龄段</string>
+    <string name="gender_label">性别（可选——仅用于限定性别的委托任务，以及挑选替换面部的虚拟人物）</string>
+    <string name="gender_female">女</string>
+    <string name="gender_male">男</string>
+    <string name="gender_none">不透露</string>
+    <string name="consent_start">同意并开始</string>
+    <string name="consent_need">需要同意视频条款并选择年龄段</string>
+    <string name="mission_read_fail">无法读取任务</string>
+    <string name="sponsor_line">委托企业 · %1$s</string>
+    <string name="purpose_line">委托目的 · %1$s</string>
+    <string name="today_bonus_amount">今日奖励 +₩%1$,d</string>
+    <string name="per_minute">%1$s · 按 1 分钟计</string>
+    <string name="steps_seq">动作顺序 · %1$s</string>
+    <string name="situations_done">情境 %1$d/%2$d 已完成</string>
+    <string name="mission_tip">戴着手表录制，可记录触觉（握力）和身体感觉，报酬更高。录制中出错时，请点按画面下方的“标记失误”——机器人也能从失误中学习。</string>
+    <string name="situations_pick_title">选择要录制的情境 · 每次只改变一个条件</string>
+    <string name="recorded_done">已录制</string>
+    <string name="again">重录</string>
+    <string name="record_chip">录制</string>
+    <string name="survey_title">任务后说两句</string>
+    <string name="survey_hint_bio">只需点两下。跳过也不影响报酬。</string>
+    <string name="survey_hint">只需点一下。跳过也不影响报酬。</string>
+    <string name="survey_q1">任务完成得怎么样？</string>
+    <string name="survey_once">一次\n完成</string>
+    <string name="survey_retry">重来后\n完成</string>
+    <string name="survey_failed">没能\n完成</string>
+    <string name="survey_q2">有多吃力？</string>
+    <string name="survey_easy">非常轻松</string>
+    <string name="survey_hard">非常吃力</string>
+    <string name="skip">跳过</string>
+    <string name="survey_saved">已保存 · 正在上传审核</string>
+    <string name="result_title">我的录制</string>
+    <string name="upload_failed_short">上传失败</string>
+    <string name="upload_failed_detail">%1$s\n请在设置中检查服务器地址和令牌。录制内容仍保存在手机上。</string>
+    <string name="status_fail">无法获取状态：%1$s</string>
+    <string name="result_processing">正在遮盖 · 标注 · 四感同步。关闭 App 后服务器也会继续。</string>
+    <string name="result_collected">已按任务原样存档。遮盖 · 标注 · 审核 · 报酬稍后统一处理。</string>
+    <string name="calib_learned">已学会你的握力</string>
+    <string name="calib_detail">已在 %1$d 个片段中学会轻握 · 正常 · 用力 · 松手 · 准确率 %2$.0f%%\n从下次录制起会一并记录握力</string>
+    <string name="reward_added">获得 +₩%1$,d</string>
+    <string name="result_detail">采纳时长 %1$.1f 分钟 · 等级 %2$s · 同步 %3$s</string>
+    <string name="skipped_steps">跳过的步骤：%1$s</string>
+    <string name="preview_title">虚拟人脸预览</string>
+    <string name="preview_sum">出售的视频是这样的：遮盖处为灰色，人脸是不存在的虚拟人物。</string>
+    <string name="preview_stats">%1$d 个画面中 %2$d 个为虚拟人脸 · 小脸 %3$d · 可辨认故打码 %4$d · 最高再识别 %5$.2f（低于 0.30 即通过）</string>
+    <string name="preview_pending">仍在处理中 · 审核完成后即可查看</string>
+    <string name="devices_intro">连接设备后，视频与手腕动作、握力、心率会对齐到同一时间轴，成为高品质等级，报酬更高。</string>
+    <string name="lang_section">App 语言</string>
+    <string name="data_server">数据服务器</string>
+    <string name="data_server_desc">录制结束后会上传到这里审核</string>
+    <string name="server_hint">服务器地址（例如 http://192.168.0.10:8800）</string>
+    <string name="token_hint">令牌（服务器页面上显示的值）</string>
+    <string name="save_and_check">保存并检查连接</string>
+    <string name="auto_find">在同一 Wi-Fi 中自动查找</string>
+    <string name="finding">正在查找服务器…</string>
+    <string name="not_found">未找到 · 请确认服务器已开启且在同一 Wi-Fi 下</string>
+    <string name="galaxy_watch">Galaxy Watch</string>
+    <string name="watch_desc">手腕动作 · 主动振动触觉（GripSense 方法）· 心率</string>
+    <string name="watch_steps">1. 在手表上安装 DataCash 手表 App 并保持打开（同一服务器地址）\n2. 在手机上开始录制后，手表会自动同步开始记录\n3. 结束后手表会自动上传，服务器会对齐手机和手表的时间——无需直接配对</string>
+    <string name="calib_watch_btn">用手表校准握力（只需一次）</string>
+    <string name="coming_soon">即将支持</string>
+    <string name="home_camera">家用摄像头</string>
+    <string name="home_camera_desc">从固定角度同时拍摄，增加第三人称画面</string>
+    <string name="preparing">筹备中</string>
+    <string name="speaker_hub">智能音箱 · 网关</string>
+    <string name="speaker_hub_desc">家中的声音和设备状态对齐到同一时间轴</string>
+    <string name="checking">正在检查连接…</string>
+    <string name="connected_rtt">● 已连接 · 往返 %1$.0f 毫秒</string>
+    <string name="token_wrong">令牌不正确</string>
+    <string name="server_code">服务器响应 %1$d</string>
+    <string name="not_connected_check">未连接 · 请确认在同一 Wi-Fi 下且地址正确</string>
+    <string-array name="relations">
+        <item>本人</item>
+        <item>配偶</item>
+        <item>家人</item>
+        <item>同住者</item>
+        <item>其他</item>
+    </string-array>
+    <string name="people_intro">同框出镜的人需要征得同意并登记面部，否则会被遮盖。已登记的人在出售的视频中也会换成不存在的虚拟人物的脸。</string>
+    <string name="people_add_title">添加同意人员</string>
+    <string name="name_hint">姓名或昵称</string>
+    <string name="relation">关系</string>
+    <string name="adult_check">我已年满 19 周岁</string>
+    <string name="people_agree">（必选）我同意出现在任务视频中，并同意将换成虚拟人物面部的视频、声音和动作作为机器人训练数据出售。可随时撤回。</string>
+    <string name="people_bio">（可选，仅本人）我同意一并提供手表的心率、心率储备（HRR）、皮肤温度变化及任务后的回答——不会据此判断健康或提供建议</string>
+    <string name="kid_note">儿童（未满 19 周岁）无法添加，在视频中会始终被遮盖。</string>
+    <string name="agree_add">同意并添加</string>
+    <string name="check_server_in_devices">请在“连接智能设备”中检查服务器</string>
+    <string name="none_yet">还没有人</string>
+    <string name="none_yet_desc">请先添加“本人”并登记面部——录制第 1 步会确认是否为本人</string>
+    <string name="consented_on">%1$s 同意</string>
+    <string name="bio_consented_line">已同意提供心率 · HRR · 皮肤温度变化 · 任务后回答</string>
+    <string name="virtual_person_line">虚拟人物：%1$s</string>
+    <string name="donor_auto_desc">自动 · 最不相像的人</string>
+    <string name="enroll_failed_line">登记失败 · %1$s</string>
+    <string name="enroll_needed_line">点按登记面部才能保留在视频中（否则会被遮盖）</string>
+    <string name="face_enrolled">面部已登记</string>
+    <string name="enroll_failed">登记失败</string>
+    <string name="face_needed">需要登记面部</string>
+    <string name="donor_n">虚拟人物 %1$d（%2$s）</string>
+    <string name="re_enroll">重新登记面部（3 张照片）</string>
+    <string name="enroll">登记面部（3 张照片）</string>
+    <string name="pick_donor">选择虚拟人物</string>
+    <string name="bio_withdraw">仅撤回生物信号同意</string>
+    <string name="bio_agree">同意提供生物信号</string>
+    <string name="withdraw_consent">撤回同意</string>
+    <string name="bio_withdrawn">已撤回生物信号同意。从下次录制起不再记录心率和体温</string>
+    <string name="bio_agreed">已同意提供生物信号</string>
+    <string name="withdraw_confirm">要撤回 %1$s 的同意吗？面部特征值将被删除，从下次录制起会被遮盖。</string>
+    <string name="withdraw">撤回</string>
+    <string name="donor_changed">已更换虚拟人物</string>
+    <string name="donor_auto_btn">自动（最不相像的人）</string>
+    <string name="donor_auto_toast">将自动选择最不相像的人</string>
+    <string name="need_name">请输入姓名或昵称</string>
+    <string name="adult_only">只能添加年满 19 周岁的成年人</string>
+    <string name="need_agree">需获得必选同意才能添加</string>
+    <string name="pick_age">请选择年龄段</string>
+    <string name="added_enroll">已添加 %1$s · 请登记面部</string>
+    <string name="history_confirmed">已确认报酬</string>
+    <string name="history_reviewing">审核中</string>
+    <string name="no_recordings">还没有录制</string>
+    <string name="no_recordings_desc">去首页录制今日任务吧</string>
+    <string name="minutes_level">%1$.1f 分钟 · %2$s</string>
+    <string name="paid_done">已到账 · %1$s</string>
+    <string name="appeal_extra">申诉通过 +₩%1$,d</string>
+    <string name="collected_later">已存档 · 稍后审核</string>
+    <string name="reason_line">原因：%1$s</string>
+    <string name="reason_default">不符合审核标准</string>
+    <string name="before_upload">未上传</string>
+    <string name="uploading_toast">正在上传</string>
+    <string name="view_result">查看结果 ›</string>
+    <string name="preview_link">虚拟人脸预览 ›</string>
+    <string name="appeal_link">申诉 ›</string>
+    <string-array name="banks">
+        <item>KB国民</item>
+        <item>新韩</item>
+        <item>友利</item>
+        <item>韩亚</item>
+        <item>NH农协</item>
+        <item>IBK企业</item>
+        <item>Kakao Bank</item>
+        <item>Toss Bank</item>
+        <item>K Bank</item>
+    </string-array>
+    <string name="received">已收到的报酬</string>
+    <string name="waiting_status">待到账报酬 ₩%1$,d · 绑定账户即可立即到账</string>
+    <string name="no_account">尚未绑定账户</string>
+    <string name="receive_to">将存入 %1$s</string>
+    <string name="deposit_account">收款账户</string>
+    <string name="change_account">更换账户</string>
+    <string name="linked_line">%1$s · 已绑定</string>
+    <string name="account_hint">账号（不含 -）</string>
+    <string name="link_and_receive">绑定账户并立即领取</string>
+    <string name="payout_note">完整账号只保存在这部手机上，服务器只收到遮盖后的号码。当前为测试版，不会真实转账，而是记为测试支付。</string>
+    <string name="payout_history">到账记录</string>
+    <string name="waiting_chip">₩%1$,d 待到账</string>
+    <string name="waiting_account">等待绑定账户</string>
+    <string name="no_payouts">还没有到账的报酬</string>
+    <string name="no_payouts_desc">任务通过后会到账这里</string>
+    <string name="check_account">请检查账号</string>
+    <string name="sent_waiting">已发放 %1$d 笔待到账报酬</string>
+    <string name="next_paid">之后的报酬将立即到账</string>
+    <string name="saved_local">已保存到本机 · 未能通知服务器</string>
+    <string name="reason_reward">报酬太少</string>
+    <string name="reason_failed">处理失败了</string>
+    <string name="reason_privacy">有该遮盖的内容露出了</string>
+    <string name="reason_label">标注或步骤有误</string>
+    <string name="reason_other">其他</string>
+    <string name="appeals_intro">先自动核查，自动核查无法解决时由审核员确认。选择“有该遮盖的内容露出了”后，录制会立即停止出售。每天最多可申诉 5 次。</string>
+    <string name="in_progress">进行中</string>
+    <string name="accepted">通过</string>
+    <string name="dismissed">驳回</string>
+    <string name="recovered">追回的报酬</string>
+    <string name="appeal">申诉</string>
+    <string name="rejected_line">未通过 · %1$s</string>
+    <string name="no_in_progress">没有进行中的申诉</string>
+    <string name="results">结果</string>
+    <string name="no_results">还没有结果</string>
+    <string name="appealable">可申诉的录制</string>
+    <string name="no_rejected">没有未通过的录制</string>
+    <string name="no_rejected_desc">已通过的录制也可在“我的录制”中申诉</string>
+    <string name="accepted_plus">通过 +₩%1$,d</string>
+    <string name="not_accepted">未通过</string>
+    <string name="reprocessing">重新处理中</string>
+    <string name="reviewing">审核中</string>
+    <string name="recording_sid">录制 %1$s</string>
+    <string name="stage_auto">自动核查</string>
+    <string name="stage_reviewer">人工审核</string>
+    <string name="stage_result">结果</string>
+    <string name="detail_hint">详细说明（可选）</string>
+    <string name="submit">提交</string>
+    <string-array name="calib_names">
+        <item>松开手，保持不动</item>
+        <item>请轻轻握住</item>
+        <item>请像平常一样握住</item>
+        <item>请用力握紧</item>
+    </string-array>
+    <string-array name="calib_hints">
+        <item>手离开水瓶，手臂放松</item>
+        <item>轻到刚好不会掉</item>
+        <item>像平时喝水那样</item>
+        <item>用尽全力握紧（别弄疼自己）</item>
+    </string-array>
+    <string name="calib_intro">用戴手表的手握住水瓶或杯子，按屏幕提示改变握力。约 1 分 30 秒，只需做一次。</string>
+    <string name="calib_why">手表振动时，根据手吸收了多少振动来学习握力（GripSense 方法）。无需秤。</string>
+    <string name="calib_ready">准备好后请点按“开始”</string>
+    <string name="calib_open_watch">请在手表上打开 DataCash 手表 App</string>
+    <string name="start">开始</string>
+    <string name="calibrating">校准中…</string>
+    <string name="server_fail_fmt">未连接服务器：%1$s</string>
+    <string name="starting">开始了</string>
+    <string name="wait_watch">请稍等，手表即将开始记录</string>
+    <string name="next_step">下一步：%1$s</string>
+    <string name="finished">完成了</string>
+    <string name="learning">正在上传并学习你的握力…</string>
+    <string-array name="face_prompts">
+        <item>请正视镜头</item>
+        <item>请把头稍微转向左边</item>
+        <item>请把头稍微转向右边</item>
+    </string-array>
+    <string name="face_enroll_title">登记 %1$s 的面部</string>
+    <string name="photo_deleted">照片在生成面部特征值后会立即删除</string>
+    <string name="take_photo">拍摄</string>
+    <string name="face_visible">检测到人脸</string>
+    <string name="good_next">✓ 很好 · 下一步：%1$s</string>
+    <string name="face_in_circle">让脸位于圆圈内</string>
+    <string name="back_camera_hint">（后置摄像头 · 请拍摄家人的脸）</string>
+    <string name="uploading_ellipsis">上传中…</string>
+    <string name="face_registered_toast">面部已登记</string>
+    <string name="retake">请重新拍摄</string>
+    <string name="retake_three">请从正面开始重新拍摄三张</string>
+    <string name="upload_failed_reason">上传失败 · %1$s</string>
+    <string name="tap_to_retry">点按拍摄按钮即可重新上传</string>
+    <string name="mark_idle">＋ 标记失误</string>
+    <string name="no_person">视频中没有人出镜</string>
+    <string name="mission_name">%1$s 任务</string>
+    <string name="steps_two">第 1 步 人脸确认 → 第 2 步 录制动作</string>
+    <string name="situation_line">情境 · %1$s</string>
+    <string name="record_btn">录制</string>
+    <string name="mark_desc">刚出错或正在重做时请点按</string>
+    <string name="marked">✓ 已标记失误 · %1$d</string>
+    <string name="front_camera">前置摄像头</string>
+    <string name="back_camera">后置摄像头</string>
+    <string name="timer_off">定时关闭</string>
+    <string name="timer_toast">点按录制按钮 %1$d 秒后开始</string>
+    <string name="timer_btn_off">定时\n关闭</string>
+    <string name="timer_secs">%1$d秒</string>
+    <string name="timer_desc">定时 %1$d 秒</string>
+    <string name="tap_again_cancel">再次点按即可取消</string>
+    <string name="timer_cancelled">已取消定时</string>
+    <string name="in_call">通话时无法录音。请结束通话后再点按</string>
+    <string name="start_fail">启动失败：%1$s</string>
+    <string name="record_fail">录制失败：%1$s</string>
+    <string name="rec_status">● 录制 %1$d:%2$02d · 情境 · %3$s</string>
+    <string name="quiet_warn">⚠ 几乎听不到声音——请检查麦克风是否被挡住</string>
+    <string name="step1_title">第 1 步 · 人脸确认</string>
+    <string name="face_look">请靠近镜头正视前方\n让脸位于圆圈内</string>
+    <string name="face_mismatch">看起来与登记的面部不同\n请在明亮处摘下眼镜和帽子，正对镜头</string>
+    <string name="checking_identity">正在确认是否为本人…</string>
+    <string name="no_face_check">不进行人脸确认，直接录制</string>
+    <string name="no_face_continue">无人脸，继续录制</string>
+    <string name="identity_ok">✓ 已确认本人</string>
+    <string name="face_ok">✓ 已确认人脸</string>
+    <string name="step2_go">第 2 步 · 现在开始动作</string>
+    <string name="step2_warn">如果无法识别为已登记的本人，你在视频中可能会被遮盖\n第 2 步 · 开始动作</string>
+    <string name="save_fail">保存失败：%1$s</string>
+</resources>

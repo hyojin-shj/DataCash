@@ -51,3 +51,27 @@ def test_app_token_cannot_open_admin(tmp_path, monkeypatch):
     assert c.get("/api/missions", headers={"X-DC-Token": "app"}).status_code == 200
     assert c.get("/api/admin/sessions?token=app").status_code == 401
     assert c.get("/api/admin/sessions?token=admin").status_code == 200
+
+
+def test_missions_localized_by_lang(tmp_path):
+    """앱은 X-DC-Lang, 웹 카탈로그는 ?lang= 으로 미션 제목·안내를 그 언어로. id 는 그대로, 모르는 언어는 한국어 원문."""
+    from fastapi.testclient import TestClient
+
+    from datacash.server.app import create_app, localize_mission
+
+    m = {"id": "x", "title": "티슈 뽑기", "title_en": "Pull a tissue", "guide": "가이드", "purpose": "쓰임",
+         "i18n": {"ja": {"title": "ティッシュ", "guide": "ガイド", "purpose": "用途"}}}
+    assert localize_mission(m, "ja-JP")["title"] == "ティッシュ"
+    assert localize_mission(m, "en")["title"] == "Pull a tissue" and localize_mission(m, "en")["guide"] == "가이드"
+    assert localize_mission(m, "ko") is m and localize_mission(m, "xx")["title"] == "티슈 뽑기"
+    assert m["title"] == "티슈 뽑기"
+
+    c = TestClient(create_app(tmp_path, "t", use_api=False))
+    ko = c.get("/api/missions", headers={"X-DC-Token": "t"}).json()["missions"]
+    ja = c.get("/api/missions", headers={"X-DC-Token": "t", "X-DC-Lang": "ja"}).json()["missions"]
+    assert [x["id"] for x in ko] == [x["id"] for x in ja]
+    assert ko[0]["title"] == "티슈 뽑기" and ja[0]["title"] == "ティッシュを引き出す"
+    es = {x["id"]: x for x in c.get("/api/market/catalog?lang=es").json()["missions"]}
+    assert es["pull_tissue"]["title"] == "Sacar un pañuelo" and es["pull_tissue"]["title_en"] == "Pull a tissue"
+    zh = {x["id"]: x for x in c.get("/api/market/catalog?lang=zh-CN").json()["missions"]}
+    assert zh["lift_box"]["guide"].startswith("抬起箱子")

@@ -54,7 +54,7 @@ final class Payout {
             if (py.optString("status").equals("sent") && !celebrated.contains(id)) {
                 sent.add(id);
                 won += py.optInt("amount");
-                title = st.optString("title", "미션");
+                title = st.optString("title", a.getString(R.string.mission));
                 label = py.optString("label");
             } else if (py.optString("status").equals("waiting_account") && !told.contains(id)) {
                 waiting.add(id);
@@ -63,7 +63,7 @@ final class Payout {
         }
         if (!sent.isEmpty()) {
             add(a, "celebrated", sent);
-            ding(a, won, sent.size() == 1 ? title + " 미션 보상이 입금됐어요" : sent.size() + "건 미션 보상이 입금됐어요", label);
+            ding(a, won, sent.size() == 1 ? a.getString(R.string.paid_one, title) : a.getString(R.string.paid_many, sent.size()), label);
         } else if (!waiting.isEmpty()) {
             add(a, "told_waiting", waiting);
             confirmed(a, wait);
@@ -80,10 +80,10 @@ final class Payout {
         coin.setGravity(Gravity.CENTER);
         coin.setBackground(Ui.gradient(Ui.dp(a, 36)));
         box.addView(coin, new LinearLayout.LayoutParams(Ui.dp(a, 72), Ui.dp(a, 72)));
-        TextView t = Ui.text(a, "띠링!", 18, Ui.ACCENT_INK, true);
+        TextView t = Ui.text(a, a.getString(R.string.ding), 18, Ui.ACCENT_INK, true);
         t.setPadding(0, Ui.dp(a, 14), 0, 0);
         box.addView(t);
-        TextView amount = Ui.text(a, String.format(Locale.KOREA, "+%,d원", won), 34, Ui.INK, true);
+        TextView amount = Ui.text(a, Ui.plusWon(a, won), 34, Ui.INK, true);
         amount.setPadding(0, Ui.dp(a, 4), 0, Ui.dp(a, 6));
         amount.setScaleX(0.4f);
         amount.setScaleY(0.4f);
@@ -92,21 +92,21 @@ final class Payout {
         w.setGravity(Gravity.CENTER);
         box.addView(w);
         if (!label.isEmpty()) {
-            TextView l = Ui.text(a, label + " 으로 받았어요", 13, Ui.SUB, false);
+            TextView l = Ui.text(a, a.getString(R.string.received_to, label), 13, Ui.SUB, false);
             l.setPadding(0, Ui.dp(a, 6), 0, 0);
             box.addView(l);
         }
-        new AlertDialog.Builder(a).setView(box).setPositiveButton("좋아요", null).show();
+        new AlertDialog.Builder(a).setView(box).setPositiveButton(R.string.nice, null).show();
         amount.animate().scaleX(1f).scaleY(1f).setDuration(450).setInterpolator(new OvershootInterpolator(2.2f)).start();
         sound(a);
     }
 
     private static void confirmed(Activity a, int won) {
         if (a.isFinishing()) return;
-        new AlertDialog.Builder(a).setTitle(String.format(Locale.KOREA, "보상 확정 +%,d원", won))
-                .setMessage("계좌를 연결하면 바로 입금돼요")
-                .setPositiveButton("계좌 연결하기", (d, x) -> a.startActivity(new Intent(a, PayoutActivity.class)))
-                .setNegativeButton("나중에", null).show();
+        new AlertDialog.Builder(a).setTitle(a.getString(R.string.reward_confirmed, won))
+                .setMessage(R.string.link_to_get_paid)
+                .setPositiveButton(R.string.link_account, (d, x) -> a.startActivity(new Intent(a, PayoutActivity.class)))
+                .setNegativeButton(R.string.later, null).show();
     }
 
     /** 두 음 '띠링' (B5 짧게 → E6 길게) + 짧은 진동 두 번. */

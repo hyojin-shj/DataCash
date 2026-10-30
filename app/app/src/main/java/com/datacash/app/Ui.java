@@ -41,6 +41,10 @@ final class Ui {
 
     private Ui() {}
 
+    /** 돈 표시 (ko "1,500원", 그 밖 "₩1,500"). */
+    static String won(android.content.Context c, int n) { return c.getString(R.string.money, n); }
+    static String plusWon(android.content.Context c, int n) { return c.getString(R.string.money_plus, n); }
+
     static int dp(Activity a, float v) {
         return Math.round(v * a.getResources().getDisplayMetrics().density);
     }
@@ -114,7 +118,7 @@ final class Ui {
             int p = dp(a, 9);
             b.setPadding(p, p, p, p);
             b.setBackground(pressable(Color.TRANSPARENT, dp(a, 22)));
-            b.setContentDescription("뒤로");
+            b.setContentDescription(a.getString(R.string.back));
             b.setOnClickListener(v -> a.finish());
             bar.addView(b, new LinearLayout.LayoutParams(dp(a, 44), dp(a, 44)));
         }
@@ -124,7 +128,7 @@ final class Ui {
             android.widget.ImageView logo = new android.widget.ImageView(a);
             logo.setImageResource(R.drawable.logo);
             brand.addView(logo, new LinearLayout.LayoutParams(dp(a, 30), dp(a, 30)));
-            TextView n = text(a, "데이터캐시", 20, INK, true);
+            TextView n = text(a, a.getString(R.string.app_name), 20, INK, true);
             n.setPadding(dp(a, 10), 0, 0, 0);
             brand.addView(n);
             bar.addView(brand, weight());
