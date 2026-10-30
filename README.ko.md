@@ -5,7 +5,7 @@
 **집에 이미 있는 폰과 워치만으로, 로봇이 배울 사람의 손 데이터를 모은다.**
 
 사람들은 집에서 로봇 기본 동작 미션(티슈 뽑기·컵 옮기기·뚜껑 돌리기 등 12가지)을 폰과 워치로 찍고 보상을 받습니다.
-휴머노이드·피지컬 AI 회사는 개인정보가 지워진 데이터 — 영상·소리·손목 움직임·쥐는 세기·심박 — 를 한 시간축에 맞춘
+휴머노이드·피지컬 AI 회사는 개인정보가 지워진 **5감 데이터 — 시각·청각·촉각(쥐는 세기)·움직임·생체(심박)** — 를 한 시간축에 맞춘
 **LeRobot v3.0** 형식 그대로 삽니다.
 
 Meta Global AI Developer Hackathon (Indie Developer · Push the Frontier) 출품작.
@@ -41,7 +41,7 @@ API 호출마다 비용을 장부(`data/api_ledger.jsonl`)에 적고, 한도를 
 - **가리기:** SAM 3.1 로 동의 안 한 사람·아이·화면·거울·액자·서류만. 동의한 가족은 가리지 않고 사람마다 다른 가상 얼굴로.
 - **원본 삭제:** 서비스에서는 처리가 끝나면 원본 영상·소리를 바로 지웁니다 (`purge_originals`). 해커톤 시연 서버는 원본↔치환 비교를 보여 주려고 이 호출만 꺼 두었습니다.
 
-### 2. 4감 자동 동기화
+### 2. 5감 자동 동기화
 사용자가 손뼉 칠 필요 없이: 폰↔워치 시계 왕복, 18~20kHz 음향 비콘, 워치 진동 펄스. 실제 폰+워치 녹화에서 잔차 0.5~2.3ms (`datacash/sync/`).
 
 ### 3. 장갑 없는 촉각 — GripSense 방식
@@ -72,7 +72,7 @@ Goel·Wobbrock·Patel, *GripSense* (UIST 2012)를 손목에 옮겼습니다. 워
 python3.12 -m venv .venv && .venv/bin/pip install -e ".[dev]" torch pyyaml rich
 echo "MODEL_API_KEY=..." > .env                       # 저장소에 올리지 않는다
 # data/models 에 MediaPipe hand/pose/face landmarker .task, efficientdet_lite0.tflite, OpenCV yunet.onnx·sface.onnx
-.venv/bin/python -m pytest                            # 정답을 아는 합성 4감 세션으로 검증
+.venv/bin/python -m pytest                            # 정답을 아는 합성 5감 세션으로 검증
 DATACASH_TOKEN=... .venv/bin/python -m datacash.server.app --port 8800   # 서버 + 구매 기업 웹
 cd app && ./gradlew assembleDebug                     # 안드로이드 앱 + 워치 앱
 ```
@@ -84,9 +84,9 @@ LivePortrait 는 저장소에 넣지 않습니다 — [KwaiVGI/LivePortrait](htt
 | 폴더 | 하는 일 |
 |---|---|
 | `app/` | 안드로이드 앱(동의·미션·얼굴 확인·녹화·실수 표시·질문·업로드·보상·이의 신청) + 워치 앱 |
-| `web/` | 구매 기업 웹(말로 의뢰·4감 타임라인·견적·주문·내려받기), 운영자 화면 |
+| `web/` | 구매 기업 웹(말로 의뢰·5감 타임라인·견적·주문·내려받기), 운영자 화면 |
 | `datacash/privacy` | SAM 가리기 · 얼굴 치환 · 소리 개인정보 · 미리 훑기 |
-| `datacash/sync` · `touch` · `labels` | 4감 동기화 · 촉각 · 손·몸 관절 |
+| `datacash/sync` · `touch` · `labels` | 5감 동기화 · 촉각 · 손·몸 관절 |
 | `datacash/understand` | Muse Spark 이해 · Spark Open 2차 검증 · 감각으로 검증 |
 | `datacash/export` · `jobs.py` | LeRobot 내보내기 · 인증서 · 처리 순서 |
 | `datacash/server` | 수집 서버 + 구매 기업 API |

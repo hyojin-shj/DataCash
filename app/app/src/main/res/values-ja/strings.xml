@@ -37,7 +37,7 @@
     <string name="n_upload_failed">%1$s の録画をアップロードできませんでした</string>
     <string name="n_upload_failed_text">「録画履歴」で「再アップロード」をタップしてください</string>
     <string name="n_reviewing">%1$s の録画 · 審査中</string>
-    <string name="n_reviewing_text">隠す · ラベル付け · 4つの感覚の同期 — 終わったらお知らせします</string>
+    <string name="n_reviewing_text">隠す · ラベル付け · 5つの感覚の同期 — 終わったらお知らせします</string>
     <string name="n_paid">チャリン！%1$s ミッションで ₩%2$,d 獲得</string>
     <string name="paid_to">%1$s に入金されました</string>
     <string name="link_to_get_paid">口座を登録するとすぐに入金されます</string>
@@ -156,7 +156,7 @@
     <string name="upload_failed_short">アップロードできませんでした</string>
     <string name="upload_failed_detail">%1$s\n設定でサーバーのアドレスとトークンを確認してください。録画はスマホに残っています。</string>
     <string name="status_fail">状態を取得できませんでした: %1$s</string>
-    <string name="result_processing">隠す · ラベル付け · 4つの感覚を同期中です。アプリを閉じてもサーバーが続けます。</string>
+    <string name="result_processing">隠す · ラベル付け · 5つの感覚を同期中です。アプリを閉じてもサーバーが続けます。</string>
     <string name="result_collected">元のまま、ミッションごとに保管しました。隠す · ラベル付け · 審査 · 報酬はあとでまとめて行います。</string>
     <string name="calib_learned">握る強さを覚えました</string>
     <string name="calib_detail">軽く・普段どおり・強く・手を離すを %1$d 区間で学習しました · 正解率 %2$.0f%%\n次の録画から握る強さも記録されます</string>

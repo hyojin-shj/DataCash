@@ -37,7 +37,7 @@
     <string name="n_upload_failed">No se pudo subir %1$s</string>
     <string name="n_upload_failed_text">Toca «Volver a subir» en Mis grabaciones</string>
     <string name="n_reviewing">%1$s · en revisión</string>
-    <string name="n_reviewing_text">Ocultando · etiquetando · sincronizando los 4 sentidos — te avisaremos al terminar</string>
+    <string name="n_reviewing_text">Ocultando · etiquetando · sincronizando los 5 sentidos — te avisaremos al terminar</string>
     <string name="n_paid">¡Ding! Misión %1$s · +₩%2$,d</string>
     <string name="paid_to">Pagado a %1$s</string>
     <string name="link_to_get_paid">Vincula una cuenta para cobrar al instante</string>
@@ -156,7 +156,7 @@
     <string name="upload_failed_short">No se pudo subir</string>
     <string name="upload_failed_detail">%1$s\nRevisa la dirección del servidor y el token en ajustes. La grabación sigue en tu teléfono.</string>
     <string name="status_fail">No se pudo obtener el estado: %1$s</string>
-    <string name="result_processing">Ocultando · etiquetando · sincronizando los 4 sentidos. El servidor sigue aunque cierres la app.</string>
+    <string name="result_processing">Ocultando · etiquetando · sincronizando los 5 sentidos. El servidor sigue aunque cierres la app.</string>
     <string name="result_collected">Guardada tal cual, por misión. El ocultado, el etiquetado, la revisión y la recompensa se harán después, todo junto.</string>
     <string name="calib_learned">Fuerza de agarre aprendida</string>
     <string name="calib_detail">Aprendido suave · normal · fuerte · soltar en %1$d tramos · acierto %2$.0f%%\nDesde tu próxima grabación se incluirá la fuerza de agarre</string>

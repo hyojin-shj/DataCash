@@ -5,7 +5,7 @@
 **Datos de manos humanas para robots, grabados por personas comunes con el teléfono y el reloj que ya tienen.**
 
 Las personas graban en casa misiones cortas de habilidades para robots (sacar un pañuelo, mover una taza, girar una tapa — 12 en total) con su teléfono y su reloj inteligente, y reciben un pago.
-Las empresas de humanoides e IA física compran el resultado: video, sonido, movimiento de muñeca, fuerza de agarre y frecuencia cardíaca sin datos personales, sincronizados en un mismo reloj
+Las empresas de humanoides e IA física compran el resultado: datos de **cinco sentidos — vista, oído, tacto (fuerza de agarre), movimiento y fisiología (frecuencia cardíaca)** sin datos personales, sincronizados en un mismo reloj
 y entregados como un conjunto de datos **LeRobot v3.0** listo para entrenar.
 
 Proyecto para el Meta Global AI Developer Hackathon (Indie Developer · Push the Frontier).
@@ -41,7 +41,7 @@ Cada llamada a la API se registra con su costo en `data/api_ledger.jsonl`; si se
 - **Ocultación:** SAM 3.1 oculta solo lo que no tiene consentimiento: otras personas, niños, pantallas, espejos, cuadros y documentos. Los familiares que consienten siguen visibles, cada uno con su propio rostro virtual.
 - **Originales borrados:** en producción, el video y el audio originales se borran al terminar el procesamiento (`purge_originals`). En el servidor de demostración del hackathon solo esa llamada está desactivada, para poder mostrar la comparación original vs. reemplazado.
 
-### 2. Sincronización automática de sensores
+### 2. Cinco sentidos, sincronizados automáticamente
 Sin aplaudir: ida y vuelta del reloj teléfono↔reloj, una baliza acústica de 18–20 kHz y pulsos de vibración del reloj. Error residual de 0,5–2,3 ms en grabaciones reales con teléfono + reloj (`datacash/sync/`).
 
 ### 3. Tacto sin guante — GripSense en la muñeca
@@ -84,7 +84,7 @@ LivePortrait no se incluye — descarga [KwaiVGI/LivePortrait](https://github.co
 | Carpeta | Qué hace |
 |---|---|
 | `app/` | App de Android (consentimiento, misiones, verificación facial, grabación, marcar errores, preguntas, subida, pagos, apelaciones) + app de reloj |
-| `web/` | Web para compradores (peticiones en lenguaje natural, línea de tiempo de sensores, presupuestos, pedidos, descargas) y consola del operador |
+| `web/` | Web para compradores (peticiones en lenguaje natural, línea de tiempo de cinco sentidos, presupuestos, pedidos, descargas) y consola del operador |
 | `datacash/privacy` | Ocultación con SAM · reemplazo de rostro · privacidad del habla · revisión previa |
 | `datacash/sync` · `touch` · `labels` | Sincronización · tacto · pose de manos y cuerpo |
 | `datacash/understand` | Comprensión con Muse Spark · segunda opinión con Spark Open · verificación con sensores |

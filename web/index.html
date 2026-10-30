@@ -45,6 +45,7 @@
   h2 { font-size: 28px; margin: 0 0 8px; letter-spacing: -0.3px; }
   .lead { color: var(--sub); margin: 0 0 28px; }
   .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .grid5 { grid-template-columns: repeat(5, 1fr); }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 22px; }
   .sense .tag { display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 99px; margin-bottom: 10px; }
   .sense h3 { margin: 0 0 6px; font-size: 18px; }
@@ -109,13 +110,13 @@
 <body>
 <nav><div class="wrap">
   <a class="brand" href="#"><img src="/static/icon.png" alt="">DataCash <small>for Business</small></a>
-  <div class="links"><a href="#ask" data-i18n="nav.ask">말로 의뢰</a><a href="#senses" data-i18n="nav.senses">4감 데이터</a><a href="#sample" data-i18n="nav.sample">예시 보기</a><a href="#catalog" data-i18n="nav.catalog">카탈로그</a><a href="#buy" data-i18n="nav.buy">견적·구매</a><a href="/admin" style="color:var(--sub)" data-i18n="nav.admin">운영자</a></div>
+  <div class="links"><a href="#ask" data-i18n="nav.ask">말로 의뢰</a><a href="#senses" data-i18n="nav.senses">5감 데이터</a><a href="#sample" data-i18n="nav.sample">예시 보기</a><a href="#catalog" data-i18n="nav.catalog">카탈로그</a><a href="#buy" data-i18n="nav.buy">견적·구매</a><a href="/admin" style="color:var(--sub)" data-i18n="nav.admin">운영자</a></div>
   <select id="langSel" class="lang" aria-label="Language"></select>
 </div></nav>
 
 <header class="hero"><div class="wrap">
   <div>
-    <h1 data-i18n-html="hero.h1">집에 이미 있는 폰과 워치로 모은<br>로봇이 배울 4감 데이터</h1>
+    <h1 data-i18n-html="hero.h1">집에 이미 있는 폰과 워치로 모은<br>로봇이 배울 5감 데이터</h1>
     <p data-i18n="hero.p">실제 집에서 사람이 한 일을 촉각·시각·청각·몸 감각까지 한 시간축에 담았습니다. 동의하지 않은 사람·화면·서류는 SAM 3.1 로 정확히 가리고,
       라벨은 Muse Spark 가 붙인 뒤 센서로 다시 확인합니다. LeRobot v3.0 그대로 받아 바로 학습하세요.</p>
     <div class="row"><a class="btn" href="#ask" data-i18n="hero.btnAsk">필요한 데이터 말로 의뢰하기</a><a class="btn ghost" href="#buy" data-i18n="hero.btnQuote">견적 받기</a><a class="btn ghost" href="#sample" data-i18n="hero.btnSample">예시 데이터 보기</a></div>
@@ -123,7 +124,7 @@
   <div class="kpis">
     <div class="kpi"><b id="k-rec">-</b><span data-i18n="kpi.rec">처리된 녹화</span></div>
     <div class="kpi"><b id="k-hours">-</b><span data-i18n="kpi.hours">받아들인 분량</span></div>
-    <div class="kpi"><b data-i18n="kpi.senses">4감</b><span data-i18n="kpi.sensesSub">촉각 · 시각 · 청각 · 몸 감각</span></div>
+    <div class="kpi"><b data-i18n="kpi.senses">5감</b><span data-i18n="kpi.sensesSub">촉각 · 시각 · 청각 · 움직임 · 생체</span></div>
     <div class="kpi"><b>&lt; 1ms</b><span data-i18n="kpi.sync">워치↔폰 자동 동기화 (합성 검증)</span></div>
   </div>
 </div></header>
@@ -145,7 +146,7 @@
 <section id="senses"><div class="wrap">
   <h2 data-i18n="senses.h2">촉각 센서 없이, 집에 있는 기기만으로</h2>
   <p class="lead" data-i18n="senses.lead">새 장비를 나눠 주지 않습니다. 사용자가 이미 가진 폰·워치로 모으고, 기기들이 서로를 맞추게 합니다.</p>
-  <div class="grid4">
+  <div class="grid4 grid5">
     <div class="card sense"><span class="tag" style="background:var(--primary-soft);color:var(--primary-dark)" data-i18n="s1.tag">촉각</span>
       <h3 data-i18n="s1.h3">쥐는 세기 · 접촉</h3><p data-i18n="s1.p">워치가 0.5초마다 짧게 울리고 손목의 울림을 재서, 물건을 쥔 동안의 세기를 하·중·상과 0~100 점수로 읽습니다 (저울 없이 사람마다 한 번 보정).</p>
       <ul><li data-i18n="s1.l1">잡음·놓음·미끄러짐: 영상 + SAM 3.1</li><li data-i18n="s1.l2">내려놓음·문지름: 접촉음 + 손목 충격</li></ul></div>
@@ -155,14 +156,17 @@
     <div class="card sense"><span class="tag" style="background:var(--accent-soft);color:var(--accent-ink)" data-i18n="s3.tag">청각</span>
       <h3 data-i18n="s3.h3">소리 · 접촉음</h3><p data-i18n="s3.p">폰·워치 마이크. 개인정보가 담긴 말은 받아써서 그 구간만 끕니다 (Voice Transcribe).</p>
       <ul><li data-i18n="s3.l1">소리 세기·사건</li><li data-i18n="s3.l2">18~20kHz 음향 비콘으로 기기끼리 동기화</li></ul></div>
-    <div class="card sense"><span class="tag" style="background:#F3EEFE;color:var(--hr)" data-i18n="s4.tag">몸 감각</span>
-      <h3 data-i18n="s4.h3">움직임 · 심박 · 체온</h3><p data-i18n="s4.p">손목 IMU, 심박·HRR·피부온도 변화 (생체 동의한 녹화만). 판정·조언 없이 원값과 본인 응답만.</p>
-      <ul><li data-i18n="s4.l1">사람이 얼마나 힘들었나 → 사람을 이해하며 같이 일하는 로봇</li></ul></div>
+    <div class="card sense"><span class="tag" style="background:#E9F7EF;color:#1E7D4F" data-i18n="s4.tag">움직임</span>
+      <h3 data-i18n="s4.h3">손목·폰 움직임 · 몸 자세</h3><p data-i18n="s4.p">워치·폰 IMU(가속도·자이로)를 ms 단위로 한 시간축에 맞추고, 손·전신 관절의 3D 움직임과 함께 담습니다.</p>
+      <ul><li data-i18n="s4.l1">들기·옮기기·비틀기의 힘쓰는 순간을 손목 충격·흔들림으로</li></ul></div>
+    <div class="card sense"><span class="tag" style="background:#F3EEFE;color:var(--hr)" data-i18n="s5.tag">생체</span>
+      <h3 data-i18n="s5.h3">심박 · 피부온도</h3><p data-i18n="s5.p">손목 IMU, 심박·HRR·피부온도 변화 (생체 동의한 녹화만). 판정·조언 없이 원값과 본인 응답만.</p>
+      <ul><li data-i18n="s5.l1">사람이 얼마나 힘들었나 → 사람을 이해하며 같이 일하는 로봇</li></ul></div>
   </div>
 </div></section>
 
 <section id="sample" style="background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line)"><div class="wrap">
-  <h2 data-i18n="sample.h2">예시 데이터 — 4감 타임라인</h2>
+  <h2 data-i18n="sample.h2">예시 데이터 — 5감 타임라인</h2>
   <p class="lead" data-i18n="sample.lead">한 에피소드의 장면과, 같은 시간축의 쥐는 세기·심박·소리·단계 라벨입니다. 타임라인을 누르면 그 장면으로 갑니다.</p>
   <div class="row" style="margin-bottom:14px">
     <select id="sampleSel"></select><span class="note" id="sampleNote"></span>
@@ -235,11 +239,11 @@ if (!LANGS.some(l => l[0] === LANG)) LANG = "en";
 const LOCALE = {en: "en-US", ko: "ko-KR", ja: "ja-JP", "zh-CN": "zh-CN", es: "es-ES"};
 const I18N = {
 ko: {
-  "nav.ask": "말로 의뢰", "nav.senses": "4감 데이터", "nav.sample": "예시 보기", "nav.catalog": "카탈로그", "nav.buy": "견적·구매", "nav.admin": "운영자",
-  "hero.h1": "집에 이미 있는 폰과 워치로 모은<br>로봇이 배울 4감 데이터",
+  "nav.ask": "말로 의뢰", "nav.senses": "5감 데이터", "nav.sample": "예시 보기", "nav.catalog": "카탈로그", "nav.buy": "견적·구매", "nav.admin": "운영자",
+  "hero.h1": "집에 이미 있는 폰과 워치로 모은<br>로봇이 배울 5감 데이터",
   "hero.p": "실제 집에서 사람이 한 일을 촉각·시각·청각·몸 감각까지 한 시간축에 담았습니다. 동의하지 않은 사람·화면·서류는 SAM 3.1 로 정확히 가리고, 라벨은 Muse Spark 가 붙인 뒤 센서로 다시 확인합니다. LeRobot v3.0 그대로 받아 바로 학습하세요.",
   "hero.btnAsk": "필요한 데이터 말로 의뢰하기", "hero.btnQuote": "견적 받기", "hero.btnSample": "예시 데이터 보기",
-  "kpi.rec": "처리된 녹화", "kpi.hours": "받아들인 분량", "kpi.senses": "4감", "kpi.sensesSub": "촉각 · 시각 · 청각 · 몸 감각", "kpi.sync": "워치↔폰 자동 동기화 (합성 검증)",
+  "kpi.rec": "처리된 녹화", "kpi.hours": "받아들인 분량", "kpi.senses": "5감", "kpi.sensesSub": "촉각 · 시각 · 청각 · 움직임 · 생체", "kpi.sync": "워치↔폰 자동 동기화 (합성 검증)",
   "ask.h2": "필요한 데이터를 말로 의뢰하세요",
   "ask.lead": "어떤 로봇에게 무엇을 가르칠지, 누가 찍으면 좋을지, 예산과 꼭 필요한 센서를 적어 주세요. Muse Spark 가 미션을 거꾸로 설계하고, 조건에 맞는 사람에게만 미션이 열려 그대로 모입니다 — 분포를 따로 맞출 필요가 없어요.",
   "ask.example": "예) \"제조업 회사예요. 택배 상하차 로봇을 학습시킬 데이터가 필요해요. 성별 무관 50대 이하, 예산 500만 원, 손 관절과 쥐는 세기는 꼭 넣어 주세요.\"",
@@ -252,9 +256,9 @@ ko: {
   "s2.l1": "사람·아이·화면·거울·액자·서류 가리기", "s2.l2": "단계 지시문 (Muse Spark)",
   "s3.tag": "청각", "s3.h3": "소리 · 접촉음", "s3.p": "폰·워치 마이크. 개인정보가 담긴 말은 받아써서 그 구간만 끕니다 (Voice Transcribe).",
   "s3.l1": "소리 세기·사건", "s3.l2": "18~20kHz 음향 비콘으로 기기끼리 동기화",
-  "s4.tag": "몸 감각", "s4.h3": "움직임 · 심박 · 체온", "s4.p": "손목 IMU, 심박·HRR·피부온도 변화 (생체 동의한 녹화만). 판정·조언 없이 원값과 본인 응답만.",
-  "s4.l1": "사람이 얼마나 힘들었나 → 사람을 이해하며 같이 일하는 로봇",
-  "sample.h2": "예시 데이터 — 4감 타임라인", "sample.lead": "한 에피소드의 장면과, 같은 시간축의 쥐는 세기·심박·소리·단계 라벨입니다. 타임라인을 누르면 그 장면으로 갑니다.",
+  "s4.tag": "움직임", "s4.h3": "손목·폰 움직임 · 몸 자세", "s4.p": "워치·폰 IMU(가속도·자이로)를 ms 단위로 한 시간축에 맞추고, 손·전신 관절의 3D 움직임과 함께 담습니다.",
+  "s4.l1": "들기·옮기기·비틀기의 힘쓰는 순간을 손목 충격·흔들림으로", "s5.tag": "생체", "s5.h3": "심박 · 피부온도", "s5.p": "손목 IMU, 심박·HRR·피부온도 변화 (생체 동의한 녹화만). 판정·조언 없이 원값과 본인 응답만.", "s5.l1": "사람이 얼마나 힘들었나 → 사람을 이해하며 같이 일하는 로봇",
+  "sample.h2": "예시 데이터 — 5감 타임라인", "sample.lead": "한 에피소드의 장면과, 같은 시간축의 쥐는 세기·심박·소리·단계 라벨입니다. 타임라인을 누르면 그 장면으로 갑니다.",
   "sample.cert": "품질 인증서", "sample.frameAlt": "가린 장면", "sample.none": "예시 없음",
   "lg.grip": "쥐는 세기 (하·중·상, 0~100)", "lg.hr": "심박 (bpm)", "lg.sound": "소리 세기", "lg.contact": "접촉 단계", "lg.marks": "▲ 확인된 접촉음 · ◆ '실수했어요'",
   "cat.h2": "카탈로그", "cat.lead": "처리된 녹화의 품질 인증서에서 바로 계산한 숫자입니다 (지어낸 숫자 없음).",
@@ -301,11 +305,11 @@ ko: {
   "rq.note": "조건에 맞는 사람에게만 보여요. 모이는 대로 카탈로그에 올라가고, 계약 뒤 주문으로 받을 수 있어요."
 },
 en: {
-  "nav.ask": "Ask in words", "nav.senses": "4-sense data", "nav.sample": "Sample", "nav.catalog": "Catalog", "nav.buy": "Quote & buy", "nav.admin": "Operator",
-  "hero.h1": "4-sense data for robots to learn from,<br>collected with the phones and watches people already own",
+  "nav.ask": "Ask in words", "nav.senses": "5-sense data", "nav.sample": "Sample", "nav.catalog": "Catalog", "nav.buy": "Quote & buy", "nav.admin": "Operator",
+  "hero.h1": "5-sense data for robots to learn from,<br>collected with the phones and watches people already own",
   "hero.p": "What people really do at home — touch, vision, sound and body sense — on one shared timeline. People, screens and documents that didn't consent are masked precisely with SAM 3.1, and labels are added by Muse Spark and then re-checked against the sensors. Download it as LeRobot v3.0 and start training right away.",
   "hero.btnAsk": "Ask for data in plain words", "hero.btnQuote": "Get a quote", "hero.btnSample": "See sample data",
-  "kpi.rec": "Processed recordings", "kpi.hours": "Accepted volume", "kpi.senses": "4 senses", "kpi.sensesSub": "Touch · vision · sound · body sense", "kpi.sync": "Automatic watch↔phone sync (verified on synthetic data)",
+  "kpi.rec": "Processed recordings", "kpi.hours": "Accepted volume", "kpi.senses": "5 senses", "kpi.sensesSub": "Touch · vision · sound · motion · physiology", "kpi.sync": "Automatic watch↔phone sync (verified on synthetic data)",
   "ask.h2": "Tell us what data you need, in plain words",
   "ask.lead": "Tell us what you want to teach which robot, who should record it, your budget and the sensors you must have. Muse Spark designs the missions backwards from your request, and they open only to contributors who match your conditions — so the data arrives with the distribution you asked for, no rebalancing needed.",
   "ask.example": "e.g. \"We're a manufacturer. We need data to train a parcel loading/unloading robot. Any gender, age 50s or younger, budget ₩5,000,000 — hand joints and grip force are a must.\"",
@@ -318,9 +322,9 @@ en: {
   "s2.l1": "Masks people, children, screens, mirrors, picture frames and documents", "s2.l2": "Step instructions (Muse Spark)",
   "s3.tag": "Sound", "s3.h3": "Sound · contact sounds", "s3.p": "Phone and watch microphones. Speech containing personal information is transcribed and only that segment is muted (Voice Transcribe).",
   "s3.l1": "Sound level · sound events", "s3.l2": "Devices sync with each other via an 18–20 kHz acoustic beacon",
-  "s4.tag": "Body sense", "s4.h3": "Motion · heart rate · temperature", "s4.p": "Wrist IMU, heart rate, HRR and skin-temperature change (biometric-consent recordings only). Raw values and the contributor's own answers only — no judgments or advice.",
-  "s4.l1": "How hard was it for the person → robots that understand people and work alongside them",
-  "sample.h2": "Sample data — 4-sense timeline", "sample.lead": "Scenes from one episode, with grip force, heart rate, sound and step labels on the same timeline. Click the timeline to jump to that scene.",
+  "s4.tag": "Motion", "s4.h3": "Wrist & phone motion · body pose", "s4.p": "Watch and phone IMU (accelerometer, gyroscope) aligned to one timeline at ms precision, together with 3D hand and body joint motion.",
+  "s4.l1": "The effortful moments of lifting, carrying and twisting, seen as wrist impacts and shake", "s5.tag": "Physiology", "s5.h3": "Heart rate · skin temperature", "s5.p": "Wrist IMU, heart rate, HRR and skin-temperature change (biometric-consent recordings only). Raw values and the contributor's own answers only — no judgments or advice.", "s5.l1": "How hard was it for the person → robots that understand people and work alongside them",
+  "sample.h2": "Sample data — 5-sense timeline", "sample.lead": "Scenes from one episode, with grip force, heart rate, sound and step labels on the same timeline. Click the timeline to jump to that scene.",
   "sample.cert": "Quality certificate", "sample.frameAlt": "Masked scene", "sample.none": "No samples",
   "lg.grip": "Grip force (low · mid · high, 0–100)", "lg.hr": "Heart rate (bpm)", "lg.sound": "Sound level", "lg.contact": "Contact phase", "lg.marks": "▲ confirmed contact sound · ◆ 'I made a mistake'",
   "cat.h2": "Catalog", "cat.lead": "Numbers computed directly from the quality certificates of processed recordings (nothing made up).",
@@ -376,11 +380,11 @@ en: {
   "ld.bio": "Premium + heart rate, HRR and skin-temperature change + post-mission self-report (biometric-consent recordings only)"
 },
 ja: {
-  "nav.ask": "ことばで依頼", "nav.senses": "4感データ", "nav.sample": "サンプル", "nav.catalog": "カタログ", "nav.buy": "見積もり・購入", "nav.admin": "運営者",
-  "hero.h1": "家にあるスマホとウォッチで集めた、<br>ロボットが学ぶ 4感データ",
+  "nav.ask": "ことばで依頼", "nav.senses": "5感データ", "nav.sample": "サンプル", "nav.catalog": "カタログ", "nav.buy": "見積もり・購入", "nav.admin": "運営者",
+  "hero.h1": "家にあるスマホとウォッチで集めた、<br>ロボットが学ぶ 5感データ",
   "hero.p": "実際の家で人がした作業を、触覚・視覚・聴覚・身体感覚まで一つの時間軸に収めました。同意していない人・画面・書類は SAM 3.1 で正確に隠し、ラベルは Muse Spark が付けたあとセンサーで再確認します。LeRobot v3.0 のまま受け取って、すぐ学習に使えます。",
   "hero.btnAsk": "必要なデータをことばで依頼", "hero.btnQuote": "見積もりを取る", "hero.btnSample": "サンプルデータを見る",
-  "kpi.rec": "処理済みの録画", "kpi.hours": "受け入れた分量", "kpi.senses": "4感", "kpi.sensesSub": "触覚 · 視覚 · 聴覚 · 身体感覚", "kpi.sync": "ウォッチ↔スマホ自動同期（合成データで検証）",
+  "kpi.rec": "処理済みの録画", "kpi.hours": "受け入れた分量", "kpi.senses": "5感", "kpi.sensesSub": "触覚 · 視覚 · 聴覚 · 動き · 生体", "kpi.sync": "ウォッチ↔スマホ自動同期（合成データで検証）",
   "ask.h2": "必要なデータをことばで依頼してください",
   "ask.lead": "どのロボットに何を教えたいか、誰に撮ってほしいか、予算と必須のセンサーを書いてください。Muse Spark が依頼から逆算してミッションを設計し、条件に合う人だけにミッションが公開されてそのまま集まります —— 分布を別に合わせる必要はありません。",
   "ask.example": "例）「製造業の会社です。宅配の積み下ろしロボットを学習させるデータが必要です。性別不問・50 代以下、予算 500 万ウォン、手の関節と握る力は必ず入れてください。」",
@@ -393,9 +397,9 @@ ja: {
   "s2.l1": "人・子ども・画面・鏡・額縁・書類を隠す", "s2.l2": "ステップの指示文（Muse Spark）",
   "s3.tag": "聴覚", "s3.h3": "音 · 接触音", "s3.p": "スマホ・ウォッチのマイク。個人情報を含む発話は書き起こして、その区間だけ消音します（Voice Transcribe）。",
   "s3.l1": "音の大きさ・音のイベント", "s3.l2": "18〜20 kHz の音響ビーコンで機器どうしを同期",
-  "s4.tag": "身体感覚", "s4.h3": "動き · 心拍 · 体温", "s4.p": "手首 IMU、心拍・HRR・皮膚温度の変化（生体情報に同意した録画のみ）。判定や助言はせず、生の値と本人の回答だけ。",
-  "s4.l1": "その人がどれだけきつかったか → 人を理解して一緒に働くロボットへ",
-  "sample.h2": "サンプルデータ —— 4感タイムライン", "sample.lead": "1 エピソードの場面と、同じ時間軸の握る力・心拍・音・ステップのラベルです。タイムラインをクリックするとその場面に移動します。",
+  "s4.tag": "動き", "s4.h3": "手首・スマホの動き · 体の姿勢", "s4.p": "ウォッチとスマホの IMU（加速度・ジャイロ）をミリ秒単位で一つの時間軸に合わせ、手と全身の関節の 3D の動きと一緒に収めます。",
+  "s4.l1": "持ち上げ・運び・ひねりの力を入れる瞬間を、手首の衝撃と揺れで", "s5.tag": "生体", "s5.h3": "心拍 · 皮膚温度", "s5.p": "手首 IMU、心拍・HRR・皮膚温度の変化（生体情報に同意した録画のみ）。判定や助言はせず、生の値と本人の回答だけ。", "s5.l1": "その人がどれだけきつかったか → 人を理解して一緒に働くロボットへ",
+  "sample.h2": "サンプルデータ —— 5感タイムライン", "sample.lead": "1 エピソードの場面と、同じ時間軸の握る力・心拍・音・ステップのラベルです。タイムラインをクリックするとその場面に移動します。",
   "sample.cert": "品質証明書", "sample.frameAlt": "隠した場面", "sample.none": "サンプルなし",
   "lg.grip": "握る力（低・中・高、0〜100）", "lg.hr": "心拍（bpm）", "lg.sound": "音の大きさ", "lg.contact": "接触の段階", "lg.marks": "▲ 確認された接触音 · ◆「失敗しました」",
   "cat.h2": "カタログ", "cat.lead": "処理済み録画の品質証明書からそのまま計算した数字です（作った数字はありません）。",
@@ -451,11 +455,11 @@ ja: {
   "ld.bio": "高品質 + 心拍・HRR・皮膚温度の変化 + ミッション後の本人回答（生体情報に同意した録画のみ）"
 },
 "zh-CN": {
-  "nav.ask": "用自然语言提需求", "nav.senses": "四感数据", "nav.sample": "示例", "nav.catalog": "目录", "nav.buy": "报价·购买", "nav.admin": "运营者",
-  "hero.h1": "用家里现有的手机和手表收集的<br>机器人学习用四感数据",
+  "nav.ask": "用自然语言提需求", "nav.senses": "五感数据", "nav.sample": "示例", "nav.catalog": "目录", "nav.buy": "报价·购买", "nav.admin": "运营者",
+  "hero.h1": "用家里现有的手机和手表收集的<br>机器人学习用五感数据",
   "hero.p": "把人在真实家庭中完成的动作，连同触觉·视觉·听觉·身体感觉，放在同一条时间轴上。未同意的人·屏幕·文件由 SAM 3.1 精确遮盖，标签由 Muse Spark 标注后再用传感器复核。以 LeRobot v3.0 格式直接下载，马上开始训练。",
   "hero.btnAsk": "用自然语言提数据需求", "hero.btnQuote": "获取报价", "hero.btnSample": "查看示例数据",
-  "kpi.rec": "已处理的录制", "kpi.hours": "已接收的时长", "kpi.senses": "四感", "kpi.sensesSub": "触觉 · 视觉 · 听觉 · 身体感觉", "kpi.sync": "手表↔手机自动同步（合成数据验证）",
+  "kpi.rec": "已处理的录制", "kpi.hours": "已接收的时长", "kpi.senses": "五感", "kpi.sensesSub": "触觉 · 视觉 · 听觉 · 动作 · 生理", "kpi.sync": "手表↔手机自动同步（合成数据验证）",
   "ask.h2": "用自然语言告诉我们您需要的数据",
   "ask.lead": "请写下要教哪种机器人做什么、希望由谁来录制、预算以及必需的传感器。Muse Spark 会根据需求反向设计任务，任务只向符合条件的人开放并按此收集 —— 无需另外调整分布。",
   "ask.example": "例如：“我们是制造业公司，需要训练快递装卸机器人的数据。性别不限、50 多岁及以下，预算 500 万韩元，手部关节和握力必须包含。”",
@@ -468,9 +472,9 @@ ja: {
   "s2.l1": "遮盖人·儿童·屏幕·镜子·相框·文件", "s2.l2": "步骤说明（Muse Spark）",
   "s3.tag": "听觉", "s3.h3": "声音 · 接触音", "s3.p": "手机·手表麦克风。含个人信息的语音会被转写，只把那一段静音（Voice Transcribe）。",
   "s3.l1": "声音强度·声音事件", "s3.l2": "用 18–20 kHz 声学信标让设备彼此同步",
-  "s4.tag": "身体感觉", "s4.h3": "动作 · 心率 · 体温", "s4.p": "手腕 IMU、心率·HRR·皮肤温度变化（仅限同意提供生物信息的录制）。不做判断或建议，只提供原始数值和本人回答。",
-  "s4.l1": "这个人有多吃力 → 理解人并与人协作的机器人",
-  "sample.h2": "示例数据 —— 四感时间轴", "sample.lead": "一个片段的画面，以及同一时间轴上的握力·心率·声音·步骤标签。点击时间轴即可跳到对应画面。",
+  "s4.tag": "动作", "s4.h3": "手腕·手机动作 · 身体姿态", "s4.p": "将手表和手机的 IMU（加速度·陀螺仪）以毫秒精度对齐到同一时间轴，并与手部和全身关节的 3D 动作一起记录。",
+  "s4.l1": "通过手腕冲击和晃动捕捉抬起·搬运·拧转时用力的瞬间", "s5.tag": "生理", "s5.h3": "心率 · 皮肤温度", "s5.p": "手腕 IMU、心率·HRR·皮肤温度变化（仅限同意提供生物信息的录制）。不做判断或建议，只提供原始数值和本人回答。", "s5.l1": "这个人有多吃力 → 理解人并与人协作的机器人",
+  "sample.h2": "示例数据 —— 五感时间轴", "sample.lead": "一个片段的画面，以及同一时间轴上的握力·心率·声音·步骤标签。点击时间轴即可跳到对应画面。",
   "sample.cert": "质量证书", "sample.frameAlt": "遮盖后的画面", "sample.none": "暂无示例",
   "lg.grip": "握力（低·中·高，0–100）", "lg.hr": "心率（bpm）", "lg.sound": "声音强度", "lg.contact": "接触阶段", "lg.marks": "▲ 已确认的接触音 · ◆ “我失误了”",
   "cat.h2": "目录", "cat.lead": "直接根据已处理录制的质量证书计算的数字（没有编造的数字）。",
@@ -526,11 +530,11 @@ ja: {
   "ld.bio": "高品质 + 心率·HRR·皮肤温度变化 + 任务后本人回答（仅限同意提供生物信息的录制）"
 },
 es: {
-  "nav.ask": "Pedir con palabras", "nav.senses": "Datos de 4 sentidos", "nav.sample": "Ejemplo", "nav.catalog": "Catálogo", "nav.buy": "Cotizar y comprar", "nav.admin": "Operador",
-  "hero.h1": "Datos de 4 sentidos para que aprendan los robots,<br>grabados con el teléfono y el reloj que la gente ya tiene",
+  "nav.ask": "Pedir con palabras", "nav.senses": "Datos de 5 sentidos", "nav.sample": "Ejemplo", "nav.catalog": "Catálogo", "nav.buy": "Cotizar y comprar", "nav.admin": "Operador",
+  "hero.h1": "Datos de 5 sentidos para que aprendan los robots,<br>grabados con el teléfono y el reloj que la gente ya tiene",
   "hero.p": "Lo que las personas hacen de verdad en casa — tacto, vista, oído y sensación corporal — en una misma línea de tiempo. Las personas, pantallas y documentos sin consentimiento se ocultan con precisión con SAM 3.1, y Muse Spark añade las etiquetas, que luego se vuelven a comprobar con los sensores. Descárgalo tal cual en LeRobot v3.0 y empieza a entrenar.",
   "hero.btnAsk": "Pedir datos con tus palabras", "hero.btnQuote": "Obtener cotización", "hero.btnSample": "Ver datos de ejemplo",
-  "kpi.rec": "Grabaciones procesadas", "kpi.hours": "Volumen aceptado", "kpi.senses": "4 sentidos", "kpi.sensesSub": "Tacto · vista · oído · sensación corporal", "kpi.sync": "Sincronización automática reloj↔teléfono (verificada con datos sintéticos)",
+  "kpi.rec": "Grabaciones procesadas", "kpi.hours": "Volumen aceptado", "kpi.senses": "5 sentidos", "kpi.sensesSub": "Tacto · vista · oído · movimiento · fisiología", "kpi.sync": "Sincronización automática reloj↔teléfono (verificada con datos sintéticos)",
   "ask.h2": "Pide los datos que necesitas con tus propias palabras",
   "ask.lead": "Cuéntanos qué quieres enseñar a qué robot, quién debería grabarlo, tu presupuesto y los sensores imprescindibles. Muse Spark diseña las misiones a partir de tu pedido y solo se abren a quienes cumplen las condiciones, así los datos llegan con la distribución que pediste — sin ajustes aparte.",
   "ask.example": "p. ej. \"Somos una empresa manufacturera. Necesitamos datos para entrenar un robot de carga y descarga de paquetes. Cualquier género, hasta 50 y tantos años, presupuesto de ₩5.000.000; las articulaciones de la mano y la fuerza de agarre son imprescindibles.\"",
@@ -543,9 +547,9 @@ es: {
   "s2.l1": "Oculta personas, niños, pantallas, espejos, marcos y documentos", "s2.l2": "Instrucciones por paso (Muse Spark)",
   "s3.tag": "Oído", "s3.h3": "Sonido · sonidos de contacto", "s3.p": "Micrófonos del teléfono y del reloj. El habla con datos personales se transcribe y solo se silencia ese fragmento (Voice Transcribe).",
   "s3.l1": "Nivel de sonido · eventos sonoros", "s3.l2": "Los dispositivos se sincronizan con una baliza acústica de 18–20 kHz",
-  "s4.tag": "Sensación corporal", "s4.h3": "Movimiento · frecuencia cardíaca · temperatura", "s4.p": "IMU de muñeca, frecuencia cardíaca, HRR y cambio de temperatura de la piel (solo grabaciones con consentimiento biométrico). Solo valores en bruto y las respuestas del propio participante, sin juicios ni consejos.",
-  "s4.l1": "Cuánto le costó a la persona → robots que entienden a las personas y trabajan con ellas",
-  "sample.h2": "Datos de ejemplo — línea de tiempo de 4 sentidos", "sample.lead": "Escenas de un episodio, con fuerza de agarre, frecuencia cardíaca, sonido y etiquetas de pasos en la misma línea de tiempo. Haz clic en la línea de tiempo para ir a esa escena.",
+  "s4.tag": "Movimiento", "s4.h3": "Movimiento de muñeca y teléfono · postura", "s4.p": "IMU del reloj y del teléfono (acelerómetro, giroscopio) alineada en una misma línea de tiempo con precisión de ms, junto con el movimiento 3D de las articulaciones de manos y cuerpo.",
+  "s4.l1": "Los momentos de esfuerzo al levantar, cargar y girar, vistos como impactos y vibraciones de la muñeca", "s5.tag": "Fisiología", "s5.h3": "Frecuencia cardíaca · temperatura de la piel", "s5.p": "IMU de muñeca, frecuencia cardíaca, HRR y cambio de temperatura de la piel (solo grabaciones con consentimiento biométrico). Solo valores en bruto y las respuestas del propio participante, sin juicios ni consejos.", "s5.l1": "Cuánto le costó a la persona → robots que entienden a las personas y trabajan con ellas",
+  "sample.h2": "Datos de ejemplo — línea de tiempo de 5 sentidos", "sample.lead": "Escenas de un episodio, con fuerza de agarre, frecuencia cardíaca, sonido y etiquetas de pasos en la misma línea de tiempo. Haz clic en la línea de tiempo para ir a esa escena.",
   "sample.cert": "Certificado de calidad", "sample.frameAlt": "Escena ocultada", "sample.none": "Sin ejemplos",
   "lg.grip": "Fuerza de agarre (bajo · medio · alto, 0–100)", "lg.hr": "Frecuencia cardíaca (lpm)", "lg.sound": "Nivel de sonido", "lg.contact": "Fase de contacto", "lg.marks": "▲ sonido de contacto confirmado · ◆ «Me equivoqué»",
   "cat.h2": "Catálogo", "cat.lead": "Cifras calculadas directamente de los certificados de calidad de las grabaciones procesadas (nada inventado).",

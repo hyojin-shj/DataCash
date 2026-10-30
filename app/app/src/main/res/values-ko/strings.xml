@@ -37,7 +37,7 @@
     <string name="n_upload_failed">%1$s 녹화를 올리지 못했어요</string>
     <string name="n_upload_failed_text">내 녹화 기록에서 \'다시 올리기\'를 눌러 주세요</string>
     <string name="n_reviewing">%1$s 녹화 · 검수 중</string>
-    <string name="n_reviewing_text">가리기 · 라벨 · 4감 맞추기 — 끝나면 알려 드릴게요</string>
+    <string name="n_reviewing_text">가리기 · 라벨 · 5감 맞추기 — 끝나면 알려 드릴게요</string>
     <string name="n_paid">띠링! %1$s 미션 %2$,d원 적립</string>
     <string name="paid_to">%1$s 으로 입금됐어요</string>
     <string name="link_to_get_paid">계좌를 연결하면 바로 입금돼요</string>
@@ -156,7 +156,7 @@
     <string name="upload_failed_short">올리지 못했어요</string>
     <string name="upload_failed_detail">%1$s\n설정에서 서버 주소·토큰을 확인해 주세요. 녹화는 폰에 남아 있어요.</string>
     <string name="status_fail">상태를 받지 못했어요: %1$s</string>
-    <string name="result_processing">가리기 · 라벨 · 4감 동기화 중이에요. 앱을 닫아도 서버가 계속해요.</string>
+    <string name="result_processing">가리기 · 라벨 · 5감 동기화 중이에요. 앱을 닫아도 서버가 계속해요.</string>
     <string name="result_collected">원본 그대로 미션별로 보관했어요. 가리기 · 라벨 · 검수 · 보상은 나중에 한꺼번에 해요.</string>
     <string name="calib_learned">쥐는 세기를 배웠어요</string>
     <string name="calib_detail">가볍게·평소처럼·꽉·손 놓기를 %1$d개 구간에서 배웠어요 · 맞춘 비율 %2$.0f%%\n다음 녹화부터 쥐는 세기가 같이 담겨요</string>

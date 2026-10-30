@@ -5,7 +5,7 @@
 **Robot hand data from everyday people — using only the phone and watch they already own.**
 
 People record short robot-skill missions at home (pull a tissue, move a cup, twist a lid — 12 in total) with their phone and smartwatch, and get paid.
-Humanoid and physical-AI companies buy the result: privacy-scrubbed video, sound, wrist motion, grip force and heart rate on one shared clock,
+Humanoid and physical-AI companies buy the result: privacy-scrubbed data from **five senses — vision, sound, touch (grip force), motion and physiology (heart rate)** — on one shared clock,
 delivered as a ready-to-train **LeRobot v3.0** dataset.
 
 Built for the Meta Global AI Developer Hackathon (Indie Developer · Push the Frontier).
@@ -41,7 +41,7 @@ Every API call is logged with its cost in `data/api_ledger.jsonl`; if the budget
 - **Masking:** SAM 3.1 hides only what wasn't consented: other people, children, screens, mirrors, picture frames, documents. Consenting family members stay visible, each with their own virtual face.
 - **Originals deleted:** in production, raw video and audio are deleted as soon as processing ends (`purge_originals`). On the hackathon demo server only that call is switched off, so we can show the original-vs-replaced comparison.
 
-### 2. Automatic multi-sensor sync
+### 2. Five senses, synced automatically
 No clapping required: phone↔watch clock round-trips, an 18–20 kHz acoustic beacon, and watch vibration pulses. Residual 0.5–2.3 ms on real phone + watch recordings (`datacash/sync/`).
 
 ### 3. Touch without a glove — GripSense on the wrist
@@ -84,7 +84,7 @@ LivePortrait is not vendored — get [KwaiVGI/LivePortrait](https://github.com/K
 | Folder | What it does |
 |---|---|
 | `app/` | Android app (consent, missions, face check, recording, mistake marks, questions, upload, rewards, appeals) + watch app |
-| `web/` | Buyer web (plain-language requests, multi-sensor timeline, quotes, orders, downloads) and operator console |
+| `web/` | Buyer web (plain-language requests, five-sense timeline, quotes, orders, downloads) and operator console |
 | `datacash/privacy` | SAM masking · face replacement · speech privacy · pre-scan |
 | `datacash/sync` · `touch` · `labels` | Sensor sync · touch · hand and body pose |
 | `datacash/understand` | Muse Spark understanding · Spark Open second opinion · sensor-based verification |

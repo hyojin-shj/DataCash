@@ -44,7 +44,7 @@
     <string name="n_upload_failed">Couldn\'t upload %1$s</string>
     <string name="n_upload_failed_text">Tap “Upload again” in My recordings</string>
     <string name="n_reviewing">%1$s · in review</string>
-    <string name="n_reviewing_text">Masking · labeling · syncing the 4 senses — we\'ll let you know when it\'s done</string>
+    <string name="n_reviewing_text">Masking · labeling · syncing the 5 senses — we\'ll let you know when it\'s done</string>
     <string name="n_paid">Ding! %1$s mission · +₩%2$,d earned</string>
     <string name="paid_to">Paid to %1$s</string>
     <string name="link_to_get_paid">Link an account to get paid right away</string>
@@ -177,7 +177,7 @@
     <string name="upload_failed_short">Couldn\'t upload</string>
     <string name="upload_failed_detail">%1$s\nCheck the server address and token in settings. The recording is still on your phone.</string>
     <string name="status_fail">Couldn\'t get status: %1$s</string>
-    <string name="result_processing">Masking · labeling · syncing the 4 senses. The server keeps going even if you close the app.</string>
+    <string name="result_processing">Masking · labeling · syncing the 5 senses. The server keeps going even if you close the app.</string>
     <string name="result_collected">Stored as-is, by mission. Masking, labeling, review and rewards happen later, all at once.</string>
     <string name="calib_learned">Grip strength learned</string>
     <string name="calib_detail">Learned light · normal · tight · release from %1$d windows · accuracy %2$.0f%%\nGrip strength will be included from your next recording</string>

@@ -37,7 +37,7 @@
     <string name="n_upload_failed">%1$s 录制上传失败</string>
     <string name="n_upload_failed_text">请在“我的录制”中点按“重新上传”</string>
     <string name="n_reviewing">%1$s 录制 · 审核中</string>
-    <string name="n_reviewing_text">遮盖 · 标注 · 四感同步——完成后会通知你</string>
+    <string name="n_reviewing_text">遮盖 · 标注 · 五感同步——完成后会通知你</string>
     <string name="n_paid">叮！%1$s 任务获得 ₩%2$,d</string>
     <string name="paid_to">已转入 %1$s</string>
     <string name="link_to_get_paid">绑定账户即可立即到账</string>
@@ -156,7 +156,7 @@
     <string name="upload_failed_short">上传失败</string>
     <string name="upload_failed_detail">%1$s\n请在设置中检查服务器地址和令牌。录制内容仍保存在手机上。</string>
     <string name="status_fail">无法获取状态：%1$s</string>
-    <string name="result_processing">正在遮盖 · 标注 · 四感同步。关闭 App 后服务器也会继续。</string>
+    <string name="result_processing">正在遮盖 · 标注 · 五感同步。关闭 App 后服务器也会继续。</string>
     <string name="result_collected">已按任务原样存档。遮盖 · 标注 · 审核 · 报酬稍后统一处理。</string>
     <string name="calib_learned">已学会你的握力</string>
     <string name="calib_detail">已在 %1$d 个片段中学会轻握 · 正常 · 用力 · 松手 · 准确率 %2$.0f%%\n从下次录制起会一并记录握力</string>
