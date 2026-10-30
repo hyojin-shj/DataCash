@@ -666,7 +666,7 @@ function renderCatalog() {
   load_levels();
   $("#mChecks").innerHTML = CAT.missions.map(m => `<label class="${was.has(m.id) ? "on" : ""}"><input type="checkbox" value="${esc(m.id)}" ${was.has(m.id) ? "checked" : ""}>${esc(m.title)}</label>`).join("");
   document.querySelectorAll("#mChecks label").forEach(l => l.onclick = e => { setTimeout(() => { l.classList.toggle("on", l.querySelector("input").checked); quote(); }, 0); });
-  const FIRST = "20261029_230814";   // 처음 보여 줄 예시: 물병 든 무거운 상자를 카트로 여러 번 (심박이 계속 잡히고 110대로 높음)
+  const FIRST = "20261029_230651";   // 처음 보여 줄 예시: 물병 든 무거운 상자 (밝은 흰 벽 — 얼굴 치환이 가장 자연스러움)
   const samples = CAT.missions.flatMap(m => m.samples.map(s => ({s, m})))
     .sort((a, b) => (b.s === FIRST) - (a.s === FIRST) || (b.m.id === "lift_box") - (a.m.id === "lift_box"));
   $("#sampleSel").innerHTML = samples.map(x => `<option value="${esc(x.s)}">${esc(x.m.title)} · ${esc(x.s)}</option>`).join("") || `<option>${esc(t("sample.none"))}</option>`;

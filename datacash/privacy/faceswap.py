@@ -253,8 +253,8 @@ class LivePortraitSwap:
             for ch in range(3):                              # 밝기는 퍼짐도 조금만(그늘진 장면에서 얼룩지지 않게), 색은 평균만
                 am, asd = a[..., ch][sel].mean(), a[..., ch][sel].std() + 1e-3
                 bm, bsd = b[..., ch][sel].mean(), b[..., ch][sel].std() + 1e-3
-                k = float(np.clip(bsd / asd, 0.9, 1.1)) if ch == 0 else 1.0
-                a[..., ch] = (a[..., ch] - am) * k + am + (bm - am) * (0.85 if ch == 0 else 1.0)
+                k = float(np.clip(bsd / asd, 0.85, 1.15)) if ch == 0 else float(np.clip(bsd / asd, 0.8, 1.25))
+                a[..., ch] = (a[..., ch] - am) * k + bm      # 밝기·색 평균을 장면 얼굴에 그대로 (0.85 만 맞추면 어두운·초록빛 장면에서 얼굴만 희게 떴다)
             face512 = cv2.cvtColor(np.clip(a, 0, 255).astype(np.uint8), cv2.COLOR_LAB2BGR)
         warped = cv2.warpAffine(face512, M, (w, h), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
         mw = cv2.warpAffine(mk, M, (w, h), flags=cv2.INTER_LINEAR)
@@ -454,7 +454,11 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
                         crops.pop(key, None)
                         yc = np.array([yf[0] + yf[2] / 2, yf[1] + yf[3] / 2], np.float32)
                         ep = reid.embed(fo, yc)
-                        known = ep is None or not ref_emb or max(reid.sim(ep, r) for r in ref_emb) >= REID_MAX
+                        sim_p = max(reid.sim(ep, r) for r in ref_emb) if ep is not None and ref_emb else 1.0
+                        eyes = float(np.hypot(yf[6] - yf[4], yf[7] - yf[5])) / max(1.0, float(yf[2]))
+                        # 거의 완전한 옆모습(눈 사이가 얼굴 폭의 22% 미만): 만들면 깨지고, 재식별 모델은 머리카락·윤곽만 보고 높게 잰다
+                        # (물병 상자 녹화 580·600장면: 눈 비율 0.05~0.15) → 원래대로 둔다. 귀·머리카락·턱선만 보인다.
+                        known = eyes >= 0.22 and sim_p >= REID_MAX
                         if not known:
                             rep.profile_kept += 1
                             continue
@@ -473,6 +477,13 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
                             soften(res, yf)
                             rep.small_face_covered += 1
                         continue
+                    # 점을 못 찾은 작은·번진 얼굴: 참여자로 알아보지 못하면 원래대로 (번진 얼굴에 또렷한 얼굴을 붙이면 더 어색하다)
+                    ey = reid.embed(fo, np.array([yf[0] + yf[2] / 2, yf[1] + yf[3] / 2], np.float32))
+                    if ey is not None and ref_emb and max(reid.sim(ey, r) for r in ref_emb) < REID_MAX:
+                        rep.profile_kept += 1
+                        any_face = True
+                        crops.pop(key, None)
+                        continue
             any_face = True
             M = smooth_crop(crops.get(key), crop_matrix(lmk) if lmk is not None else crop_from_yunet(yf))
             crops[key] = M
@@ -489,7 +500,8 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
                 lp.use(person_state(key, 0 if key == "participant" else 1 + family_order.index(key.split(":", 1)[1])))
                 gen = lp.drive(crop, es, anchor=lmk is not None and not small)
                 gl = fl(gen)
-                out = lp.paste(res, gen, M, gl[0] if gl else None, clip=yf, target=lmk)
+                out = lp.paste(res, gen, M, gl[0] if gl else None, clip=yf, target=lmk,
+                               target5=np.asarray(yf[4:14], np.float32).reshape(5, 2) if yf is not None else None)
                 e1 = reid.embed(out, c) if e0 is not None else None
                 sv = reid.sim(e0, e1) if e1 is not None else None
                 tries.append((-1.0 if sv is None else sv, out, es))
@@ -509,8 +521,12 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
         if not any_face:
             rep.no_face += 1
             covered = 0
-            for _, box in targets:                         # 남은 얼굴(치환도 못 한 것)은 부드럽게 흐린다
+            for _, box in targets:                         # 남은 얼굴(치환도 못 한 것): 참여자로 알아보는 얼굴만 부드럽게 흐린다
                 for f in yunet_faces(fo, reid, box):
+                    ef = reid.embed(fo, np.array([f[0] + f[2] / 2, f[1] + f[3] / 2], np.float32))
+                    if ef is not None and ref_emb and max(reid.sim(ef, r) for r in ref_emb) < REID_MAX:
+                        rep.profile_kept += 1
+                        continue
                     soften(res, f)
                     covered += 1
             rep.small_face_covered += covered > 0
