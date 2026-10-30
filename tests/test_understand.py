@@ -136,3 +136,31 @@ def test_spark_open_packs_frames_for_image_limit():
     imgs = lambda p: [x for x in p if x["type"] == "image_url"]  # noqa: E731
     assert len(imgs(full)) == 16 and len(imgs(packed)) == 8
     assert "left t=0.00s, right t=0.50s" in packed[0]["text"]
+
+
+def test_chunked_maps_times_back_and_joins_cut(tmp_path):
+    """20초씩 0.5배속으로 보낸 답의 시각을 녹화 시각으로 되돌리고, 자른 자리에서 갈린 같은 동작은 잇는다 (API 호출 없음)."""
+    import cv2
+    import numpy as np
+
+    from datacash.understand.spark import understand_chunked
+
+    src = tmp_path / "v.mp4"
+    w = cv2.VideoWriter(str(src), cv2.VideoWriter_fourcc(*"mp4v"), 10, (64, 48))
+    for i in range(450):                              # 45초
+        w.write(np.full((48, 64, 3), i % 255, np.uint8))
+    w.release()
+    seen = []
+
+    def fake(clip, mission, dur):
+        seen.append(round(dur))                           # 조각은 동시에 보내진다 → 길이로 어느 조각인지 안다 (첫 조각 40초)
+        steps = [{"start_s": 0.0, "end_s": 10.0, "action": "grasp"}, {"start_s": 10.0, "end_s": dur, "action": "lift"}] if round(dur) == 40 \
+            else [{"start_s": 0.0, "end_s": 6.0, "action": "lift"}, {"start_s": 6.0, "end_s": dur, "action": "place"}]
+        return {"task": "t", "completed": "yes", "environment": {}, "steps": steps,
+                "mistakes": [{"t_s": 4.0, "description": "slip", "recovered": True}]}
+
+    u = understand_chunked(src, 5.0, 50.0, "m", label=fake, work_dir=tmp_path)
+    assert sorted(seen) == [40, 50]                       # 5~25초(20초) · 25~50초(남은 5초는 붙여 25초) — 0.5배속이라 두 배
+    acts = [(round(s["start_s"], 1), round(s["end_s"], 1), s["action"]) for s in u["steps"]]
+    assert acts == [(5.0, 10.0, "grasp"), (10.0, 28.0, "lift"), (28.0, 50.0, "place")]
+    assert sorted(round(m["t_s"], 1) for m in u["mistakes"]) == [7.0, 27.0]

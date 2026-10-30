@@ -1,6 +1,6 @@
 """Muse Spark 1.3 로 가린 영상 구간 이해 → 구조화 출력 (Chat Completions + json_schema, strict).
 
-가리기가 끝난 영상만 보낸다 (원본·얼굴은 보내지 않는다). 긴 녹화는 30초 안팎 구간으로 나눠 보내고 시각을 이어 붙인다.
+가리기가 끝난 영상만 보낸다 (원본·얼굴은 보내지 않는다). 동작 구간을 20초씩 잘라 0.5배속으로 보내고 시각을 이어 붙인다 (understand_chunked).
 Muse Wonder 는 한국에서 쓸 수 없어 Spark 1.3 을 쓴다.
 """
 
@@ -90,3 +90,58 @@ def understand_clip(clip, mission: str, duration_s: float, client: Optional[Meta
     out["steps"] = sorted([s for s in out["steps"] if s["end_s"] > s["start_s"]], key=lambda s: s["start_s"])
     out["model"] = model
     return out
+
+
+CHUNK_S = 20.0     # 동작 구간을 이만큼씩 잘라 보낸다 — 60초를 한 번에 보내면 단계를 고른 간격으로 거칠게 나눈다
+SLOW = 2.0         # 그리고 이만큼 느리게 늘려 보낸다 (모델이 실제 1초에서 보는 장면이 는다) — 시각은 다시 나눠 되돌린다
+# EPIC-KITCHENS 사람 정답으로 잰 값 (docs/label_eval.md, 새 구간 8개): 60초 한 번에 장면 정확도 36%·경계 430ms →
+# 20초 × 0.5배속 47%·230ms. 비용은 1분에 약 $0.045 → $0.09.
+
+
+def understand_chunked(src, t0: float, t1: float, mission: str, primitives: Optional[list] = None, mission_id: str = "",
+                       gain: float = 1.0, work_dir=None, chunk_s: float = CHUNK_S, slow: float = SLOW, side: int = 640,
+                       client: Optional[MetaClient] = None, label=None) -> dict:
+    """src 의 [t0, t1] 를 chunk_s 씩 잘라 slow 배 느리게 보내고, 단계·실수 시각을 녹화 시각(초)으로 이어 붙인다.
+    단계는 가운데가 그 조각에 든 것만 쓰고, 자른 자리에 맞닿은 같은 동작은 하나로 잇는다.
+    돌려주는 형식은 understand_clip 과 같다 (task·environment 는 첫 조각, completed 는 마지막 조각).
+    label(clip, mission, dur) → understand_clip 형식 (시험용으로 바꿔 끼운다)."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    from ..media import clip_mp4
+
+    work = Path(work_dir or Path(src).parent)
+    cuts = []
+    a = t0
+    while a < t1 - 0.5:
+        b = min(t1, a + chunk_s)
+        if t1 - b < 0.5 * chunk_s and t1 - b > 0:     # 끝에 짧게 남는 조각은 앞 조각에 붙인다
+            b = t1
+        cuts.append((a, b))
+        a = b
+    ask = label or (lambda clip, m, dur: understand_clip(clip, m, dur, client=client, primitives=primitives, mission_id=mission_id))
+
+    def one(k):
+        a, b = cuts[k]
+        clip = clip_mp4(src, work / f"understand_clip_{k}.mp4", a, b - a, max_side=side, audio=False, gain=gain, slow=slow)
+        try:
+            return ask(clip, mission, (b - a) * slow)
+        finally:
+            Path(clip).unlink(missing_ok=True)
+
+    with ThreadPoolExecutor(3) as ex:
+        outs = list(ex.map(one, range(len(cuts))))
+    steps, mistakes = [], []
+    for (a, b), u in zip(cuts, outs):
+        for s in u["steps"]:
+            x = {**s, "start_s": a + s["start_s"] / slow, "end_s": a + s["end_s"] / slow}
+            if a <= (x["start_s"] + x["end_s"]) / 2 < b:
+                prev = steps[-1] if steps else None
+                if prev and prev["action"] == x["action"] and abs(prev["end_s"] - a) < 0.15 and abs(x["start_s"] - a) < 0.15:
+                    prev["end_s"] = x["end_s"]          # 자른 자리에서 둘로 갈린 같은 단계
+                else:
+                    steps.append(x)
+        mistakes += [{**m, "t_s": a + m["t_s"] / slow} for m in u["mistakes"]]
+    return {"task": outs[0]["task"] if outs else "", "completed": outs[-1]["completed"] if outs else "unclear",
+            "environment": outs[0]["environment"] if outs else {"place": "", "tools": [], "materials": [], "lighting": ""},
+            "steps": sorted(steps, key=lambda s: s["start_s"]), "mistakes": mistakes,
+            "model": f"{MODEL} ({len(cuts)} chunks of {chunk_s:g}s, {slow:g}x slow)"}

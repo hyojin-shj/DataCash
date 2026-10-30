@@ -223,12 +223,12 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
         except Exception as e:
             report["skipped"].append(f"speech: {type(e).__name__}: {str(e)[:200]}")
 
-    # 3. 단계 라벨 — 1차 Muse Spark 1.3 (같은 미션 정답 예시를 붙여서) → 2차 Muse Spark Open 이 따로 보고 다르면 바로잡는다
+    # 3. 단계 라벨 — 1차 Muse Spark 1.3 (20초씩 0.5배속, 같은 미션 정답 예시를 붙여서) → 2차 Muse Spark Open 이 따로 보고
+    #    다르면 바로잡는다 → 경계마다 Spark Open 이 '다음 동작이 시작된 첫 장면'을 골라 경계 시각을 다듬는다
     steps, mistakes, scene = None, None, None
     if use_api:
         try:
-            from .media import clip_mp4
-            from .understand.spark import understand_clip
+            from .understand.spark import understand_chunked
 
             src = masked or video
             cap = cv2.VideoCapture(str(src))
@@ -245,17 +245,10 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
             g = gain_for(video_luma(src, start_s=t0))        # 어두우면 밝혀서 보낸다
             if g > 1.01:
                 report["brightened"] = round(g, 2)
-            clip = clip_mp4(src, out / "understand_clip.mp4", t0, min(dur - t0, 90), max_side=640, audio=False, gain=g)
-            u = understand_clip(clip, f"{mission.get('title_en')} ({mission.get('title')})", min(dur - t0, 90),
-                               primitives=mission.get("primitives"), mission_id=mission.get("id", ""))
-            for st_ in u["steps"]:            # 자른 구간만큼 녹화 시각으로 되돌린다
-                st_["start_s"] += t0
-                st_["end_s"] += t0
-            for m_ in u["mistakes"]:
-                m_["t_s"] += t0
-            steps, mistakes = u["steps"], u["mistakes"]
+            u = understand_chunked(src, t0, t0 + min(dur - t0, 90), f"{mission.get('title_en')} ({mission.get('title')})",
+                                   primitives=mission.get("primitives"), mission_id=mission.get("id", ""), gain=g, work_dir=out)
+            steps, mistakes = u["steps"], u["mistakes"]     # 시각은 이미 녹화 기준
             scene = {"task": u["task"], "completed": u["completed"], "environment": u["environment"], "model": u["model"]}
-            clip.unlink()
             lap("understand")
             try:                                  # 2차 검증 (Baseten → Fireworks 크레딧, Meta API 한도와 따로)
                 from . import evolve
@@ -266,6 +259,20 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
                     report["review"] = so
             except Exception as e:
                 report["skipped"].append(f"review: {type(e).__name__}: {str(e)[:200]}")
+            lap("review")
+            try:                                  # 경계 다듬기 (동작 이름은 그대로, 경계 시각만 — EPIC 정답으로 경계 오차 230 → 182ms)
+                from .understand import spark_open
+                from .understand.refine import pick
+
+                if steps and spark_open.available():
+                    before = [s["start_s"] for s in steps]
+                    steps = pick(src, steps, mission.get("title_en") or mission.get("title") or "")
+                    moved = [abs(s["start_s"] - b) for s, b in zip(steps, before) if abs(s["start_s"] - b) > 1e-6]
+                    report["boundaries"] = {"moved": len(moved), "of": len(steps),
+                                            "median_ms": round(float(np.median(moved)) * 1000) if moved else 0}
+                    lap("boundaries")
+            except Exception as e:
+                report["skipped"].append(f"boundaries: {type(e).__name__}: {str(e)[:200]}")
         except BudgetExceeded as e:
             report["skipped"].append(f"understand: {e}")
         except Exception as e:
@@ -292,7 +299,6 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
         objects = [{0: tuple(x["cup"])} for x in tr]
     key = calibration_key(meta)
     stored = json.loads((store / f"{key}.json").read_text()) if key and (store / f"{key}.json").exists() else None
-    lap("review")
     cert = process(sd, out, level=lvl, masked_video=masked, labels=labels, objects=objects, steps=steps,
                    mistakes=mistakes, scene=scene, privacy=privacy, extract=False, grip_calibration=stored, **kw)
     if report.get("review"):                 # 센서 검증이 붙은 뒤에 정답 수를 센다
@@ -329,7 +335,7 @@ def purge_originals(session_dir, out_dir) -> List[str]:
     지운 파일 이름 목록."""
     sd, out = Path(session_dir), Path(out_dir)
     gone = []
-    for p in [sd / n for n in ORIGINALS] + [out / n for n in INTERMEDIATE] + sorted(out.glob("sam_input_*.mp4")):
+    for p in [sd / n for n in ORIGINALS] + [out / n for n in INTERMEDIATE] + sorted(out.glob("sam_input_*.mp4")) + sorted(out.glob("understand_clip_*.mp4")):
         if p.exists():
             p.unlink()
             gone.append(p.name)

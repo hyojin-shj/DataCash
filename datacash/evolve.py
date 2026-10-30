@@ -201,9 +201,13 @@ def finish_gold(sid: str, steps: List[dict]) -> Optional[int]:
     if not p.exists():
         return None
     rep = json.loads(p.read_text())
-    ok = {round(s["start_s"], 2) for s in steps if s.get("verified")}
-    for r in rep["rows"]:
-        r["verified"] = round(r["start_s"], 2) in ok
+    if len(rep["rows"]) == len(steps):        # 경계 다듬기(refine.pick)는 시각만 옮기고 단계 수·순서는 그대로 → 순서로 맞춘다
+        for r, s in zip(rep["rows"], sorted(steps, key=lambda s: s["start_s"])):
+            r["verified"] = bool(s.get("verified"))
+    else:
+        ok = {round(s["start_s"], 2) for s in steps if s.get("verified")}
+        for r in rep["rows"]:
+            r["verified"] = round(r["start_s"], 2) in ok
     rep["gold"] = sum(bool(r["agree"] and r["verified"] and r.get("confirmed", True)) for r in rep["rows"])
     p.write_text(json.dumps(rep, ensure_ascii=False, indent=1))
     return rep["gold"]
