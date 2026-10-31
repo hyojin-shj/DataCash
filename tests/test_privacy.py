@@ -111,3 +111,55 @@ def test_face_values_gaze_and_head():
     f = FrameLabels(face=np.arange(len(FACE_VALUES), dtype=np.float32))
     F = face_rows([f, FrameLabels()], np.array([0, 1, 1]))
     assert F.shape == (3, len(NAMES["observation.face"])) and F[0, -1] == 1 and F[1, -1] == 0 and F[0, 25] == 25
+
+
+def test_match_texture_blurs_and_adds_grain():
+    """매끈한 만든 얼굴을 흐리고 거친 장면에 맞춘다 — 선명도·입자가 장면 쪽으로 가까워진다."""
+    from datacash.privacy.faceswap import _lap_var, _noise, match_texture
+
+    rng = np.random.default_rng(0)
+    base = cv2.resize((rng.random((24, 24)) * 255).astype(np.uint8), (200, 200), interpolation=cv2.INTER_CUBIC)
+    face = cv2.cvtColor(base, cv2.COLOR_GRAY2BGR)                                  # 선명하고 깨끗한 얼굴
+    scene = cv2.GaussianBlur(face, (0, 0), 2.0).astype(np.float32) + rng.normal(0, 6, (200, 200, 1))
+    scene = np.clip(scene, 0, 255).astype(np.uint8)                               # 번지고 거친 장면
+    mw = np.zeros((200, 200), np.float32)
+    mw[40:160, 40:160] = 1
+    sel = mw > 0.5
+    g = lambda x: cv2.cvtColor(x, cv2.COLOR_BGR2GRAY)
+    out = match_texture(face, scene, mw, rng)
+    assert abs(_noise(g(out), sel) - _noise(g(scene), sel)) < abs(_noise(g(face), sel) - _noise(g(scene), sel))
+    assert abs(np.log(_lap_var(g(out).astype(np.float32), sel) / _lap_var(g(scene).astype(np.float32), sel))) < \
+        abs(np.log(_lap_var(g(face).astype(np.float32), sel) / _lap_var(g(scene).astype(np.float32), sel)))
+
+
+def test_view_pick_nearest_with_margin():
+    """장면 고개 각도에 가까운 각도 사진을 원본으로 — 조금 더 가까운 정도로는 바꾸지 않는다 (깜빡임 방지)."""
+    from datacash.privacy.faceswap import VIEW_MARGIN, LivePortraitSwap
+
+    lp = object.__new__(LivePortraitSwap)
+    lp.s_info, lp.s_feat, lp.s_kp = {"yaw": 0.0, "pitch": 0.0}, "front", "kp0"
+    lp.views = [(40.0, 0.0, {"yaw": 40.0}, "v40", "kp40"), (60.0, 20.0, {"yaw": 60.0}, "v60", "kp60")]
+    lp.cur = None
+    d0 = {"yaw": 0.0, "pitch": 0.0}
+    assert lp._pick({"yaw": 2.0, "pitch": 0.0}, d0)[1] == "front"
+    assert lp._pick({"yaw": 38.0, "pitch": 0.0}, d0)[1] == "v40"
+    assert lp._pick({"yaw": 50.0, "pitch": 10.0}, d0)[1] == "v40"      # 60 쪽이 조금 더 가깝지만 VIEW_MARGIN 안
+    assert lp._pick({"yaw": 62.0, "pitch": 22.0}, d0)[1] == "v60"
+    assert VIEW_MARGIN > 0
+
+
+def test_open_run_filter_drops_short_profile_swaps():
+    """'원래대로' 사이에 짧게 낀 옆모습 치환은 되돌리고, 충분히 이어진 것은 둔다. 장면 순서·수는 그대로."""
+    from datacash.privacy.faceswap import OPEN_MIN_RUN, OpenRunFilter, SwapReport
+
+    rep = SwapReport()
+    out = []
+    f = OpenRunFilter(lambda fr, tv: out.append((fr, tv)), rep)
+    kinds = ["orig"] * 3 + ["open"] * 2 + ["orig"] * 3 + ["open"] * (OPEN_MIN_RUN + 1) + ["orig"] * 2
+    rep.swapped = rep.profile_swapped = kinds.count("open")
+    for k, kind in enumerate(kinds):
+        f.push(f"s{k}" if kind == "open" else f"o{k}", f"o{k}" if kind == "open" else None, kind, (1.0, 0.0) if kind == "open" else (0.0, 0.0))
+    f.flush()
+    assert [fr for fr, _ in out][:8] == [f"o{k}" for k in range(8)]          # 짧은 2장면은 되돌림
+    assert all(fr.startswith("s") for fr, _ in out[8:8 + OPEN_MIN_RUN + 1])   # 긴 것은 그대로
+    assert len(out) == len(kinds) and rep.kept_why == {"short": 2} and rep.swapped == OPEN_MIN_RUN + 1

@@ -29,7 +29,7 @@ Built for the Meta Global AI Developer Hackathon (Indie Developer · Push the Fr
 |---|---|---|
 | **SAM 3.1** | Masks non-consenting people, children, screens, mirrors, picture frames and documents (video tracking); segments the handled object → `observation.objects` | `datacash/meta/sam.py`, `datacash/privacy/mask.py` |
 | **Muse Spark 1.3** | Masked video → steps, instructions, active hand, objects, mistakes (structured JSON); a buyer's plain-language request → mission design | `datacash/understand/`, `datacash/requests.py` |
-| **Muse Image** | 34 people who don't exist (7 regions × women/men × 20s–60s) used for face replacement | `scripts/make_donors.py`, `datacash/donors/` |
+| **Muse Image** | 34 people who don't exist (7 regions × women/men × 20s–60s) used for face replacement, plus 24 angle photos of each (edits, `images.edit`) | `scripts/make_donors.py`, `scripts/make_donor_views.py`, `datacash/donors/` |
 | **Muse Voice Transcribe** | Finds spoken personal information in the recording and mutes it | `datacash/privacy/speech.py` |
 | **Muse Spark Open** (open weights, 816B) | Second opinion on every recording and reviewer for appeals (Baseten, falls back to Fireworks). Where the two models disagree it relabels the step; agreed + sensor-verified steps become gold examples that are added to Spark 1.3's next prompts — the labels get better with use, without changing weights | `datacash/understand/spark_open.py`, `datacash/evolve.py` ([docs/model_evolution.md](docs/model_evolution.md)) |
 
@@ -64,6 +64,26 @@ Live monitoring (same values as the operator page, `datacash/perf.py`): Spark 1.
 - **Continuity:** when a swapped frame comes out too similar, we regenerate it with a softer expression instead of pixelating — the video never breaks.
 - **Masking:** SAM 3.1 hides only what wasn't consented: other people, children, screens, mirrors, picture frames, documents. Consenting family members stay visible, each with their own virtual face.
 - **Originals deleted:** in production, raw video and audio are deleted as soon as processing ends (`purge_originals`). On the hackathon demo server only that call is switched off, so we can show the original-vs-replaced comparison.
+
+#### How the face swap evolved
+Full numbers and the approaches we tried and dropped: [`docs/privacy_eval.md`](docs/privacy_eval.md) (Korean).
+
+| Date | Change | Result |
+|---|---|---|
+| 10-27 | Swap to a synthetic person instead of blurring (LivePortrait), re-identification check on every frame | The face stays, the person changes |
+| 10-27 | Small, distant faces: find with YuNet, enlarge the area, then 478 face points | Public video, 192 frames: swapped 106 → 183, pixelated 86 → 4 |
+| 10-27 | Speed: split the slow Conv3d on Mac GPU into 7 2D convolutions + fp16 | One recording 636 → 84 s |
+| 10-27 | 34 synthetic people; if re-identified, regenerate with a softer expression instead of pixelating | 3 of 387 frames pixelated |
+| 10-29 | Profiles: keep as-is if unrecognizable, otherwise swap aligned to 5 points | 26 recordings: swapped 81.6% · blurred 0.5% |
+| 11-01 | Measure flips (swapped ↔ original ↔ blur); carry the face through missed frames and fade | 4 recordings: flips 181 → 149 |
+| 11-01 | Filter-style 3D mask → dropped as unnatural. Expression and gaze values are kept separately from the original | `observation.face`, 60 values |
+| 11-01 night | 24 angle photos of the same synthetic person (Muse Image edits) → the photo closest to the frame's angle is the source | Bowed heads and profiles are less distorted (figure below) |
+| 11-01 night | Frames where a fist was detected as a face are filtered by distance to the contributor's face | Honest flip count (cup recording 87 → 55) |
+| 11-01 night | Tried and dropped: self-trained face-swap model, putting hair over the face, swapping unrecognizable profiles too | Blurry blob · original eyes leaked · 40% looked off |
+| 11-01 night | Stricter re-identification (against 20 frontal photos of the contributor) | 3–31% of swapped frames still match the contributor (other people's photos: 2.7%) — tied to picking the most similar synthetic person; options in the doc |
+
+![Angle photos of four synthetic people (front + 8)](docs/faceswap_views.jpg)
+![Profiles and bowed heads from one frontal photo vs the same frames from the closest-angle photo](docs/faceswap_angle_source.en.png)
 
 ### 2. Five senses, synced automatically
 No clapping required: phone↔watch clock round-trips, an 18–20 kHz acoustic beacon, and watch vibration pulses. On 37 real phone + watch recordings, the acoustic beacon aligns 24 (pair residual 0.1–1.9 ms); the rest fall back to the server-relayed clock, which runs 24.7 ms (±3.5) off the beacon, so that bias is measured per device pair and subtracted (leave-one-out max 9.2 ms). Measurements in `docs/sync_eval.md`, code in `datacash/sync/`.

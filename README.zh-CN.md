@@ -29,7 +29,7 @@ Meta Global AI Developer Hackathon（Indie Developer · Push the Frontier）参�
 |---|---|---|
 | **SAM 3.1** | 遮盖未同意的人、儿童、屏幕、镜子、相框和文件（视频跟踪）；分割被操作的物体 → `observation.objects` | `datacash/meta/sam.py`、`datacash/privacy/mask.py` |
 | **Muse Spark 1.3** | 遮盖后的视频 → 步骤、指令、使用的手、物体、失误（结构化 JSON）；企业的自然语言需求 → 任务设计 | `datacash/understand/`、`datacash/requests.py` |
-| **Muse Image** | 34 位不存在的人（7 个地区 × 男女 × 20–60 多岁），用于换脸 | `scripts/make_donors.py`、`datacash/donors/` |
+| **Muse Image** | 34 位不存在的人（7 个地区 × 男女 × 20–60 多岁），用于换脸，另有每人 24 张多角度照片（编辑 `images.edit`） | `scripts/make_donors.py`、`scripts/make_donor_views.py`、`datacash/donors/` |
 | **Muse Voice Transcribe** | 找出录音中说出的个人信息并静音 | `datacash/privacy/speech.py` |
 | **Muse Spark Open**（开放权重，816B） | 每段录像的第二意见，也是申诉时的“更高级模型”（Baseten，不行就用 Fireworks）。两个模型看法不同的步骤会被改正；看法一致且经传感器验证的步骤成为正确示例，加进之后 Spark 1.3 的提问 —— 不改权重，越用越准 | `datacash/understand/spark_open.py`、`datacash/evolve.py`（[docs/model_evolution.md](docs/model_evolution.md)） |
 
@@ -60,6 +60,26 @@ Meta Global AI Developer Hackathon（Indie Developer · Push the Frontier）参�
 - **连续性：** 换出的帧过于相像时，不打马赛克，而是减弱表情重新生成 —— 视频不会中断。
 - **遮盖：** SAM 3.1 只遮盖未经同意的内容：其他人、儿童、屏幕、镜子、相框、文件。已同意的家人保持可见，每人使用各自的虚拟脸。
 - **删除原始文件：** 正式服务中，处理一结束就删除原始视频和音频（`purge_originals`）。黑客松演示服务器只关闭了这一调用，以便展示原始与替换后的对比。
+
+#### 换脸的改进过程
+详细数字以及试过又放弃的方法见 [`docs/privacy_eval.md`](docs/privacy_eval.md)（韩语）。
+
+| 日期 | 改动 | 结果 |
+|---|---|---|
+| 10-27 | 用虚拟人物替换代替模糊（LivePortrait），每帧做再识别检查 | 保留面部，换掉身份 |
+| 10-27 | 小而远的脸：用 YuNet 找到，放大周围再取 478 个面部点 | 公开视频 192 帧：替换 106 → 183，马赛克 86 → 4 |
+| 10-27 | 速度：把 Mac GPU 上很慢的 Conv3d 拆成 7 次 2D 卷积 + fp16 | 一段录像 636 → 84 秒 |
+| 10-27 | 34 位虚拟人物；被再识别时减弱表情重新生成，而不是打马赛克 | 387 帧中马赛克 3 帧 |
+| 10-29 | 侧脸：认不出就保持原样，认得出就按 5 点对齐替换 | 26 段：替换 81.6% · 模糊 0.5% |
+| 11-01 | 统计闪断（替换 ↔ 原脸 ↔ 模糊），丢失的帧跟随并渐隐 | 4 段：闪断 181 → 149 |
+| 11-01 | 滤镜式 3D 面具 → 不自然，未采用。表情和视线数值从原视频单独保存 | `observation.face` 60 个值 |
+| 11-01 夜 | 同一虚拟人物的 24 张多角度照片（Muse Image 编辑）→ 以最接近当前角度的照片为源 | 低头和侧脸变形更少（见下图） |
+| 11-01 夜 | 把拳头误检为脸的帧按是否靠近参与者的脸过滤 | 闪断计数更真实（杯子录像 87 → 55） |
+| 11-01 夜 | 试过但放弃：自训练换脸模型、把头发留在脸上、连认不出的侧脸也替换 | 模糊一团 · 原眼睛外露 · 40% 不自然 |
+| 11-01 夜 | 更严格的再识别（与参与者 20 张正面照比较） | 换脸视频中仍被认出的帧 3–31%（他人照片为 2.7%）— 与选择最相似虚拟人物的决定有关，对策见文档 |
+
+![四位虚拟人物的多角度照片（正面 + 8 张）](docs/faceswap_views.jpg)
+![用一张正面照片生成的侧脸/低头 vs 用角度最接近的照片生成的同一画面](docs/faceswap_angle_source.zh-CN.png)
 
 ### 2. 五感自动同步
 无需拍手：手机↔手表时钟往返、18–20 kHz 声学信标、手表振动脉冲。在 37 段真实手机 + 手表录制中，声学信标对齐了 24 段（配对残差 0.1–1.9 毫秒），其余使用经服务器中转的时钟——它比信标偏 24.7 毫秒（±3.5），因此按设备组合测量并扣除（留一验证最大 9.2 毫秒）。测量见 `docs/sync_eval.md`，代码在 `datacash/sync/`。

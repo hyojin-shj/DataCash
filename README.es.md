@@ -29,7 +29,7 @@ Proyecto para el Meta Global AI Developer Hackathon (Indie Developer · Push the
 |---|---|---|
 | **SAM 3.1** | Oculta personas sin consentimiento, niños, pantallas, espejos, cuadros y documentos (seguimiento en video); segmenta el objeto manipulado → `observation.objects` | `datacash/meta/sam.py`, `datacash/privacy/mask.py` |
 | **Muse Spark 1.3** | Video ocultado → pasos, instrucciones, mano activa, objetos, errores (JSON estructurado); petición en lenguaje natural → diseño de misiones | `datacash/understand/`, `datacash/requests.py` |
-| **Muse Image** | 34 personas que no existen (7 regiones × mujeres/hombres × 20–60 años) para reemplazar rostros | `scripts/make_donors.py`, `datacash/donors/` |
+| **Muse Image** | 34 personas que no existen (7 regiones × mujeres/hombres × 20–60 años) para reemplazar rostros, más 24 fotos en ángulo de cada una (edición, `images.edit`) | `scripts/make_donors.py`, `scripts/make_donor_views.py`, `datacash/donors/` |
 | **Muse Voice Transcribe** | Detecta información personal hablada en la grabación y la silencia | `datacash/privacy/speech.py` |
 | **Muse Spark Open** (pesos abiertos, 816B) | Segunda opinión sobre cada grabación y revisor de apelaciones (Baseten, con Fireworks de respaldo). Si los dos modelos difieren, corrige el paso; los pasos en que coinciden y que los sensores verifican se vuelven ejemplos que se añaden a las siguientes consultas de Spark 1.3 — las etiquetas mejoran con el uso sin cambiar pesos | `datacash/understand/spark_open.py`, `datacash/evolve.py` ([docs/model_evolution.md](docs/model_evolution.md)) |
 
@@ -60,6 +60,26 @@ Cada número se mide contra **etiquetas humanas** o una referencia física y se 
 - **Continuidad:** si un fotograma reemplazado sale demasiado parecido, se regenera con una expresión más suave en lugar de pixelarlo — el video nunca se corta.
 - **Ocultación:** SAM 3.1 oculta solo lo que no tiene consentimiento: otras personas, niños, pantallas, espejos, cuadros y documentos. Los familiares que consienten siguen visibles, cada uno con su propio rostro virtual.
 - **Originales borrados:** en producción, el video y el audio originales se borran al terminar el procesamiento (`purge_originals`). En el servidor de demostración del hackathon solo esa llamada está desactivada, para poder mostrar la comparación original vs. reemplazado.
+
+#### Cómo evolucionó la sustitución de caras
+Números completos y lo que probamos y descartamos: [`docs/privacy_eval.md`](docs/privacy_eval.md) (en coreano).
+
+| Fecha | Cambio | Resultado |
+|---|---|---|
+| 10-27 | Sustituir por una persona sintética en vez de difuminar (LivePortrait), comprobación de reidentificación en cada fotograma | La cara queda, la persona cambia |
+| 10-27 | Caras pequeñas y lejanas: YuNet, ampliar la zona y 478 puntos | Vídeo público, 192 fotogramas: sustituidas 106 → 183, pixeladas 86 → 4 |
+| 10-27 | Velocidad: el Conv3d lento en la GPU del Mac dividido en 7 convoluciones 2D + fp16 | Una grabación 636 → 84 s |
+| 10-27 | 34 personas sintéticas; si se reidentifica, se regenera con menos expresión en vez de pixelar | 3 de 387 fotogramas pixelados |
+| 10-29 | Perfiles: se dejan si no son reconocibles; si lo son, se sustituyen alineados a 5 puntos | 26 grabaciones: sustituido 81,6 % · difuminado 0,5 % |
+| 11-01 | Medir cortes (sustituida ↔ original ↔ difuminada); seguir la cara en fotogramas perdidos y desvanecer | 4 grabaciones: cortes 181 → 149 |
+| 11-01 | Máscara 3D tipo filtro → descartada por poco natural. Expresión y mirada se guardan aparte desde el original | `observation.face`, 60 valores |
+| 11-01 noche | 24 fotos en ángulo de la misma persona sintética (edición de Muse Image) → la foto más cercana al ángulo del fotograma es la fuente | Cabezas inclinadas y perfiles menos deformados (figura) |
+| 11-01 noche | Puños detectados como cara se filtran por distancia a la cara del participante | Recuento de cortes honesto (taza 87 → 55) |
+| 11-01 noche | Probado y descartado: modelo propio de intercambio de caras, dejar el pelo sobre la cara, sustituir también perfiles no reconocibles | Mancha borrosa · ojos originales visibles · 40 % raros |
+| 11-01 noche | Reidentificación más estricta (contra 20 fotos frontales del participante) | 3–31 % de los fotogramas sustituidos aún coinciden (fotos de otras personas: 2,7 %) — ligado a elegir la persona sintética más parecida; opciones en el documento |
+
+![Fotos en ángulo de cuatro personas sintéticas (frente + 8)](docs/faceswap_views.jpg)
+![Perfiles y cabeza inclinada desde una foto frontal vs los mismos fotogramas desde la foto de ángulo más cercano](docs/faceswap_angle_source.es.png)
 
 ### 2. Cinco sentidos, sincronizados automáticamente
 Sin aplaudir: ida y vuelta del reloj teléfono↔reloj, una baliza acústica de 18–20 kHz y pulsos de vibración del reloj. En 37 grabaciones reales con teléfono + reloj, la baliza acústica alinea 24 (residuo por par 0,1–1,9 ms); el resto usa el reloj vía servidor, que se desvía 24,7 ms (±3,5) de la baliza, así que ese sesgo se mide por par de dispositivos y se resta (máx. 9,2 ms dejando una fuera). Mediciones en `docs/sync_eval.md`, código en `datacash/sync/`.
