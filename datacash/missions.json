@@ -62,8 +62,8 @@
       "i18n": {
         "en": {
           "title": "Pull a tissue",
-          "guide": "Pull tissues out of the box one at a time · 30 s–1 min · repeat 5 times · keep your hand and the box in view",
-          "purpose": "Controlling pull force while pinching a thin, easily torn object with the fingertips"
+          "guide": "Pull tissues out one at a time · 30 s–1 min · 5 times · hand and box in view",
+          "purpose": "Pull force on a thin, tearable object"
         },
         "ja": {
           "title": "ティッシュを引き出す",
@@ -116,8 +116,8 @@
       "i18n": {
         "en": {
           "title": "Pick and place a cup",
-          "guide": "Pick up a cup and put it somewhere else · 30 s–1 min · repeat 5 times",
-          "purpose": "The most basic pick, move and place, plus the contact at the moment of setting down"
+          "guide": "Pick up a cup and put it elsewhere · 30 s–1 min · 5 times",
+          "purpose": "Basic pick, move, place and set-down contact"
         },
         "ja": {
           "title": "コップをつかんで移す",
@@ -169,8 +169,8 @@
       "i18n": {
         "en": {
           "title": "Pull a cup from a stack",
-          "guide": "Pull the top cup off a stack of paper cups or cups · 30 s–1 min · repeat 5 times",
-          "purpose": "Pulling against friction while the other hand holds the stack"
+          "guide": "Pull the top cup off a stack · 30 s–1 min · 5 times",
+          "purpose": "Pulling against friction, other hand holding"
         },
         "ja": {
           "title": "重ねたコップを抜く",
@@ -222,8 +222,8 @@
       "i18n": {
         "en": {
           "title": "Tear open a pouch",
-          "guide": "Tear open a snack bag or sauce pouch with both hands · 30 s–1 min · repeat 3 times",
-          "purpose": "Two-handed coordination and the force and sound at the moment of tearing"
+          "guide": "Tear open a snack or sauce pouch · 30 s–1 min · 3 times",
+          "purpose": "Two-handed tearing: force and sound"
         },
         "ja": {
           "title": "パウチ・袋を開ける",
@@ -279,8 +279,8 @@
       "i18n": {
         "en": {
           "title": "Use a spray bottle",
-          "guide": "Hold a spray bottle and pull the trigger to spray · 30 s–1 min · repeat 5 times",
-          "purpose": "Pressing with a finger while holding a tool"
+          "guide": "Hold a spray bottle and pull the trigger · 30 s–1 min · 5 times",
+          "purpose": "Finger press while holding a tool"
         },
         "ja": {
           "title": "霧吹きを使う",
@@ -339,8 +339,8 @@
       "i18n": {
         "en": {
           "title": "Squeeze a sauce bottle",
-          "guide": "Squeeze a sauce bottle or toothpaste onto a plate or toothbrush · 30 s–1 min · repeat 3 times",
-          "purpose": "Controlling grip force to squeeze out just the right amount"
+          "guide": "Squeeze sauce or toothpaste out · 30 s–1 min · 3 times",
+          "purpose": "Grip control to squeeze just enough"
         },
         "ja": {
           "title": "ソース・チューブを絞る",
@@ -399,8 +399,8 @@
       "i18n": {
         "en": {
           "title": "Twist a bottle cap",
-          "guide": "Twist open the cap of a water bottle or jam jar and close it again · 30 s–1 min · repeat 3 times",
-          "purpose": "Rotation with one hand holding and the other turning"
+          "guide": "Twist a bottle or jar cap open and shut · 30 s–1 min · 3 times",
+          "purpose": "One hand holds, the other twists"
         },
         "ja": {
           "title": "ボトルのふたを開け閉めする",
@@ -457,8 +457,8 @@
       "i18n": {
         "en": {
           "title": "Wipe glasses or a plate",
-          "guide": "Wipe a lens or plate surface with a cloth · 30 s–1 min",
-          "purpose": "Holding an object while the other hand rubs along its surface"
+          "guide": "Wipe a lens or plate with a cloth · 30 s–1 min",
+          "purpose": "Hold and rub along a surface"
         },
         "ja": {
           "title": "メガネ・皿をふく",
@@ -515,8 +515,8 @@
       "i18n": {
         "en": {
           "title": "Pick grapes",
-          "guide": "Pick grapes off the bunch one by one into a bowl · 30 s–1 min · 5 grapes",
-          "purpose": "Delicate grip: hold gently enough not to crush, then detach"
+          "guide": "Pick 5 grapes off the bunch into a bowl · 30 s–1 min",
+          "purpose": "Gentle grip that doesn't crush"
         },
         "ja": {
           "title": "ぶどう・小さな果物をもぐ",
@@ -569,8 +569,8 @@
       "i18n": {
         "en": {
           "title": "Lift and carry a box",
-          "guide": "Lift a box, carry it a few steps and set it down · 30 s–1 min · repeat 3 times",
-          "purpose": "Posture, grip force and effort (heart rate) when lifting a heavy object with both hands"
+          "guide": "Lift a box, carry a few steps, set it down · 30 s–1 min · 3 times",
+          "purpose": "Posture, grip and effort (heart rate) lifting"
         },
         "ja": {
           "title": "箱を持ち上げて運ぶ",
@@ -625,8 +625,8 @@
       "i18n": {
         "en": {
           "title": "Hand an object over",
-          "guide": "Hand an object to another person or receive one · 30 s–1 min · repeat 5 times (the other person's face is masked)",
-          "purpose": "The moment people and robots pass objects to each other (when the holding hand changes)"
+          "guide": "Hand an object to someone or take one · 30 s–1 min · 5 times (their face is masked)",
+          "purpose": "The moment an object changes hands"
         },
         "ja": {
           "title": "物を手渡す",
@@ -680,8 +680,8 @@
       "i18n": {
         "en": {
           "title": "Stack or snap blocks",
-          "guide": "Pick up LEGO or blocks and stack or snap them together · 30 s–1 min · 5 pieces",
-          "purpose": "Precise manipulation placing small objects in exact spots and snapping them in (the 'click' sound)"
+          "guide": "Stack or snap 5 LEGO pieces · 30 s–1 min",
+          "purpose": "Precise placing and snapping ('click')"
         },
         "ja": {
           "title": "ブロックを積む・はめる",
@@ -745,8 +745,8 @@
       "i18n": {
         "en": {
           "title": "Pack items into a box",
-          "guide": "Put 3–4 items into a box one after another and fold the flaps shut · 30 s–1 min · repeat 5 times · keep the box and your hands fully in view",
-          "purpose": "Logistics and e-commerce packing robots — picking items of different sizes and placing them snugly in a box"
+          "guide": "Put 3–4 items in a box, fold the flaps · 30 s–1 min · 5 times · box and hands in view",
+          "purpose": "Packing robots — fit mixed items in a box"
         },
         "ja": {
           "title": "箱に物を詰める",
@@ -805,8 +805,8 @@
       "i18n": {
         "en": {
           "title": "Seal a box with tape",
-          "guide": "Run one strip of tape across the top of a closed box and cut it · 30 s–1 min · 3–5 times · keep the tape end and fingertips in view",
-          "purpose": "Logistics shipping — two-handed coordination to pull, stick, press-rub and cut tape"
+          "guide": "Tape across a closed box and cut it · 30 s–1 min · 3–5 times · tape end in view",
+          "purpose": "Shipping — pull, stick, rub and cut tape"
         },
         "ja": {
           "title": "箱をテープで封をする",
@@ -865,8 +865,8 @@
       "i18n": {
         "en": {
           "title": "Restock and face a shelf",
-          "guide": "Move items from a basket onto a shelf and line up the front row · 30 s–1 min · 5 times · keep one whole shelf section in view",
-          "purpose": "Convenience-store and supermarket shelving robots — pick, move, place, then push to line up"
+          "guide": "Move items from a basket to a shelf, line them up · 30 s–1 min · 5 times",
+          "purpose": "Shelf robots — place and push into line"
         },
         "ja": {
           "title": "棚に商品を補充して並べる",
@@ -924,8 +924,8 @@
       "i18n": {
         "en": {
           "title": "Pick items from a bin",
-          "guide": "Take specific items one by one out of a mixed bin or basket and set them aside · 30 s–1 min · 10 times · keep the inside of the bin in view",
-          "purpose": "Warehouse picking — grabbing just one item from among overlapping items"
+          "guide": "Take specific items one by one from a mixed bin · 30 s–1 min · 10 times",
+          "purpose": "Warehouse picking — one item from a pile"
         },
         "ja": {
           "title": "容器から物を 1 つずつ取り出す（ピッキング）",
@@ -982,8 +982,8 @@
       "i18n": {
         "en": {
           "title": "Fold a towel or T-shirt",
-          "guide": "Fold a towel or T-shirt laid out on a desk and stack it · 1 min · 3–5 times · keep the whole cloth in view",
-          "purpose": "Laundry, apparel logistics and household robots — grabbing, folding, smoothing and pressing cloth that changes shape"
+          "guide": "Fold a towel or T-shirt and stack it · 1 min · 3–5 times · whole cloth in view",
+          "purpose": "Laundry robots — fold and smooth cloth"
         },
         "ja": {
           "title": "タオル・Tシャツをたたむ",
@@ -1040,8 +1040,8 @@
       "i18n": {
         "en": {
           "title": "Hang clothes on a hanger",
-          "guide": "Put a T-shirt on a hanger and hang it on a rod or door handle · 1 min · 3–5 times · keep the clothes and hanger fully in view",
-          "purpose": "Clothing stores and laundry — two-handed coordination to open the cloth and slip in a hanger"
+          "guide": "Put a T-shirt on a hanger and hang it · 1 min · 3–5 times",
+          "purpose": "Two hands: open cloth, slip in a hanger"
         },
         "ja": {
           "title": "ハンガーに服を掛ける",
@@ -1106,8 +1106,8 @@
       "i18n": {
         "en": {
           "title": "Pour water into a cup",
-          "guide": "Pour water from a bottle or kettle until the cup is half full, then set it down · 30 s–1 min · 5 times · keep the bottle mouth and cup in view",
-          "purpose": "Food-and-beverage, serving and cooking robots — controlling tilt and speed to pour without spilling"
+          "guide": "Pour water into a cup until half full · 30 s–1 min · 5 times · spout and cup in view",
+          "purpose": "Serving robots — pour without spilling"
         },
         "ja": {
           "title": "コップに水を注ぐ",
@@ -1165,8 +1165,8 @@
       "i18n": {
         "en": {
           "title": "Plug and unplug a cable",
-          "guide": "Plug a USB or power cable into a charger or power strip and pull it out · 30 s–1 min · 5–10 times · keep the socket in view",
-          "purpose": "Electronics assembly and inspection — precise motion aligning a small connector to plug it in"
+          "guide": "Plug a cable into a charger and pull it out · 30 s–1 min · 5–10 times",
+          "purpose": "Assembly — align and insert a small plug"
         },
         "ja": {
           "title": "充電ケーブルを抜き差しする",
@@ -1226,8 +1226,8 @@
       "i18n": {
         "en": {
           "title": "Drive a screw with a screwdriver",
-          "guide": "Put a screw in a hole, tighten it with a screwdriver and loosen it · 1 min · 3–5 times · keep the screw head and screwdriver tip in view",
-          "purpose": "Manufacturing assembly — the force and direction of turning a hand tool"
+          "guide": "Tighten a screw with a screwdriver, then loosen it · 1 min · 3–5 times",
+          "purpose": "Assembly — turning force and direction"
         },
         "ja": {
           "title": "ドライバーでねじを締めて緩める",
@@ -1290,8 +1290,8 @@
       "i18n": {
         "en": {
           "title": "Open a drawer, take out, close",
-          "guide": "Pull a drawer open, take an item out and put it on top, then push the drawer shut · 30 s–1 min · 5 times · keep the drawer handle in view",
-          "purpose": "Home and office service robots — pulling and pushing furniture and taking things out"
+          "guide": "Open a drawer, take an item out, push it shut · 30 s–1 min · 5 times",
+          "purpose": "Service robots — pull, push, take out"
         },
         "ja": {
           "title": "引き出しを開けて取り出し閉める",

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import time
 import wave
 from pathlib import Path
 from typing import List, Optional
@@ -28,11 +29,13 @@ def transcribe(wav_path, mode: str = "ENDPOINTING", language_bias: Optional[List
         req["languageBias"] = language_bias
     if keywords:
         req["keywords"] = keywords
+    t0 = time.time()
     with open(wav_path, "rb") as f:
         r = httpx.post(f"{config.API_BASE}/asr/transcribe", headers={"Authorization": f"Bearer {config.api_key()}"},
                        files={"request": (None, json.dumps(req), "application/json"),
                               "audio": (Path(wav_path).name, f, "audio/wav")}, timeout=300)
     r.raise_for_status()
     out = r.json()
-    record(MODEL, int(out.get("audioDurationMs", dur * 1000) / 1000) * PRICE[MODEL], f"transcribe {Path(wav_path).name}")
+    record(MODEL, int(out.get("audioDurationMs", dur * 1000) / 1000) * PRICE[MODEL], f"transcribe {Path(wav_path).name}",
+           secs=time.time() - t0)
     return out

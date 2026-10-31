@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import time
 from pathlib import Path
 from typing import List
 
@@ -15,6 +16,7 @@ def generate(prompt: str, out_dir, n: int = 1, size: str = "1024x1024", client: 
              what: str = "image") -> List[Path]:
     check_budget(n * PRICE[MODEL])
     c = (client or MetaClient()).client
+    t0 = time.time()
     r = c.images.generate(model=MODEL, prompt=prompt, n=n, size=size, response_format="b64_json",
                           extra_body={"output_format": "png"})
     out_dir = Path(out_dir)
@@ -24,5 +26,5 @@ def generate(prompt: str, out_dir, n: int = 1, size: str = "1024x1024", client: 
         p = out_dir / f"{what}_{i}.png"
         p.write_bytes(base64.b64decode(d.b64_json))
         paths.append(p)
-    record(MODEL, len(paths) * PRICE[MODEL], f"{what} x{len(paths)}")
+    record(MODEL, len(paths) * PRICE[MODEL], f"{what} x{len(paths)}", secs=time.time() - t0)
     return paths

@@ -55,7 +55,7 @@ public class WatchActivity extends Activity {
         GradientDrawable bg = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{0xFFFF5F5F, 0xFFFFAF5F});
         root.setBackground(bg);
         title = new TextView(this);
-        title.setText("데이터캐시");
+        title.setText(Tr.s("데이터캐시", "DataCash"));
         title.setTextColor(Color.WHITE);
         title.setTextSize(16);
         title.setTypeface(Typeface.DEFAULT_BOLD);
@@ -72,7 +72,7 @@ public class WatchActivity extends Activity {
                 || checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.BODY_SENSORS, Manifest.permission.RECORD_AUDIO}, 1);
         }
-        state.setText("폰에서 녹화를 시작하면\n손목 기록이 같이 시작돼요");
+        state.setText(Tr.s("폰에서 녹화를 시작하면\n손목 기록이 같이 시작돼요", "Start recording on\nyour phone"));
         new Thread(this::loop, "live").start();
     }
 
@@ -89,17 +89,17 @@ public class WatchActivity extends Activity {
                     if (t != null && syncLog != null) synchronized (this) { syncLog.write(c + "," + t.getLong("ns") + "," + d + "\n"); }
                     long s = (WristRecorder.now() - startedNs) / 1_000_000_000L;
                     String hs = rec != null ? rec.healthState : "";
-                    ui.post(() -> state.setText(String.format(Locale.KOREA, "● 손목 기록 %d:%02d", s / 60, s % 60) + (hs.isEmpty() ? "" : "\n" + hs)));
+                    ui.post(() -> state.setText(String.format(Locale.US, Tr.s("● 손목 기록 %d:%02d", "● REC %d:%02d"), s / 60, s % 60) + (hs.isEmpty() ? "" : "\n" + hs)));
                     if (!"recording".equals(st) || live == null || !sid.equals(live.optString("sid"))) stopAndUpload();
                 } else if ("recording".equals(st)) {
                     begin(live.getString("sid"));
                 } else {
                     if (live == null) Discover.ensure(this);      // 맥 IP 가 바뀌었으면 서버를 다시 찾는다
-                    ui.post(() -> state.setText(live == null ? "서버에 연결 안 됨\n" + server() : "폰에서 녹화를 시작하면\n손목 기록이 같이 시작돼요"));
+                    ui.post(() -> state.setText(live == null ? Tr.s("서버에 연결 안 됨\n", "No server\n") + server() : Tr.s("폰에서 녹화를 시작하면\n손목 기록이 같이 시작돼요", "Start recording on\nyour phone")));
                 }
                 Thread.sleep(500);
             } catch (Exception e) {
-                ui.post(() -> state.setText("오류: " + e.getMessage()));
+                ui.post(() -> state.setText(Tr.s("오류: ", "Error: ") + e.getMessage()));
                 try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
             }
         }
@@ -125,16 +125,16 @@ public class WatchActivity extends Activity {
             synchronized (this) { syncLog.close(); }
             info.put("model", Build.MANUFACTURER + " " + Build.MODEL).put("android", Build.VERSION.RELEASE);
             Files.write(new File(dir, "watch_meta.json"), info.toString(2));
-            ui.post(() -> state.setText("올리는 중…"));
+            ui.post(() -> state.setText(Tr.s("올리는 중…", "Uploading…")));
             for (String n : new String[]{"watch_imu.csv", "watch_vib.csv", "watch_hr.csv", "watch_ibi.csv", "watch_skin.csv", "watch_audio.wav",
                     "watch_audio.json", "watch_server_sync.csv", "watch_meta.json"}) {
                 File f = new File(dir, n);
                 if (f.exists()) put("/api/sessions/" + sid + "/files/" + n, f);
             }
             post("/api/sessions/" + sid + "/watch_done");
-            ui.post(() -> state.setText("올렸어요 ✓"));
+            ui.post(() -> state.setText(Tr.s("올렸어요 ✓", "Uploaded ✓")));
         } catch (Exception e) {
-            ui.post(() -> state.setText("올리기 실패: " + e.getMessage()));
+            ui.post(() -> state.setText(Tr.s("올리기 실패: ", "Upload failed: ") + e.getMessage()));
         }
     }
 

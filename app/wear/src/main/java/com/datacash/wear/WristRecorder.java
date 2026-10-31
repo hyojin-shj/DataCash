@@ -85,7 +85,7 @@ final class WristRecorder implements SensorEventListener {
                     }
                     @Override public void state(String w) {
                         healthState = w;
-                        if (w.contains("못") || w.contains("error")) standardHeart();   // 연결이 안 되면 기본 심박 센서로
+                        if (w.contains("못") || w.contains("error") || w.contains("failed")) standardHeart();   // 연결이 안 되면 기본 심박 센서로
                     }
                 });
                 samsung.start(true, true);
@@ -103,7 +103,7 @@ final class WristRecorder implements SensorEventListener {
                     skin = writer("watch_skin.csv", "t_ns,temp_c,ambient_c,status");
                     sm.registerListener(this, sk, SensorManager.SENSOR_DELAY_NORMAL);
                 }
-                healthState = "기본 심박 센서" + (sk != null ? " + 피부온도" : " (피부온도는 삼성 SDK 필요)");
+                healthState = Tr.s("기본 심박 센서", "Basic HR sensor") + (sk != null ? Tr.s(" + 피부온도", " + skin temp") : Tr.s(" (피부온도는 삼성 SDK 필요)", " (skin temp needs Samsung SDK)"));
             }
         }
         running = true;

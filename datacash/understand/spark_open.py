@@ -13,6 +13,7 @@ from __future__ import annotations
 import base64
 import json
 import os
+import threading
 import time
 from pathlib import Path
 from typing import List, Optional
@@ -79,6 +80,7 @@ def _ask(build):
         kw = {"response_format": {"type": "json_object"}, "reasoning_effort": REASONING}
         for _ in range(3):              # 받지 않는 선택지가 있으면 빼고 다시
             try:
+                _last.t0 = time.time()
                 return name, c.chat.completions.create(model=model, messages=[{"role": "user", "content": prompt_parts}],
                                                        max_tokens=16000, **kw)
             except Exception as e:      # noqa: BLE001
@@ -92,13 +94,20 @@ def _ask(build):
     raise RuntimeError(f"Spark Open 을 부르지 못함: {err}")
 
 
+_last = threading.local()        # 마지막 호출을 시작한 시각 (호출마다 걸린 초를 터미널에 찍으려고)
+
+
 def _record(usage, what: str, provider: str = "fireworks") -> None:
+    from ..meta.client import announce
+
     u = usage.model_dump() if usage else {}
     usd = (u.get("prompt_tokens") or 0) * PRICE[0] + (u.get("completion_tokens") or 0) * PRICE[1]
     LEDGER.parent.mkdir(parents=True, exist_ok=True)
     with open(LEDGER, "a") as f:
         f.write(json.dumps({"t": time.strftime("%Y-%m-%dT%H:%M:%S"), "model": f"muse-spark-open ({provider})", "provider": provider,
                             "usd": round(usd, 6), "estimated_price": True, "what": what, "usage": u}, ensure_ascii=False) + "\n")
+    t0 = getattr(_last, "t0", None)
+    announce(f"muse-spark-open ({provider})", usd, what, time.time() - t0 if t0 else None)
 
 
 def _grab(video, times: List[float]) -> List[tuple]:

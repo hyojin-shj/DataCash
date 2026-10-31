@@ -15,6 +15,8 @@ from __future__ import annotations
 
 import base64
 import json
+import os
+import sys
 import time
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -42,11 +44,21 @@ def spent_usd() -> float:
     return round(sum(r.get("usd", 0.0) for r in _ledger_rows()), 6)
 
 
-def record(model: str, usd: float, what: str, **extra) -> None:
+def announce(model: str, usd: float, what: str, secs: Optional[float] = None) -> None:
+    """호출 하나를 터미널에 한 줄로 (시연 영상에서 모델을 부르는 순간이 보이게). DATACASH_QUIET_API=1 이면 끈다."""
+    if os.environ.get("DATACASH_QUIET_API") == "1":
+        return
+    took = f"{secs:5.1f}s" if secs is not None else "    -"
+    print(f"[Meta API] {model:<28} {took}  ${usd:.4f}  {what}", file=sys.stderr, flush=True)
+
+
+def record(model: str, usd: float, what: str, secs: Optional[float] = None, **extra) -> None:
     config.LEDGER.parent.mkdir(parents=True, exist_ok=True)
-    row = {"t": time.strftime("%Y-%m-%dT%H:%M:%S"), "model": model, "usd": round(usd, 6), "what": what, **extra}
+    row = {"t": time.strftime("%Y-%m-%dT%H:%M:%S"), "model": model, "usd": round(usd, 6), "what": what,
+           **({"secs": round(secs, 2)} if secs is not None else {}), **extra}
     with open(config.LEDGER, "a") as f:
         f.write(json.dumps(row, ensure_ascii=False) + "\n")
+    announce(model, usd, what, secs)
 
 
 def check_budget(estimate_usd: float) -> None:
@@ -81,24 +93,26 @@ class MetaClient:
     def responses(self, model: str, content: list, estimate_usd: float, what: str,
                   metadata: Optional[Dict[str, str]] = None, **kw) -> Any:
         check_budget(estimate_usd)
+        t0 = time.time()
         r = self.client.responses.create(model=model, input=[{"type": "message", "role": "user", "content": content}],
                                          **({"metadata": metadata} if metadata else {}), **kw)
         usd = estimate_usd
         if model in PRICE and isinstance(PRICE[model], tuple) and getattr(r, "usage", None):
             pi, po = PRICE[model]
             usd = (r.usage.input_tokens or 0) * pi + (r.usage.output_tokens or 0) * po
-        record(model, usd, what, usage=getattr(getattr(r, "usage", None), "model_dump", lambda: None)())
+        record(model, usd, what, secs=time.time() - t0, usage=getattr(getattr(r, "usage", None), "model_dump", lambda: None)())
         return r
 
     def chat_json(self, model: str, messages: list, schema: dict, name: str, what: str,
                   estimate_usd: float = 0.02, **kw) -> dict:
         """구조화 출력 (Chat Completions response_format=json_schema). JSON 을 dict 로."""
         check_budget(estimate_usd)
+        t0 = time.time()
         r = self.client.chat.completions.create(
             model=model, messages=messages,
             response_format={"type": "json_schema", "json_schema": {"name": name, "schema": schema, "strict": True}}, **kw)
         pi, po = PRICE.get(model, (0, 0))
         u = r.usage
         record(model, (u.prompt_tokens or 0) * pi + (u.completion_tokens or 0) * po if u else estimate_usd, what,
-               usage=u.model_dump() if u else None)
+               secs=time.time() - t0, usage=u.model_dump() if u else None)
         return json.loads(r.choices[0].message.content)

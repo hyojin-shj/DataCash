@@ -57,7 +57,7 @@ final class SamsungHealth {
             Object listener = Proxy.newProxyInstance(listenerC.getClassLoader(), new Class<?>[]{listenerC}, (p, m, a) -> {
                 switch (m.getName()) {
                     case "onConnectionSuccess": onConnected(heart, skinTemp); break;
-                    case "onConnectionEnded": sink.state("samsung: 연결 끝"); break;
+                    case "onConnectionEnded": sink.state(Tr.s("samsung: 연결 끝", "samsung: ended")); break;
                     case "onConnectionFailed": failed(a != null && a.length > 0 ? a[0] : null); break;
                     default: return defaults(p, m, a);
                 }
@@ -68,7 +68,7 @@ final class SamsungHealth {
             info.put("sdk", true);
         } catch (Throwable t) {
             put("error", "connect: " + t);
-            sink.state("samsung: 연결 못 함 (" + t.getClass().getSimpleName() + ")");
+            sink.state(Tr.s("samsung: 연결 못 함 (", "samsung: failed (") + t.getClass().getSimpleName() + ")");
         }
     }
 
@@ -77,7 +77,7 @@ final class SamsungHealth {
         try {
             int code = (int) e.getClass().getMethod("getErrorCode").invoke(e);
             why = "error " + code + (Boolean.TRUE.equals(e.getClass().getMethod("hasResolution").invoke(e))
-                    ? " (워치 Health Platform 개발자 모드 또는 권한이 필요)" : "");
+                    ? Tr.s(" (워치 Health Platform 개발자 모드 또는 권한이 필요)", " (needs Health Platform dev mode or permission)") : "");
         } catch (Throwable ignored) {
         }
         put("error", why);
@@ -105,7 +105,7 @@ final class SamsungHealth {
                 String kind = w;
                 Object ev = Proxy.newProxyInstance(evC.getClassLoader(), new Class<?>[]{evC}, (p, m, a) -> {
                     if (m.getName().equals("onDataReceived")) data(kind, (List<?>) a[0]);
-                    else if (m.getName().equals("onError")) sink.state("samsung " + kind + " 오류: " + a[0]);
+                    else if (m.getName().equals("onError")) sink.state("samsung " + kind + Tr.s(" 오류: ", " error: ") + a[0]);
                     else if (!m.getName().equals("onFlushCompleted")) return defaults(p, m, a);
                     return null;
                 });
@@ -114,10 +114,10 @@ final class SamsungHealth {
                 on.put(w);
             }
             info.put("tracking", on);
-            sink.state(on.length() > 0 ? "samsung: " + on.join(", ").replace("\"", "") : "samsung: 연결됨 (이 워치는 해당 추적 없음)");
+            sink.state(on.length() > 0 ? "samsung: " + on.join(", ").replace("\"", "") : Tr.s("samsung: 연결됨 (이 워치는 해당 추적 없음)", "samsung: on (no trackers)"));
         } catch (Throwable t) {
             put("error", "track: " + t);
-            sink.state("samsung: 추적기 못 켬 (" + t.getClass().getSimpleName() + ")");
+            sink.state(Tr.s("samsung: 추적기 못 켬 (", "samsung: tracker failed (") + t.getClass().getSimpleName() + ")");
         }
     }
 
