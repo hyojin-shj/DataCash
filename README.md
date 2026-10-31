@@ -63,7 +63,7 @@ A buyer types what they need; Muse Spark (structured output) designs the mission
 
 ## The dataset (LeRobot v3.0)
 
-`observation.images.ego` (masked + face-replaced video) · `observation.hands` · `observation.body` · `observation.imu.phone` · `observation.imu.wrist` ·
+`observation.images.ego` (masked + face-replaced video) · `observation.hands` · `observation.body` · `observation.face` · `observation.imu.phone` · `observation.imu.wrist` ·
 `observation.audio` · **`observation.touch`** (contact, grip low · mid · high + 0–100 score) · `observation.touch.vibration` · **`observation.physio`** (heart rate, skin temperature; biometric consent only) ·
 `observation.objects` · `annotation.step` · `annotation.primitive` (reach · grasp · … · release) · `sync.error_ms` + a quality certificate.
 Loads with the real `lerobot` 0.6.1 (`scripts/validate_lerobot.py`).

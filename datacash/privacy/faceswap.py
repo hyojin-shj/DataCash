@@ -8,6 +8,12 @@ LivePortrait 기본 얼굴 찾기·자르기는 InsightFace(비상업 라이선�
   옆얼굴·먼 얼굴  MediaPipe 가 점을 못 찾아도 YuNet 의 5점(눈·코·입꼬리)으로 자르기를 만들어 치환한다 — 모자이크로 끊기지 않게.
               그래도 못 바꾸면 얼굴 모양대로 부드럽게 흐린다 (굵은 모자이크는 쓰지 않는다)
   자연스럽게  붙일 얼굴의 밝기·대비·색을 장면 얼굴 자리에 맞추고, 자르기 위치를 앞 장면과 섞어 떨림을 줄인다
+  이어 붙이기  얼굴을 잠깐(BRIDGE 장면) 아예 못 찾으면 앞 장면의 바꾼 얼굴을 얼굴 움직임(optical flow)을 따라 옮겨 붙이며 서서히 빼고,
+              흐림도 끝난 뒤 BLUR_HOLD 장면 동안 같은 자리를 서서히 덜 흐린다.
+              해 보고 뺀 것: 원래 얼굴 → 바꾼 얼굴 서서히 섞기(섞는 동안 원래 정면 얼굴이 비쳤다), 옆모습이 돼도 몇 장면 억지로 치환하기
+              (깨진 회색 얼굴이 나오고, 손을 얼굴로 잘못 찾은 자리에도 얼굴이 붙었다), 옆모습에 앞 얼굴 따라 붙이기·한두 장면 메우기
+              (정면 얼굴이 떠 보이거나 어둡게 깨졌다) — 옆모습은 옆모습을 만들 수 있는 치환이 있어야 풀린다.
+              끊김(flips): 참여자 얼굴이 한 장면 사이에 반 넘게 바뀐 횟수 (바꾼 얼굴 ↔ 원래 얼굴 · 흐림 시작·끝)
 원본(가리기 전) 영상이 필요하다 — 해커톤 시연은 동의자 본인 녹화로만. LivePortrait 위치는 LP_ROOT 환경 변수.
 """
 
@@ -28,6 +34,9 @@ LP_ROOT = Path(os.environ.get("LP_ROOT", Path.home() / "home-data-mission" / "mo
 REID_MAX = 0.363           # SFace 의 '같은 사람' 기준 — 이보다 덜 닮으면 다른 사람 (닮은 가상 인물이 자연스럽다는 의견으로 0.30 → 기준 그대로)
 EXP_RAMP = 0.25            # 표정을 줄인 뒤 RAMP_EVERY 장면마다 이만큼씩 되돌린다
 RAMP_EVERY = 5
+BRIDGE = 4                 # 얼굴을 아예 못 찾은 장면에 앞 장면의 바꾼 얼굴을 따라 붙이는 장면 수 (30fps 약 0.13초) — 그동안 서서히 뺀다
+                           # 옆모습으로 알아보고 원래대로 둔 장면에는 붙이지 않는다: 정면 얼굴이 옆얼굴·머리카락 위에 떠 보였다
+BLUR_HOLD = 10             # 흐린 얼굴은 바로 끄지 않고 이만큼 같은 자리를 서서히 덜 흐린다 (흐림이 켜졌다 꺼졌다 하지 않게)
 CROP = 512
 EYE_L, EYE_R, CHIN, MOUTH = (33, 133), (362, 263), 152, (13, 14)
 FACE_OVAL = [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176, 149,
@@ -46,6 +55,9 @@ class SwapReport:
     yunet_swapped: int = 0          # MediaPipe 가 못 찾은 옆얼굴·먼 얼굴을 YuNet 5점 자르기로 치환한 장면
     profile_kept: int = 0           # 옆모습인데 재식별 모델이 참여자로 알아보지 못함(닮음 < REID_MAX) → 원래대로 둠 (흐리지 않는다)
     profile_swapped: int = 0        # 참여자로 알아보는 옆모습 → 5점(눈·코·입꼬리)에 맞춰 치환, 치환 뒤 재식별 검사 통과
+    bridged: int = 0                # 얼굴을 놓친 장면에 앞 장면의 바꾼 얼굴을 따라 붙인 장면 (BRIDGE)
+    flips: int = 0                  # 끊김: 참여자 얼굴이 한 장면 사이에 반 넘게 바뀐 횟수 (바꾼 얼굴 ↔ 원래 얼굴 · 흐림 시작·끝)
+    flips_per_min: float = 0.0
     family: int = 0                 # 동의한 가족 수 (사람마다 다른 가상 인물)
     reid_max: float = 0.0
     reid_mean: float = 0.0
@@ -330,8 +342,8 @@ def is_profile(f) -> bool:
     return float(np.hypot(f[6] - f[4], f[7] - f[5])) / max(1.0, float(f[2])) < PROFILE_EYES
 
 
-def soften(img, f) -> None:
-    """치환할 수 없는 얼굴: 얼굴 모양(타원)대로, 가장자리를 흐려 부드럽게 (굵은 모자이크처럼 튀지 않게)."""
+def soften(img, f, strength: float = 1.0) -> None:
+    """치환할 수 없는 얼굴: 얼굴 모양(타원)대로, 가장자리를 흐려 부드럽게 (굵은 모자이크처럼 튀지 않게). strength: 흐림 세기 0~1."""
     h, w = img.shape[:2]
     x, y, fw, fh = (float(v) for v in f[:4])
     cx, cy, ax, ay = x + fw / 2, y + fh / 2, fw * 0.62, fh * 0.75
@@ -344,7 +356,7 @@ def soften(img, f) -> None:
                                        (x1 - x0, y1 - y0), interpolation=cv2.INTER_LINEAR), (k, k), 0)
     m = np.zeros((y1 - y0, x1 - x0), np.float32)
     cv2.ellipse(m, (int(cx - x0), int(cy - y0)), (int(ax), int(ay)), 0, 0, 360, 1.0, -1)
-    m = cv2.GaussianBlur(m, (k, k), 0)[..., None]
+    m = cv2.GaussianBlur(m, (k, k), 0)[..., None] * float(strength)
     img[y0:y1, x0:x1] = (blur * m + roi * (1 - m)).astype(np.uint8)
 
 
@@ -359,9 +371,45 @@ def smooth_crop(prev: Optional[np.ndarray], M: np.ndarray) -> np.ndarray:
     return (prev * a + M * (1 - a)).astype(np.float32)
 
 
+def track_crop(g0, g1, pts, M):
+    """앞 장면(g0)의 얼굴 점들(pts)을 이번 장면(g1)으로 따라가(Lucas-Kanade) 자르기 M 을 그만큼 옮긴다. 못 따라가면 None."""
+    if pts is None or len(pts) < 8:
+        return None
+    nxt, ok, _ = cv2.calcOpticalFlowPyrLK(g0, g1, pts, None, winSize=(21, 21), maxLevel=3)
+    ok = ok.ravel().astype(bool)
+    if ok.sum() < 8:
+        return None
+    T, inl = cv2.estimateAffinePartial2D(pts[ok], nxt[ok], method=cv2.RANSAC, ransacReprojThreshold=3.0)
+    if T is None or inl.sum() < 8 or not 0.8 < np.sqrt(abs(np.linalg.det(T[:, :2]))) < 1.25:
+        return None
+    M1 = np.hstack([T[:, :2] @ M[:, :2], (T[:, :2] @ M[:, 2] + T[:, 2])[:, None]]).astype(np.float32)
+    return M1, nxt[ok][inl.ravel().astype(bool)].reshape(-1, 1, 2)
+
+
+def face_points(gray, M):
+    """자르기 M 의 가운데(얼굴 안쪽)에서 따라갈 점들."""
+    h, w = gray.shape
+    q = cv2.transform(np.array([[[CROP * a, CROP * b] for a, b in ((.3, .3), (.7, .3), (.7, .75), (.3, .75))]], np.float32), M)[0]
+    mk = np.zeros((h, w), np.uint8)
+    cv2.fillConvexPoly(mk, q.astype(np.int32), 255)
+    return cv2.goodFeaturesToTrack(gray, 40, 0.01, 4, mask=mk)
+
+
+def count_flips(trace: list) -> int:
+    """trace: 장면마다 참여자 얼굴 (바꾼 얼굴 비율 0~1, 흐림 세기 0~1) 또는 None(얼굴 없음). 얼굴 없는 장면은 건너뛰고 잇는다."""
+    n, prev = 0, None
+    for v in trace:
+        if v is None:
+            continue
+        if prev is not None and (abs(v[0] - prev[0]) > 0.5 or abs(float(v[1]) - float(prev[1])) > 0.5):
+            n += 1
+        prev = v
+    return n
+
+
 def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[dict] = None,
                log=print, consented_boxes: Optional[dict] = None, extra_donors: Optional[list] = None,
-               family_donors: Optional[dict] = None) -> SwapReport:
+               family_donors: Optional[dict] = None, bridge: int = BRIDGE) -> SwapReport:
     """original: 원래 영상(얼굴·움직임 읽기용), base: 가린 영상(같은 장면 수) 위에 바꾼 얼굴을 붙인다.
     participant_boxes: 장면 → 참여자 상자. consented_boxes: 장면 → [(추적 id, 상자)] 동의한 가족 (사람마다 다른 가상 인물).
     family_donors: 추적 id → 그 사람이 직접 고른 가상 인물 사진 (없으면 덜 닮은 순서대로 자동)."""
@@ -412,6 +460,11 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
     vw = cv2.VideoWriter(str(raw), cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))
     sims, scales, crops, i = [], {}, {}, 0
     family_order: list = []
+    last: dict = {}            # 사람마다 마지막으로 바꾼 얼굴 {gen, gl, M, pts, age} — 놓친 장면에 따라 붙인다
+    alpha: dict = {}           # 사람마다 이번 장면에 붙인 바꾼 얼굴 비율 (끊김 세기용)
+    trace: list = []           # 참여자 얼굴 장면마다 (바꾼 얼굴 비율, 흐림 세기) — 끊김 세기
+    blurred: dict = {}         # 사람마다 마지막으로 흐린 얼굴 {f, age} — 흐림을 서서히 끈다
+    g_prev = None
     while True:
         ok1, fo = co.read()
         ok2, fb = cb.read()
@@ -420,7 +473,16 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
         if fo.shape[:2] != (h, w):
             fo = cv2.resize(fo, (w, h))
         rep.frames += 1
+        gray = cv2.cvtColor(fo, cv2.COLOR_BGR2GRAY)
         faces = fl(fo)
+        now: dict = {}         # 이번 장면 사람마다 swap · orig(원래대로 둠) · blur · bridge(따라 붙임) · fading(흐림을 서서히 끔)
+
+        def put(key, out, gen, gl, M):
+            """바꾼 얼굴을 붙였다 — 놓친 장면에 이어 붙일 수 있게 남긴다."""
+            alpha[key], now[key] = 1.0, "swap"
+            last[key] = {"gen": gen, "gl": gl, "M": M, "pts": face_points(gray, M) if bridge > 0 else None, "age": 0}
+            return out
+
         targets = [("participant", (participant_boxes or {}).get(i))]
         for oid, box in (consented_boxes or {}).get(i, []):
             if oid not in family_order:
@@ -461,6 +523,7 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
                         known = eyes >= 0.22 and sim_p >= REID_MAX
                         if not known:
                             rep.profile_kept += 1
+                            now[key] = "orig"
                             continue
                         Mp = crop_from_yunet(yf)
                         lp.use(person_state(key, 0 if key == "participant" else 1 + family_order.index(key.split(":", 1)[1])))
@@ -470,12 +533,15 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
                             if gpl else None
                         e1 = reid.embed(outp, yc) if outp is not None else None
                         if outp is not None and (e1 is None or ep is None or reid.sim(ep, e1) < REID_MAX):
-                            res = outp
+                            res = put(key, outp, gp, gpl[0], Mp)
                             rep.profile_swapped += 1
                             rep.swapped += 1
                         else:
                             soften(res, yf)
                             rep.small_face_covered += 1
+                            now[key], alpha[key] = "blur", 0.0
+                            last.pop(key, None)
+                            blurred[key] = {"f": yf, "age": 0}
                         continue
                     # 점을 못 찾은 작은·번진 얼굴: 참여자로 알아보지 못하면 원래대로 (번진 얼굴에 또렷한 얼굴을 붙이면 더 어색하다)
                     ey = reid.embed(fo, np.array([yf[0] + yf[2] / 2, yf[1] + yf[3] / 2], np.float32))
@@ -483,8 +549,10 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
                         rep.profile_kept += 1
                         any_face = True
                         crops.pop(key, None)
+                        now[key] = "orig"
                         continue
             any_face = True
+            pidx = 0 if key == "participant" else 1 + family_order.index(key.split(":", 1)[1])
             M = smooth_crop(crops.get(key), crop_matrix(lmk) if lmk is not None else crop_from_yunet(yf))
             crops[key] = M
             crop = warp_in(fo, M)
@@ -497,17 +565,17 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
             start = min(1.0, prev + EXP_RAMP) if prev < 1.0 and i % RAMP_EVERY == 0 else prev
             tries = []                                     # (닮음, 결과, 표정 비율)
             for es in dict.fromkeys((start, prev, 0.0) if start > prev else (start, 0.0)):
-                lp.use(person_state(key, 0 if key == "participant" else 1 + family_order.index(key.split(":", 1)[1])))
+                lp.use(person_state(key, pidx))
                 gen = lp.drive(crop, es, anchor=lmk is not None and not small)
                 gl = fl(gen)
                 out = lp.paste(res, gen, M, gl[0] if gl else None, clip=yf, target=lmk,
                                target5=np.asarray(yf[4:14], np.float32).reshape(5, 2) if yf is not None else None)
                 e1 = reid.embed(out, c) if e0 is not None else None
                 sv = reid.sim(e0, e1) if e1 is not None else None
-                tries.append((-1.0 if sv is None else sv, out, es))
+                tries.append((-1.0 if sv is None else sv, out, es, gen, gl[0] if gl else None))
                 if sv is None or sv < REID_MAX:
                     break
-            sv, out, used_scale = min(tries, key=lambda t: t[0])   # 다 넘으면 가장 덜 닮은 것 — 굳히거나 모자이크하지 않는다 (연속성)
+            sv, out, used_scale, gen, gl = min(tries, key=lambda t: t[0])   # 다 넘으면 가장 덜 닮은 것 — 굳히거나 모자이크하지 않는다 (연속성)
             if sv >= 0:
                 sims.append(sv)
             states[key] = lp.state()                       # 움직임 기준(d0)을 사람마다 이어 간다
@@ -517,11 +585,11 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
             rep.over_reid += sv >= REID_MAX
             rep.small_face_swapped += small
             rep.yunet_swapped += yf is not None
-            res = out
+            res = put(key, out, gen, gl, M)
         if not any_face:
             rep.no_face += 1
             covered = 0
-            for _, box in targets:                         # 남은 얼굴(치환도 못 한 것): 참여자로 알아보는 얼굴만 부드럽게 흐린다
+            for key, box in targets:                       # 남은 얼굴(치환도 못 한 것): 참여자로 알아보는 얼굴만 부드럽게 흐린다
                 for f in yunet_faces(fo, reid, box):
                     ef = reid.embed(fo, np.array([f[0] + f[2] / 2, f[1] + f[3] / 2], np.float32))
                     if ef is not None and ref_emb and max(reid.sim(ef, r) for r in ref_emb) < REID_MAX:
@@ -529,8 +597,46 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
                         continue
                     soften(res, f)
                     covered += 1
+                    now[key], alpha[key] = "blur", 0.0
+                    last.pop(key, None)
+                    blurred[key] = {"f": f, "age": 0}
             rep.small_face_covered += covered > 0
             crops.clear()                                  # 얼굴이 끊겼다 다시 나오면 앞 위치와 섞지 않는다
+        for key, _ in targets:                             # 얼굴을 아예 못 찾은 사람: 앞 장면의 바꾼 얼굴을 따라 붙이며 서서히 뺀다
+            if now.get(key) is not None:                   # 바꿈 · 흐림 · 옆모습이라 원래대로 둠 → 붙이지 않는다
+                if now[key] == "orig":
+                    last.pop(key, None)
+                    alpha[key] = 0.0
+                continue
+            lb = last.get(key)
+            tr = track_crop(g_prev, gray, lb["pts"], lb["M"]) if lb and g_prev is not None and lb["age"] < bridge else None
+            if tr is None:
+                last.pop(key, None)
+                alpha.pop(key, None)
+                continue
+            lb["M"], lb["pts"] = tr
+            lb["age"] += 1
+            a = 1.0 - lb["age"] / (bridge + 1)
+            out = lp.paste(res, lb["gen"], lb["M"], lb["gl"])
+            res = cv2.addWeighted(out, a, res, 1 - a, 0)
+            alpha[key], now[key] = a, "bridge"
+            rep.bridged += 1
+        blur_s = {}
+        for key, _ in targets:                             # 흐림이 끝난 사람: 같은 자리를 BLUR_HOLD 장면 동안 서서히 덜 흐린다
+            bl = blurred.get(key)
+            if now.get(key) == "blur":
+                blur_s[key] = 1.0
+            elif bl and now.get(key) != "swap" and bl["age"] < BLUR_HOLD:
+                bl["age"] += 1
+                blur_s[key] = 1.0 - bl["age"] / (BLUR_HOLD + 1)
+                soften(res, bl["f"], blur_s[key])
+                now.setdefault(key, "fading")
+            else:
+                blurred.pop(key, None)
+        st = now.get("participant")
+        trace.append(None if st is None else (alpha.get("participant", 0.0) if st in ("swap", "bridge") else 0.0,
+                                              blur_s.get("participant", 0.0)))
+        g_prev = gray
         vw.write(res)
         i += 1
         if i % 60 == 0:
@@ -543,6 +649,8 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
     if sims:
         rep.reid_max, rep.reid_mean = float(np.max(sims)), float(np.mean(sims))
     rep.family = len(family_order)
+    rep.flips = count_flips(trace)
+    rep.flips_per_min = rep.flips / max(1e-6, rep.frames / fps / 60)
     rep.seconds = time.time() - t0
     return rep
 

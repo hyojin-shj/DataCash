@@ -63,7 +63,7 @@ Meta Global AI Developer Hackathon（Indie Developer · Push the Frontier）参�
 
 ## 数据集（LeRobot v3.0）
 
-`observation.images.ego`（遮盖 + 换脸后的视频）· `observation.hands` · `observation.body` · `observation.imu.phone` · `observation.imu.wrist` ·
+`observation.images.ego`（遮盖 + 换脸后的视频）· `observation.hands` · `observation.body` · `observation.face` · `observation.imu.phone` · `observation.imu.wrist` ·
 `observation.audio` · **`observation.touch`**（接触、握力 低 · 中 · 高 + 0–100 分）· `observation.touch.vibration` · **`observation.physio`**（心率、皮肤温度；仅限生物信息同意者）·
 `observation.objects` · `annotation.step` · `annotation.primitive`（reach · grasp · … · release）· `sync.error_ms` + 质量证书。
 可用真实的 `lerobot` 0.6.1 读取（`scripts/validate_lerobot.py`）。

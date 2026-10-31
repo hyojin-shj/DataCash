@@ -19,7 +19,7 @@ import cv2
 import numpy as np
 
 from .export import certificate
-from .export.channels import (EpisodeChannels, NAMES, audio_rows, body_rows, event_rows, hand_rows, interp, make_grid,
+from .export.channels import (EpisodeChannels, NAMES, audio_rows, body_rows, event_rows, face_rows, hand_rows, interp, make_grid,
                               object_rows, touch_rows)
 from .export.lerobot import export
 from .physio import physio_series
@@ -172,6 +172,7 @@ def process(session_dir, out_dir, level: str = "bio", fps: float = 30.0, masked_
         d = ep.data
         d["observation.hands"], d["observation.hands_present"] = hand_rows(labels, src, size)
         d["observation.body"], d["observation.body_world"] = body_rows(labels, src, size)
+        d["observation.face"] = face_rows(labels, src)
         if s.phone_imu is not None:
             d["observation.imu.phone"], _ = interp(grid, s.phone_imu.t_ns, s.phone_imu.values)
         else:

@@ -63,7 +63,7 @@ El comprador escribe lo que necesita; Muse Spark (salida estructurada) diseña l
 
 ## El conjunto de datos (LeRobot v3.0)
 
-`observation.images.ego` (video ocultado + rostro reemplazado) · `observation.hands` · `observation.body` · `observation.imu.phone` · `observation.imu.wrist` ·
+`observation.images.ego` (video ocultado + rostro reemplazado) · `observation.hands` · `observation.body` · `observation.face` · `observation.imu.phone` · `observation.imu.wrist` ·
 `observation.audio` · **`observation.touch`** (contacto, agarre bajo · medio · alto + puntuación 0–100) · `observation.touch.vibration` · **`observation.physio`** (frecuencia cardíaca, temperatura de la piel; solo con consentimiento biométrico) ·
 `observation.objects` · `annotation.step` · `annotation.primitive` (reach · grasp · … · release) · `sync.error_ms` + un certificado de calidad.
 Se carga con `lerobot` 0.6.1 real (`scripts/validate_lerobot.py`).

@@ -5,6 +5,8 @@
   observation.hands_present      2  1 검출, 0.5 짧은 끊김 보간, 0 없음
   observation.body              99  33점 × (x/너비, y/높이, 보임)
   observation.body_world        99  33점 × (x, y, z) 미터, 골반 가운데 원점
+  observation.face              60  표정 52값(blendshape 0~1) · 고개 방향 yaw·pitch·roll(도) · 두 눈 시선(눈 안 눈동자 위치 -1~1) · 있음
+                                    — 얼굴을 바꾸기 전 원래 영상에서 (치환한 영상은 표정을 줄이기도 해서, 표정·시선은 이 값이 원본)
   observation.imu.phone          6  폰 가속(m/s²)·자이로(rad/s)
   observation.imu.wrist          6  손목 가속·자이로 (워치 → 폰 시계로 옮김)
   observation.audio              3  소리 세기(dBFS) · 소리 사건 시작 · 확인된 접촉음(손목 충격과 겹침)
@@ -26,6 +28,7 @@ from typing import Dict, List, Optional
 
 import numpy as np
 
+from ..labels.pose import FACE_VALUES
 from ..touch.contact import PHASES
 from ..understand.spark import PRIMITIVES
 
@@ -44,6 +47,7 @@ NAMES: Dict[str, List[str]] = {
     "observation.hands_present": ["left", "right"],
     "observation.body": [f"{j}_{c}" for j in POSE_JOINTS for c in ("x", "y", "vis")],
     "observation.body_world": [f"{j}_{c}" for j in POSE_JOINTS for c in ("x", "y", "z")],
+    "observation.face": FACE_VALUES + ["present"],
     "observation.imu.phone": ["ax", "ay", "az", "gx", "gy", "gz"],
     "observation.imu.wrist": ["ax", "ay", "az", "gx", "gy", "gz"],
     "observation.audio": ["level_dbfs", "onset", "contact_sound"],
@@ -112,6 +116,14 @@ def hand_rows(labels, src, size) -> tuple:
                 H[r, k * 63:(k + 1) * 63] = a.ravel()
                 P[r, k] = f.hands_state[k]
     return H, P
+
+
+def face_rows(labels, src) -> np.ndarray:
+    F = np.zeros((len(src), len(FACE_VALUES) + 1), np.float32)
+    for r, i in enumerate(src):
+        if labels is not None and i < len(labels) and getattr(labels[i], "face", None) is not None:
+            F[r, :-1], F[r, -1] = labels[i].face, 1.0
+    return F
 
 
 def body_rows(labels, src, size) -> tuple:

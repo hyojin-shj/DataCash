@@ -63,7 +63,7 @@ Goel・Wobbrock・Patel の *GripSense*（UIST 2012）を手首に移しまし�
 
 ## データセット（LeRobot v3.0）
 
-`observation.images.ego`（隠した + 顔を置き換えた映像）· `observation.hands` · `observation.body` · `observation.imu.phone` · `observation.imu.wrist` ·
+`observation.images.ego`（隠した + 顔を置き換えた映像）· `observation.hands` · `observation.body` · `observation.face` · `observation.imu.phone` · `observation.imu.wrist` ·
 `observation.audio` · **`observation.touch`**（接触、握る強さ 低・中・高 + 0〜100 点）· `observation.touch.vibration` · **`observation.physio`**（心拍、皮膚温度。生体情報に同意した人のみ）·
 `observation.objects` · `annotation.step` · `annotation.primitive`（reach · grasp · … · release）· `sync.error_ms` + 品質証明書。
 実際の `lerobot` 0.6.1 で読み込めます（`scripts/validate_lerobot.py`）。

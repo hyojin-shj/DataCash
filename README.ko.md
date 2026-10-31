@@ -63,7 +63,7 @@ Goel·Wobbrock·Patel, *GripSense* (UIST 2012)를 손목에 옮겼습니다. 워
 
 ## 판매 데이터 (LeRobot v3.0)
 
-`observation.images.ego` (가린·치환 영상) · `observation.hands` · `observation.body` · `observation.imu.phone` · `observation.imu.wrist` ·
+`observation.images.ego` (가린·치환 영상) · `observation.hands` · `observation.body` · `observation.face` · `observation.imu.phone` · `observation.imu.wrist` ·
 `observation.audio` · **`observation.touch`** (접촉·쥐는 세기 하·중·상 + 0~100 점수) · `observation.touch.vibration` · **`observation.physio`** (심박·피부온도, 생체 동의만) ·
 `observation.objects` · `annotation.step` · `annotation.primitive` (reach·grasp·…·release) · `sync.error_ms` + 품질 인증서.
 실제 `lerobot` 0.6.1 로 읽힙니다 (`scripts/validate_lerobot.py`).
