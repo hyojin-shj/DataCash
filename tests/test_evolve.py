@@ -62,6 +62,24 @@ def test_dataset_eval_and_ready(tmp_path, monkeypatch):
     assert tuned["accuracy"] == 1.0 and tuned["ready"] and evolve.ready_adapter() == str(adapter)
 
 
+def test_flip_doubles_train_only(tmp_path, monkeypatch):
+    monkeypatch.setattr(evolve, "ROOT", tmp_path / "evolve")
+    dirs = [tmp_path / f"r{k}" for k in range(4)]
+    for d in dirs:
+        _recording(d)
+    plain = evolve.build_dataset(dirs, log=lambda *a: None)
+    monkeypatch.setattr(evolve, "FLIP", True)
+    ds = evolve.build_dataset(dirs, log=lambda *a: None)                             # 방식이 바뀌어 새로 만든다
+    assert ds["version"] == 2 and ds["train_steps"] == 2 * plain["train_steps"] and ds["eval_steps"] == plain["eval_steps"]
+    rows = [json.loads(l) for l in (tmp_path / "evolve" / "sft" / "train.jsonl").read_text().splitlines()]
+    a, b = rows[0], rows[1]
+    assert not a["meta"]["flip"] and b["meta"]["flip"] and b["messages"][1] == a["messages"][1]
+    fa, fb = (cv2.imread(str(tmp_path / "evolve" / "sft" / r["messages"][0]["content"][0]["path"])) for r in (a, b))
+    assert np.abs(cv2.flip(fa, 1).astype(int) - fb.astype(int)).mean() < 3            # 좌우만 뒤집은 같은 장면
+    every = (tmp_path / "evolve" / "sft" / "all.jsonl").read_text().splitlines()
+    assert not any(json.loads(l)["meta"].get("flip") for l in every)
+
+
 def test_label_video_merges_windows(tmp_path, monkeypatch):
     monkeypatch.setattr(evolve, "ROOT", tmp_path / "evolve")          # 사람 정답 없음 → 순서 확률은 고르게
     _recording(tmp_path / "r")                                         # 4초 영상 → WINDOW_S 창 여러 개

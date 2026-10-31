@@ -40,6 +40,7 @@ AUGMENT = 6               # 학습용 단계 하나에서 장면 3장을 뽑는 
 HARD_WEIGHT = 3           # 이의 신청에서 바로잡은 단계(모델이 틀리기 쉬운 '어려운 문제')는 이만큼 더 넣는다
 FRAMES = 8                # 단계마다 보여 줄 장면 수 (10-31: 3 → 8 — Spark 처럼 흐름을 보게. 첫 장은 단계 바로 앞)
 PRE_S = 0.3               # 첫 장을 단계 시작보다 이만큼 앞에서 — 집기(물체가 면 위에 있다가 손으로) ↔ 놓기(반대)를 가리려면 직전 모습이 필요
+FLIP = False             # 학습용 단계마다 좌우 뒤집은 한 벌을 더 (왼손·오른손이 바뀌어도 같은 동작)
 HARD_ACTIONS = {"grasp", "lift", "transport", "place", "release"}   # 서로 가장 많이 헷갈리는 동작 — 학습에 두 배로
 
 QUESTION = """Frames in time order from one step of a robot-learning video (the first frame is just before the step), mission: "{mission}".
@@ -289,7 +290,7 @@ def build_dataset(out_dirs, log=print) -> Optional[dict]:
         return None
     reg = _registry()
     key = sorted(f"{r['id']}:{len(r['steps'])}:{len(corrections(r['id']))}" for r in recs)
-    key.append(f"frames{FRAMES}-pre{PRE_S}-{'prev' if ASK_PREV else 'noprev'}-hard2")      # 질문·장면 방식이 바뀌면 다시 만든다
+    key.append(f"frames{FRAMES}-pre{PRE_S}-{'prev' if ASK_PREV else 'noprev'}-hard2{'-flip' if FLIP else ''}-eval{EVAL_EVERY}")      # 질문·장면 방식이 바뀌면 다시 만든다
     if reg["datasets"] and reg["datasets"][-1]["key"] == key:
         return reg["datasets"][-1]
     sft = ROOT / "sft"
@@ -307,23 +308,25 @@ def build_dataset(out_dirs, log=print) -> Optional[dict]:
             for v in range(n):
                 j0 = 0.0 if v == 0 else ((v * 37) % 11 - 5) / 50 * d          # -10% ~ +10% 이동
                 j1 = 0.0 if v == 0 else ((v * 53) % 11 - 5) / 50 * d
-                paths = []
-                for j, f in enumerate(_frames(r["video"], max(0.0, s["start_s"] - PRE_S + j0), s["end_s"] + j1)):
-                    p = img / f"{r['id']}_{k}_{v}_{j}.jpg"
-                    cv2.imwrite(str(p), f, [cv2.IMWRITE_JPEG_QUALITY, 88])
-                    paths.append(f"images/{p.name}")
-                if len(paths) < FRAMES:
+                frames = _frames(r["video"], max(0.0, s["start_s"] - PRE_S + j0), s["end_s"] + j1)
+                if len(frames) < FRAMES:
                     continue
-                rows[split].append({"messages": [
-                    {"role": "user", "content": [{"type": "image", "path": p} for p in paths]
-                     + [{"type": "text", "text": question(r["mission"], order=mission_primitives(r.get("mission_id", "")), prev=prev)}]},
-                    {"role": "assistant", "content": json.dumps({"action": s["action"]})}],
-                    "meta": {"recording": r["id"], "mission_id": r.get("mission_id", ""), "step": k, "variant": v, "source": s["source"],
-                             "prev": prev}})
+                for flip in ([False, True] if FLIP and split == "train" else [False]):
+                    paths = []
+                    for j, f in enumerate(frames):
+                        p = img / f"{r['id']}_{k}_{v}_{j}{'_f' if flip else ''}.jpg"
+                        cv2.imwrite(str(p), cv2.flip(f, 1) if flip else f, [cv2.IMWRITE_JPEG_QUALITY, 88])
+                        paths.append(f"images/{p.name}")
+                    rows[split].append({"messages": [
+                        {"role": "user", "content": [{"type": "image", "path": p} for p in paths]
+                         + [{"type": "text", "text": question(r["mission"], order=mission_primitives(r.get("mission_id", "")), prev=prev)}]},
+                        {"role": "assistant", "content": json.dumps({"action": s["action"]})}],
+                        "meta": {"recording": r["id"], "mission_id": r.get("mission_id", ""), "step": k, "variant": v, "source": s["source"],
+                                 "prev": prev, "flip": flip}})
     for split, rs in rows.items():
         (sft / f"{split}.jsonl").write_text("".join(json.dumps(x, ensure_ascii=False) + "\n" for x in rs))
     # 학습 전 모델은 어떤 녹화도 보지 않았으니 정답 단계 전체(늘린 벌 빼고 한 벌씩)로도 잰다 — 숫자가 덜 흔들린다
-    every = [x for x in rows["train"] + rows["eval"] if x["meta"].get("variant", 0) == 0]
+    every = [x for x in rows["train"] + rows["eval"] if x["meta"].get("variant", 0) == 0 and not x["meta"].get("flip")]
     (sft / "all.jsonl").write_text("".join(json.dumps(x, ensure_ascii=False) + "\n" for x in every))
     counts = {}
     for x in rows["train"]:
@@ -496,9 +499,10 @@ def transitions(exclude=(), alpha: float = 0.5, beta: float = 4.0) -> dict:
     return out
 
 
-def decode(dists: List[dict], mission_id: str, trans: dict, weight: float = 1.0, floor: float = 1e-3,
+def decode(dists: List[dict], mission_id: str, trans: dict, weight: float = 2.0, floor: float = 1e-3,
            stay: Optional[float] = None) -> List[str]:
-    """dists: 단계(또는 창)마다 {동작: 확률} (Glimmer). weight: 순서 확률을 얼마나 믿을지 (0 이면 단계마다 가장 높은 것).
+    """dists: 단계(또는 창)마다 {동작: 확률} (Glimmer). weight: 순서 확률을 얼마나 믿을지 (0 이면 단계마다 가장 높은 것.
+    평가 122단계에서 v82e3·v83e3·둘 섞은 것 모두 2 근처가 좋았다 — 0.5–4 사이는 ±4%p 안).
     stay: 단계가 아니라 고른 창마다일 때, 다음 창도 같은 동작일 확률."""
     if not dists:
         return []
@@ -539,7 +543,7 @@ def label_video(video, mission: str, t0: float = 0.0, client=None, order: Option
     cap.release()
     ts = list(np.arange(t0, dur - 0.2, WINDOW_S))
     dists = [_ask_dist(client, _frames(video, max(0.0, t - PRE_S), min(dur, t + WINDOW_S)), mission, order, model) for t in ts]
-    path = decode(dists, mission_id, trans or transitions(), stay=STAY)
+    path = decode(dists, mission_id, trans or transitions(), weight=1.0, stay=STAY)    # 창마다는 아직 재 보지 않음
     steps: List[dict] = []
     for t, a in zip(ts, path):
         if steps and steps[-1]["action"] == a:
