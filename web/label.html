@@ -95,7 +95,7 @@
       <div class="card">
         <div class="row" style="justify-content:space-between;margin-bottom:6px">
           <b>단계 <span id="cnt"></span></b>
-          <div class="row"><button class="btn" onclick="fromSpark()">Spark 라벨로 다시 시작</button><button class="btn" onclick="clearAll()">모두 지우기</button></div>
+          <div class="row"><button class="btn" onclick="fromSpark()">Spark 라벨로 다시 시작</button><button class="btn" onclick="clearAll()">모두 지우기</button><button class="btn" onclick="exclude()">이 녹화 빼기</button></div>
         </div>
         <table><thead><tr><th></th><th>시작</th><th>끝</th><th>동작</th><th>물체</th><th></th></tr></thead><tbody id="rows"></tbody></table>
         <div class="row" style="margin-top:10px"><input id="note" placeholder="메모 (예: 손이 자주 화면 밖)" style="flex:1"></div>
@@ -135,11 +135,11 @@ async function start() {
 }
 async function loadList() {
   SES = (await api("/api/admin/label")).sessions;
-  const done = SES.filter(s => s.human_steps != null).length;
-  document.getElementById("prog").textContent = `정답 단 녹화 ${done} / ${SES.length}편 · 목표 10편`;
+  const done = SES.filter(s => s.human_steps != null && !s.excluded).length, out = SES.filter(s => s.excluded).length;
+  document.getElementById("prog").textContent = `정답 단 녹화 ${done} / ${SES.length - out}편` + (out ? ` · 뺀 녹화 ${out}편` : "");
   document.getElementById("list").innerHTML = SES.map(s => `<button data-sid="${esc(s.sid)}" class="${cur && cur.sid === s.sid ? "on" : ""}">
-    ${s.human_steps != null ? '<span class="ok">✓</span> ' : ""}${esc(s.mission)}
-    <small>${esc(s.sid)} · ${s.human_steps != null ? "정답 " + s.human_steps + "단계" : "Spark " + s.spark_steps + "단계"}</small></button>`).join("");
+    ${s.excluded ? '<span style="color:var(--sub)">빠짐</span> ' : s.human_steps != null ? '<span class="ok">✓</span> ' : ""}${esc(s.mission)}
+    <small>${esc(s.sid)} · ${s.excluded ? "정답에서 뺌" : s.human_steps != null ? "정답 " + s.human_steps + "단계" : "Spark " + s.spark_steps + "단계"}</small></button>`).join("");
   document.querySelectorAll("#list button").forEach(b => b.onclick = () => open_(b.dataset.sid));
 }
 async function open_(sid) {
@@ -151,7 +151,7 @@ async function open_(sid) {
   sel = steps.length ? 0 : -1; dirty = false;
   document.getElementById("empty").hidden = true; document.getElementById("work").hidden = false;
   document.getElementById("title").textContent = cur.mission + " · " + sid;
-  document.getElementById("sub").textContent = cur.human ? `사람 정답 저장됨 (${cur.human.labeled_at})` : "아직 사람 정답 없음 — Spark 라벨에서 시작해요";
+  document.getElementById("sub").textContent = cur.human ? (cur.human.excluded ? "정답에서 뺀 녹화예요 — 단계를 달고 저장하면 다시 들어가요" : `사람 정답 저장됨 (${cur.human.labeled_at})`) : "아직 사람 정답 없음 — Spark 라벨에서 시작해요";
   v.src = `/api/admin/sessions/${encodeURIComponent(sid)}/video?kind=swap&token=${encodeURIComponent(token)}`;
   document.getElementById("guide").innerHTML = "<b>동작 기준</b><br>" + Object.entries(GUIDE).map(([k, g]) =>
     `<b>${esc(name(k))}</b> (${k}) — ${esc(g)}`).join("<br>") + "<br>단계 사이 틈은 비워 둬도 돼요 (채점에서 빠짐). 경계는 0.1초 단위로 맞추면 충분해요.";
@@ -226,6 +226,14 @@ function split() {
 function fromSpark() { if (!confirm("지금 단계를 지우고 Spark 라벨로 다시 시작할까요?")) return;
   steps = cur.spark.map(s => ({start_s: +s.start_s, end_s: +s.end_s, action: s.action, objects: s.objects || []})); sel = 0; mark(); render(); }
 function clearAll() { if (!confirm("단계를 모두 지울까요?")) return; steps = []; sel = -1; mark(); render(); }
+async function exclude() {
+  if (!cur || !confirm("이 녹화를 정답·채점·학습에서 뺄까요? (녹화 파일은 그대로 남아요)")) return;
+  try {
+    cur.human = await api("/api/admin/label/" + encodeURIComponent(cur.sid), {method: "PUT", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({steps: [], note: document.getElementById("note").value, excluded: true})});
+    dirty = false; setMsg("정답에서 뺐어요", "ok"); document.getElementById("sub").textContent = "정답에서 뺀 녹화예요"; loadList();
+  } catch (e) { setMsg("못 뺌: " + e.message, "bad"); }
+}
 async function save() {
   if (!cur) return;
   const bad = steps.find(s => !(s.end_s > s.start_s));
