@@ -136,7 +136,11 @@ class Store:
         with self.lock:
             st = self.status(sid)
             st.update(kw, updated=datetime.now(timezone.utc).isoformat(timespec="seconds"))
-            (self.root / "status" / f"{sid}.json").write_text(json.dumps(st, indent=2, ensure_ascii=False))
+            # 다른 스레드가 읽는 중에 빈 파일을 보지 않게 임시 파일에 쓰고 바꿔 끼운다 (반쯤 쓴 파일을 읽어 작업 스레드가 죽었었다)
+            p = self.root / "status" / f"{sid}.json"
+            tmp = p.with_suffix(".json.tmp")
+            tmp.write_text(json.dumps(st, indent=2, ensure_ascii=False))
+            os.replace(tmp, p)
             return st
 
     def _worker(self):
