@@ -46,7 +46,8 @@ final class WristRecorder implements SensorEventListener {
     private Thread pulses, audioThread;
     private volatile boolean running;
     private AudioRecord rec;
-    private long audioStart = -1, audioFrames;
+    private long audioStart = -1, audioFrames, nextAnchor;
+    private final JSONArray anchors = new JSONArray();
     private int audioRate;
     private File dir;
     private final JSONObject info = new JSONObject();
@@ -147,8 +148,11 @@ final class WristRecorder implements SensorEventListener {
                 while (running) {
                     int n = rec.read(buf, 0, buf.length);
                     if (n > 0) { f.write(buf, 0, n); audioFrames += n / 2; }
-                    if (audioStart < 0 && rec.getTimestamp(ts, AudioTimestamp.TIMEBASE_BOOTTIME) == AudioRecord.SUCCESS) {
-                        audioStart = ts.nanoTime - ts.framePosition * 1_000_000_000L / audioRate;
+                    // 첫 샘플 시각 + 1초마다 (샘플 번호, BOOTTIME) 기준점 — 마이크 샘플 시계의 어긋남·끊김을 서버가 바로잡는다
+                    if ((audioStart < 0 || audioFrames >= nextAnchor) && rec.getTimestamp(ts, AudioTimestamp.TIMEBASE_BOOTTIME) == AudioRecord.SUCCESS) {
+                        if (audioStart < 0) audioStart = ts.nanoTime - ts.framePosition * 1_000_000_000L / audioRate;
+                        synchronized (anchors) { anchors.put(new JSONArray().put(ts.framePosition).put(ts.nanoTime)); }
+                        nextAnchor = audioFrames + audioRate;
                     }
                 }
             } catch (Exception ignored) {
@@ -201,8 +205,10 @@ final class WristRecorder implements SensorEventListener {
             rec.stop();
             rec.release();
             header(new File(dir, "watch_audio.wav"), audioFrames, audioRate);
-            Files.write(new File(dir, "watch_audio.json"), new JSONObject().put("start_ns", audioStart > 0 ? audioStart : now())
-                    .put("rate", audioRate).toString());
+            synchronized (anchors) {
+                Files.write(new File(dir, "watch_audio.json"), new JSONObject().put("start_ns", audioStart > 0 ? audioStart : now())
+                        .put("rate", audioRate).put("anchors", anchors).toString());
+            }
         }
         synchronized (this) {
             for (BufferedWriter w : new BufferedWriter[]{imu, vib, hr, skin, ibi}) if (w != null) try { w.close(); } catch (Exception ignored) {}

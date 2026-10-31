@@ -33,9 +33,10 @@ def bandpass(x: np.ndarray, rate: int, lo: float, hi: float) -> np.ndarray:
 
 
 def find_events(x: np.ndarray, rate: int, template: np.ndarray, expected_s: List[float], window_s: float,
-                band: Optional[tuple] = None, min_snr: float = 6.0) -> List[Optional[float]]:
+                band: Optional[tuple] = None, min_snr: float = 6.0, pick_s: Optional[float] = None) -> List[Optional[float]]:
     """기대 시각(오디오 시작 기준 초) 둘레 ±window_s 에서 template 이 시작하는 시각(초, 샘플 사이 보간)을 찾는다.
-    못 찾으면(정점이 둘레 중앙값의 min_snr 배 미만) None."""
+    못 찾으면(정점이 둘레 중앙값의 min_snr 배 미만) None.
+    pick_s: 정점은 기대 시각 ±pick_s 안에서만 고른다 (잡음 바닥은 ±window_s 전체로 잰다) — 메아리·다른 소리를 피해 좁게 다시 찾을 때."""
     if band is not None:
         x = bandpass(x, rate, *band)
     out = []
@@ -47,17 +48,25 @@ def find_events(x: np.ndarray, rate: int, template: np.ndarray, expected_s: List
             out.append(None)
             continue
         c = np.abs(fftconvolve(x[a:b], tpl, mode="valid"))
-        i = int(np.argmax(c))
+        lo, hi = 0, len(c)
+        if pick_s is not None:
+            lo = max(0, int((e - pick_s) * rate) - a)
+            hi = min(len(c), int((e + pick_s) * rate) - a + 1)
+            if hi <= lo:
+                out.append(None)
+                continue
+        i = lo + int(np.argmax(c[lo:hi]))
         noise = np.median(c) + 1e-12
         if c[i] < min_snr * noise:
             out.append(None)
             continue
         d = 0.0
         if 0 < i < len(c) - 1:
-            y0, y1, y2 = c[i - 1], c[i], c[i + 1]
+            y0, y1, y2 = (float(v) for v in c[i - 1:i + 2])
             den = y0 - 2 * y1 + y2
             d = 0.5 * (y0 - y2) / den if den != 0 else 0.0
-        out.append((a + i + d) / rate)
+        # 파이썬 float(64비트)로 돌려준다: float32 로 두면 호출하는 쪽이 폰 시각(~10^15ns)에 더할 때 268ms 단위로 뭉개진다
+        out.append(float((a + i + d) / rate))
     return out
 
 

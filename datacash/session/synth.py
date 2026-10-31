@@ -186,10 +186,16 @@ def generate(out, duration: float = 20.0, fps: float = 30.0, drift_ppm: float = 
     # ---- 소리 파일 ----
     import soundfile as sf
 
+    def anchors(start, rate, n):   # 앱처럼 녹음 중 1초마다 (샘플 번호, 그 샘플의 기기 시각) — 합성은 샘플 시계가 기기 시계와 같다
+        return [[k * rate, int(start + k * NS)] for k in range(int(n / rate) + 1)]
+
     sf.write(str(out / "audio.wav"), np.clip(pa, -1, 1), phone_audio_rate, subtype="PCM_16")
-    (out / "audio.json").write_text(json.dumps({"start_ns": P0, "rate": phone_audio_rate}))
+    (out / "audio.json").write_text(json.dumps({"start_ns": P0, "rate": phone_audio_rate,
+                                               "anchors": anchors(P0, phone_audio_rate, len(pa))}))
     sf.write(str(out / "watch_audio.wav"), np.clip(wa, -1, 1), watch_audio_rate, subtype="PCM_16")
-    (out / "watch_audio.json").write_text(json.dumps({"start_ns": int(to_watch(0.0)), "rate": watch_audio_rate}))
+    W_a0 = int(to_watch(0.0))
+    (out / "watch_audio.json").write_text(json.dumps({"start_ns": W_a0, "rate": watch_audio_rate,
+                                                     "anchors": anchors(W_a0, watch_audio_rate, len(wa))}))
 
     # ---- 생체 ----
     if physio:

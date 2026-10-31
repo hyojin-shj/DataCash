@@ -50,9 +50,36 @@ class Audio:
     rate: int
     start_ns: int
     clock: str
+    # (n, 2) int64 (샘플 번호, 그 샘플의 시계 시각) — 녹음 중 AudioTimestamp 를 주기적으로 읽은 것.
+    # 없으면(옛 녹화) 첫 샘플 시각 + 샘플 수 / 공칭 속도로 본다 — 마이크 샘플 시계가 기기 시계와 어긋나거나 버퍼가 끊기면 뒤로 갈수록 밀린다
+    anchors: Optional[np.ndarray] = None
+
+    def ns_at(self, sec):
+        """오디오 안 위치(첫 샘플 기준 초) → 그 기기 시계 ns (float64). 기준점 사이는 잇고, 바깥은 기준점 전체 직선으로."""
+        sec = np.asarray(sec, np.float64)
+        if self.anchors is None or len(self.anchors) < 2:
+            return self.start_ns + sec * 1e9
+        fr = self.anchors[:, 0].astype(np.float64)
+        ns = (self.anchors[:, 1] - self.anchors[0, 1]).astype(np.float64)
+        f = sec * self.rate
+        a, b = np.polyfit(fr, ns, 1)
+        out = np.where((f >= fr[0]) & (f <= fr[-1]), np.interp(f, fr, ns), a * f + b)
+        return self.anchors[0, 1] + out
+
+    def sec_at(self, ns):
+        """ns_at 의 역: 그 기기 시계 ns → 오디오 안 위치(초)."""
+        ns = np.asarray(ns, np.float64)
+        if self.anchors is None or len(self.anchors) < 2:
+            return (ns - self.start_ns) / 1e9
+        fr = self.anchors[:, 0].astype(np.float64)
+        t = (self.anchors[:, 1] - self.anchors[0, 1]).astype(np.float64)
+        d = ns - self.anchors[0, 1]
+        a, b = np.polyfit(t, fr, 1)
+        out = np.where((d >= t[0]) & (d <= t[-1]), np.interp(d, t, fr), a * d + b)
+        return out / self.rate
 
     def t_ns(self) -> np.ndarray:
-        return self.start_ns + (np.arange(len(self.x)) * 1e9 / self.rate).astype(np.int64)
+        return self.ns_at(np.arange(len(self.x)) / self.rate).astype(np.int64)
 
 
 @dataclass
@@ -99,7 +126,8 @@ def _audio(root: Path, stem: str, clock: str) -> Optional[Audio]:
         return None
     meta_p = root / f"{stem}.json"
     info = json.loads((meta_p if meta_p.exists() else root / f"{stem.replace('_clean', '')}.json").read_text())
-    return Audio(x, int(rate), int(info["start_ns"]), clock)
+    anchors = np.array(info["anchors"], dtype=np.int64) if len(info.get("anchors") or []) >= 2 else None
+    return Audio(x, int(rate), int(info["start_ns"]), clock, anchors)
 
 
 def load_session(root) -> Session:

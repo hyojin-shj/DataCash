@@ -15,7 +15,8 @@ import numpy as np
 from scipy.signal import butter, find_peaks, sosfiltfilt
 
 
-def audio_onsets(x: np.ndarray, rate: int, start_ns: int, k: float = 8.0, min_gap_s: float = 0.15) -> List[dict]:
+def audio_onsets(x: np.ndarray, rate: int, start_ns: int, k: float = 8.0, min_gap_s: float = 0.15, ns_at=None) -> List[dict]:
+    """ns_at: 오디오 안 위치(초) → 기기 시계 ns (Audio.ns_at). 없으면 첫 샘플 시각 + 공칭 속도."""
     if x is None or len(x) < rate // 10:
         return []
     sos = butter(4, [1000, min(8000, rate / 2 * 0.95)], btype="band", fs=rate, output="sos")
@@ -27,7 +28,8 @@ def audio_onsets(x: np.ndarray, rate: int, start_ns: int, k: float = 8.0, min_ga
     # 바닥 소음의 k 배 이상 커지면서 빠르게 솟는 곳만 (k=8 ≈ 18dB)
     peaks, _ = find_peaks(e, height=k * floor, distance=max(1, int(min_gap_s / 0.005)))
     peaks = [p for p in peaks if flux[max(0, p - 4):p + 1].max() > 0.3 * e[p]]
-    return [{"t_ns": int(start_ns + p * hop * 1e9 / rate), "strength": round(float(e[p] / floor), 1)} for p in peaks]
+    at = ns_at or (lambda sec: start_ns + sec * 1e9)
+    return [{"t_ns": int(at(p * hop / rate)), "strength": round(float(e[p] / floor), 1)} for p in peaks]
 
 
 def wrist_impacts(t_ns: np.ndarray, acc: np.ndarray, pulse_ns: Optional[np.ndarray] = None, k: float = 10.0) -> List[dict]:

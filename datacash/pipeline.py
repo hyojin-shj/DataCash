@@ -113,14 +113,14 @@ def process(session_dir, out_dir, level: str = "bio", fps: float = 30.0, masked_
             lv, score = model.predict(win.x, win.t_ns, held)
             grip = [(int(t), int(l), float(sc)) for t, l, sc, o in zip(tp, lv, score, ok) if o]
         vib = [(int(t), *[float(v) for v in x[:6]]) for t, x, o in zip(tp, win.x, ok) if o]      # 보내는 특징 6개
-    onsets = audio_onsets(s.audio.x, s.audio.rate, s.audio.start_ns) if s.audio is not None else []
+    onsets = audio_onsets(s.audio.x, s.audio.rate, s.audio.start_ns, ns_at=s.audio.ns_at) if s.audio is not None else []
     impacts = []
     if wrist_ok:
         wi = wrist_impacts(s.watch_imu.t_ns, s.watch_imu.values, s.watch_vib.t_ns if s.watch_vib else None)
         impacts = [int(v) for v in m(np.array([e["t_ns"] for e in wi]))] if wi else []
     confirmed = confirmed_contacts(onsets, impacts)
     if s.watch_audio is not None and m is not None and onsets:       # 워치 마이크에도 잡힌 소리
-        wo = audio_onsets(s.watch_audio.x, s.watch_audio.rate, s.watch_audio.start_ns)
+        wo = audio_onsets(s.watch_audio.x, s.watch_audio.rate, s.watch_audio.start_ns, ns_at=s.watch_audio.ns_at)
         seen = {e["t_ns"] for e in confirmed}
         confirmed += [e for e in mic_contacts(onsets, [int(v) for v in m(np.array([e["t_ns"] for e in wo]))] if wo else [])
                       if e["t_ns"] not in seen]

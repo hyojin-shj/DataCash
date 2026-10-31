@@ -8,7 +8,7 @@ from typing import Optional
 
 import numpy as np
 
-from .linear import ClockMap, fit
+from .linear import DRIFT_SD_PPM, ClockMap, fit
 
 
 def rtt_map(rows: np.ndarray, keep_quantile: float = 0.3) -> Optional[ClockMap]:
@@ -19,7 +19,7 @@ def rtt_map(rows: np.ndarray, keep_quantile: float = 0.3) -> Optional[ClockMap]:
     thr = np.quantile(rtt, keep_quantile)
     sel = rtt <= max(thr, np.min(rtt))
     mid = send[sel] + (recv[sel] - send[sel]) // 2
-    m = fit(watch[sel], mid, "clock_rtt")
+    m = fit(watch[sel], mid, "clock_rtt", drift_sd_ppm=DRIFT_SD_PPM)
     if m is not None:
         m.rtt_ms_median = float(np.median(rtt) / 1e6)
     return m
@@ -33,7 +33,7 @@ def server_map(rows: np.ndarray, method: str) -> Optional[ClockMap]:
     rtt = recv - send
     sel = rtt <= max(np.quantile(rtt, 0.3), np.min(rtt))
     mid = send[sel] + (recv[sel] - send[sel]) // 2
-    return fit(mid, srv[sel], method)        # 입력: 기기 시각 → 출력: 서버 시각
+    return fit(mid, srv[sel], method, drift_sd_ppm=DRIFT_SD_PPM)        # 입력: 기기 시각 → 출력: 서버 시각
 
 
 def via_server(phone_rows: np.ndarray, watch_rows: np.ndarray) -> Optional[ClockMap]:
@@ -46,7 +46,7 @@ def via_server(phone_rows: np.ndarray, watch_rows: np.ndarray) -> Optional[Clock
     s_ns = pw(w)
     # 서버 → 폰: pp 의 역함수
     p_ns = (pp.w_ref + (s_ns.astype(np.float64) - pp.b) / pp.a).astype(np.int64)
-    m = fit(w, p_ns, "clock_via_server")
+    m = fit(w, p_ns, "clock_via_server", drift_sd_ppm=DRIFT_SD_PPM)
     m.resid_ms = float(np.hypot(pw.resid_ms, pp.resid_ms))
     m.rtt_ms_median = float(np.median(np.r_[watch_rows[:, 2] - watch_rows[:, 0], phone_rows[:, 2] - phone_rows[:, 0]]) / 1e6)
     return m

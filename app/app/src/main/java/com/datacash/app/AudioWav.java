@@ -6,6 +6,7 @@ import android.media.AudioRecord;
 import android.media.AudioTimestamp;
 import android.media.MediaRecorder;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -14,7 +15,8 @@ import java.io.RandomAccessFile;
 
 /**
  * 폰 마이크 48kHz 모노 16비트 WAV. 첫 샘플의 BOOTTIME 시각을 AudioTimestamp 로 구해 audio.json 에 적는다
- * (음향 비콘 18~20kHz 를 들으려면 48kHz 가 필요하다).
+ * (음향 비콘 18~20kHz 를 들으려면 48kHz 가 필요하다). 녹음 중 1초마다 (샘플 번호, BOOTTIME) 기준점도 적는다 —
+ * 마이크 샘플 시계는 기기 시계와 조금 다르게 가고 버퍼가 끊기기도 해서, 첫 시각 + 샘플 수만으로는 뒤로 갈수록 밀린다.
  */
 final class AudioWav {
     /** 최근 소리 크기 (16bit 최대 32767). 녹화 화면이 '소리가 안 들려요' 경고에 쓴다. */
@@ -23,7 +25,8 @@ final class AudioWav {
     private AudioRecord rec;
     private Thread thread;
     private volatile boolean running;
-    private long startNs = -1, frames;
+    private long startNs = -1, frames, nextAnchor;
+    private final JSONArray anchors = new JSONArray();
     private File out;
 
     @SuppressLint("MissingPermission")
@@ -54,8 +57,10 @@ final class AudioWav {
                         for (int i = 0; i + 1 < n; i += 2) pk = Math.max(pk, Math.abs((short) ((buf[i] & 0xFF) | (buf[i + 1] << 8))));
                         peak = Math.max(peak * 0.9f, pk);     // 최근 크기 (조용함 경고용)
                     }
-                    if (startNs < 0 && rec.getTimestamp(ts, AudioTimestamp.TIMEBASE_BOOTTIME) == AudioRecord.SUCCESS) {
-                        startNs = ts.nanoTime - ts.framePosition * 1_000_000_000L / RATE;   // 0번 샘플의 시각
+                    if ((startNs < 0 || frames >= nextAnchor) && rec.getTimestamp(ts, AudioTimestamp.TIMEBASE_BOOTTIME) == AudioRecord.SUCCESS) {
+                        if (startNs < 0) startNs = ts.nanoTime - ts.framePosition * 1_000_000_000L / RATE;   // 0번 샘플의 시각
+                        anchors.put(new JSONArray().put(ts.framePosition).put(ts.nanoTime));
+                        nextAnchor = frames + RATE;                                                     // 1초마다
                     }
                 }
             } catch (Exception ignored) {
@@ -71,7 +76,7 @@ final class AudioWav {
         rec.release();
         writeHeader(out, frames);
         JSONObject info = new JSONObject().put("start_ns", startNs > 0 ? startNs : Clock.now()).put("rate", RATE)
-                .put("start_ns_source", startNs > 0 ? "AudioTimestamp BOOTTIME" : "fallback");
+                .put("start_ns_source", startNs > 0 ? "AudioTimestamp BOOTTIME" : "fallback").put("anchors", anchors);
         Files.write(new File(dir, "audio.json"), info.toString());
         return info;
     }
