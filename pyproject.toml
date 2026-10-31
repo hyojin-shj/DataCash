@@ -6,7 +6,7 @@ requires-python = ">=3.11"
 dependencies = [
   "numpy", "scipy", "pandas", "opencv-python", "mediapipe", "pyarrow", "openai", "python-dotenv",
   "fastapi", "uvicorn[standard]", "python-multipart", "jinja2", "httpx", "soundfile",
-  "imageio-ffmpeg", "meta-sam-parser>=0.1.0", "numba",
+  "imageio-ffmpeg", "meta-sam-parser>=0.1.0", "numba", "boto3",
 ]
 
 [project.optional-dependencies]

@@ -1,7 +1,9 @@
 """③ Glimmer 학습을 Fireworks 에서 — 데이터 올리기 → LoRA 지도 학습(SFT) 시작 → 끝날 때까지 지켜보기 → 기록.
 
   python scripts/fireworks_train.py [--version v2] [--epochs 3] [--max-cost 5]
-Fireworks 키는 .env 의 FIREWORKS_API_KEY. 학습만 한다 (Muse Glimmer 30B SFT 는 11/30 까지 무료).
+Fireworks 키는 .env 의 FIREWORKS_API_KEY.
+Fireworks 계정의 직접 업로드가 막혀 있어서(403), .env 에 DC_S3_BUCKET·AWS 키가 있으면 우리 S3 버킷에 올리고
+Fireworks 는 거기서 읽는다 (데이터셋 externalUrl + 비밀값 datacash-s3). S3 는 평가 데이터셋을 받지 않아 학습만 S3 로. 학습만 한다 (Muse Glimmer 30B SFT 는 11/30 까지 무료).
 학습한 모델을 띄워 평가하는 것(전용 GPU, 유료)은 따로 한다.
 안전장치: Fireworks 가 알려 주는 예상 비용이 --max-cost 달러를 넘으면 바로 취소한다.
 기록: data/evolve/registry.json 의 trainings (운영자 화면 '모델 진화'), 진행 로그는 data/evolve/fireworks.log
@@ -63,6 +65,32 @@ def upload(c: httpx.Client, acc: str, path: Path, did: str) -> str:
     return f"{acc}/datasets/{did}"
 
 
+def upload_s3(c: httpx.Client, acc: str, path: Path, did: str, prefix: str) -> str:
+    import boto3
+    bucket = os.environ["DC_S3_BUCKET"]
+    key = f"glimmer/{prefix}/{path.name}"
+    boto3.client("s3", region_name=os.environ.get("AWS_REGION", "ap-northeast-2")).upload_file(str(path), bucket, key)
+    n = sum(1 for _ in open(path))
+    c.post(f"/{acc}/datasets", json={"datasetId": did, "dataset": {"displayName": did, "exampleCount": str(n), "format": "CHAT",
+                                                                    "externalUrl": f"s3://{bucket}/{key}"}}).raise_for_status()
+    st = None
+    for _ in range(60):
+        st = c.get(f"/{acc}/datasets/{did}").json().get("state")
+        if st == "READY":
+            break
+        time.sleep(5)
+    log(f"데이터 S3 에 올림 {did}: {n}개 ({path.stat().st_size / 1e6:.1f}MB) s3://{bucket}/{key} 상태 {st}")
+    return f"{acc}/datasets/{did}"
+
+
+def s3_secret(c: httpx.Client, acc: str) -> str:
+    name = f"{acc}/secrets/datacash-s3"
+    if c.get(f"/{name}").status_code != 200:
+        val = json.dumps({"aws_access_key_id": os.environ["AWS_ACCESS_KEY_ID"], "aws_secret_access_key": os.environ["AWS_SECRET_ACCESS_KEY"]})
+        c.post(f"/{acc}/secrets", json={"name": name, "keyName": "DATACASH_S3", "value": val}).raise_for_status()
+    return name
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--version", default=None, help="출력 모델 이름 끝 (기본: 학습 데이터 버전)")
@@ -80,12 +108,16 @@ def main():
     c = client()
     acc = account(c)
     stamp = datetime.now().strftime("%m%d%H%M")
-    train_ds = upload(c, acc, train, f"datacash-steps-train-{stamp}")
-    eval_ds = upload(c, acc, ev, f"datacash-steps-eval-{stamp}")
     out_model = f"{acc}/models/datacash-glimmer-{ver}".replace(".", "-").lower()
-    body = {"baseModel": BASE, "dataset": train_ds, "evaluationDataset": eval_ds, "outputModel": out_model,
+    body = {"baseModel": BASE, "outputModel": out_model,
             "epochs": a.epochs, "loraRank": a.lora_rank, "learningRate": 2e-4, "maxContextLength": 8192,
             "displayName": f"DataCash Glimmer steps {ver}"}
+    if os.environ.get("DC_S3_BUCKET"):
+        body["dataset"] = upload_s3(c, acc, train, f"datacash-steps-train-{stamp}", f"v{ds['version']}-{stamp}")
+        body["awsS3Config"] = {"credentialsSecret": s3_secret(c, acc)}
+    else:
+        body["dataset"] = upload(c, acc, train, f"datacash-steps-train-{stamp}")
+        body["evaluationDataset"] = upload(c, acc, ev, f"datacash-steps-eval-{stamp}")
     job = c.post(f"/{acc}/supervisedFineTuningJobs", json=body).raise_for_status().json()
     jid = job["name"]
     log(f"학습 시작 {jid} → {out_model} (학습 {ds['train_steps']}개 · 평가 {ds['eval_steps']}개 · epochs {a.epochs} · LoRA r{a.lora_rank})")

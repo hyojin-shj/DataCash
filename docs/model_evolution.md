@@ -95,6 +95,9 @@ python scripts/evolve.py eval --adapter data/evolve/adapters/glimmer-lora-v1.ggu
 - ③ 학습: **Fireworks 에서** 한다 (`scripts/fireworks_train.py`). Fireworks 의 `muse-glimmer-30b` 는 LoRA 지도 학습 가능·이미지 입력 지원,
   11/30 까지 학습 무료. 예상 비용이 $5 를 넘으면 스크립트가 바로 취소한다. 학습한 모델을 띄워 평가하는 것은 전용 GPU(유료)라 따로 한다.
   **10-28: Fireworks 계정의 데이터셋 업로드가 막혀 있다** ("dataset uploads are temporarily disabled, please contact Fireworks AI") → 권한을 받으면 바로 돌린다.
+  **10-31: 우리 S3 버킷으로 우회해 학습 시작.** 직접 업로드·서명 주소는 여전히 막혔지만 `externalUrl: s3://…` 데이터셋은 막히지 않는다.
+  `.env` 에 `DC_S3_BUCKET`·AWS 키(그 버킷만 읽고 쓰는 IAM 사용자)가 있으면 스크립트가 S3 에 올리고, Fireworks 비밀값 `datacash-s3` 로 읽게 한다
+  (`awsS3Config.credentialsSecret`). S3 는 평가 데이터셋을 받지 않아 학습 데이터만 (v79: 1854개, 146MB, epochs 3, LoRA r16).
   (H100 을 직접 빌릴 때를 위한 Axolotl 설정 `train/glimmer_qlora.yaml` 도 남겨 둔다.)
 - 학습 데이터는 학습용 단계 하나에서 장면 뽑는 구간을 조금씩 옮겨 6벌로 늘린다 (v1: 학습 114 · 평가 12).
   이의 신청에서 바로잡은 단계는 모델이 틀리기 쉬운 '어려운 문제'라 3배 더 넣는다.
