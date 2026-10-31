@@ -35,6 +35,28 @@ Meta Global AI Developer Hackathon (Indie Developer · Push the Frontier) 출품
 
 API 호출마다 비용을 장부(`data/api_ledger.jsonl`)에 적고, 한도를 넘으면 그 단계만 건너뜁니다.
 
+## 측정한 성능
+
+아래 숫자는 모두 **사람이 붙인 정답**이나 물리 기준과 비교해 잰 것이고, 저장된 결과로 API 호출 없이 다시 계산됩니다: `python scripts/perf_report.py` (`docs/perf/` 에 씀).
+운영자 화면의 **성능** 탭에 같은 그래프와, 녹화가 처리될 때마다 쌓이는 모니터링·경고가 있습니다.
+
+| 무엇 | 처음 → 지금 | 잰 곳 |
+|---|---|---|
+| 단계 라벨 장면 정확도 (Muse Spark 1.3) | **35.6% → 54.3%** | EPIC-KITCHENS-100 새 8구간, 사람 정답 271단계 |
+| 단계 경계 오차 (중앙값) | **430 → 182ms** | 같음 |
+| Muse Glimmer 30B 단계 정확도 (LoRA, Fireworks) | **41.8% → 54.1%** (v80, 사람 정답으로 학습 · Spark 라벨로 학습한 v79 는 32.8%) | 학습에 안 쓴 녹화 8편의 사람 정답 122단계 |
+| 워치 ↔ 영상 시간 오차 | **24.7 → 3.7ms** (기준 10ms) | 폰 + 워치 녹화 37편 |
+| 녹화 하나 얼굴 치환 시간 | **636 → 84초** (7.5배) | `docs/privacy_eval.md` |
+| SAM 3.1 비용, 녹화 4편 | **$2.92 → $0.27** (−91%) | 실제 녹화 4편 |
+| 쥐는 세기 하·중·상 | **83%** (우연 33%) | 보정 녹화 3편, 갤럭시 워치4 |
+
+![단계 라벨 정확도](docs/perf/label_accuracy.ko.png)
+![혼동 행렬](docs/perf/confusion.ko.png)
+![Glimmer 학습](docs/perf/glimmer.ko.png)
+![서비스 모니터링](docs/perf/monitoring.ko.png)
+
+서비스 모니터링 (운영자 화면과 같은 값, `datacash/perf.py`): 녹화마다 Spark 1.3 ↔ Spark Open 일치율과 최근 5편 평균 (50% 아래면 경고), 녹화 하나 처리 시간 (중앙값 2배 넘으면 경고), 얼굴 치환 뒤에도 같은 사람으로 보이는 장면 (SFace 0.363, 5% 넘으면 경고 — 그 녹화는 검토 대상).
+
 ## 핵심 기술
 
 ### 1. 가치를 지키는 개인정보 처리

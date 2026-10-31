@@ -35,6 +35,24 @@ Proyecto para el Meta Global AI Developer Hackathon (Indie Developer · Push the
 
 Cada llamada a la API se registra con su costo en `data/api_ledger.jsonl`; si se alcanza el presupuesto, solo se omite ese paso.
 
+## Rendimiento medido
+
+Cada número se mide contra **etiquetas humanas** o una referencia física y se reproduce sin llamadas a la API: `python scripts/perf_report.py` (escribe `docs/perf/`). La página de operador tiene una pestaña **Performance** con los mismos gráficos y monitorización en vivo con alertas.
+
+| Qué | Antes → ahora | Medido en |
+|---|---|---|
+| Precisión por fotograma de etiquetas (Muse Spark 1.3) | **35,6% → 54,3%** | EPIC-KITCHENS-100, 8 clips reservados, 271 pasos humanos |
+| Error de límite (mediana) | **430 → 182 ms** | igual |
+| Muse Glimmer 30B (LoRA, Fireworks) | **41,8% → 54,1%** (v80, entrenado con etiquetas humanas) | 122 pasos humanos, 8 grabaciones reservadas |
+| Sincronización reloj ↔ vídeo | **24,7 → 3,7 ms** (objetivo < 10 ms) | 37 grabaciones |
+| Cambio de cara por grabación | **636 → 84 s** (7,5×) | `docs/privacy_eval.md` |
+| Coste SAM 3.1, 4 grabaciones | **$2,92 → $0,27** (−91%) | 4 grabaciones reales |
+
+![](docs/perf/label_accuracy.en.png)
+![](docs/perf/confusion.en.png)
+![](docs/perf/glimmer.en.png)
+![](docs/perf/monitoring.en.png)
+
 ## Ideas clave
 
 ### 1. Privacidad que conserva el valor de los datos

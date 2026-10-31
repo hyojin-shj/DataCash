@@ -1071,6 +1071,14 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
                                | {"diffs": [{"t": round(r["start_s"], 1), "spark13": r["spark13"], "spark_open": r["spark_open"]}
                                             for r in c["rows"] if not r["agree"]]} for c in cross]}
 
+    @app.get("/api/admin/perf")
+    def admin_perf(token: str = Query("")):
+        """성능 모니터링: 사람 정답 기준 벤치마크 + 녹화마다 쌓이는 일치율·처리 시간·재식별 · Glimmer 버전 · 경고 (datacash/perf.py)."""
+        admin_auth(token)
+        from .. import perf
+
+        return perf.collect(root)
+
     @app.get("/api/admin/appeals")
     def admin_appeals(token: str = Query("")):
         admin_auth(token)

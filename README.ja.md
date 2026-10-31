@@ -35,6 +35,24 @@ Meta Global AI Developer Hackathon（Indie Developer · Push the Frontier）出�
 
 API を呼ぶたびに費用を `data/api_ledger.jsonl` に記録し、上限を超えたらその段階だけをスキップします。
 
+## 測定した性能
+
+以下の数値はすべて**人手の正解ラベル**または物理的な基準と比較したもので、API を呼ばずに再現できます：`python scripts/perf_report.py`（`docs/perf/` に出力）。運営者画面の **Performance** タブに同じグラフと、処理された録画ごとのリアルタイム監視・アラートがあります。
+
+| 項目 | 以前 → 現在 | 測定対象 |
+|---|---|---|
+| ステップラベルのフレーム精度（Muse Spark 1.3） | **35.6% → 54.3%** | EPIC-KITCHENS-100 未使用 8 区間、人手 271 ステップ |
+| ステップ境界誤差（中央値） | **430 → 182 ms** | 同上 |
+| Muse Glimmer 30B（LoRA、Fireworks） | **41.8% → 54.1%**（v80、人手ラベルで学習） | 未使用録画 8 本の人手 122 ステップ |
+| ウォッチ ↔ 映像の同期誤差 | **24.7 → 3.7 ms**（目標 < 10 ms） | 録画 37 本 |
+| 録画 1 本の顔置換時間 | **636 → 84 秒**（7.5 倍） | `docs/privacy_eval.md` |
+| SAM 3.1 コスト、録画 4 本 | **$2.92 → $0.27**（−91%） | 実録画 4 本 |
+
+![](docs/perf/label_accuracy.en.png)
+![](docs/perf/confusion.en.png)
+![](docs/perf/glimmer.en.png)
+![](docs/perf/monitoring.en.png)
+
 ## 主な技術
 
 ### 1. データの価値を守るプライバシー処理

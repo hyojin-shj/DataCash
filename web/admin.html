@@ -66,6 +66,7 @@
   .pipe .s { border: 1px solid var(--line); border-radius: 14px; padding: 14px; background: #fff; }
   .pipe .s b { display: block; font-size: 14px; margin-bottom: 4px; }
   .pipe .s p { margin: 6px 0 0; font-size: 12px; color: var(--sub); }
+  .mon { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .empty { color: var(--sub); font-size: 14px; padding: 10px 0; }
   .modal { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; align-items: center; justify-content: center; z-index: 50; padding: 20px; }
   .modal.on { display: flex; }
@@ -94,6 +95,7 @@
     <button data-v="sessions">녹화</button>
     <button data-v="appeals">이의 신청 <span class="badge" id="nb-appeals" hidden></span></button>
     <button data-v="evolve">모델 진화</button>
+    <button data-v="perf">성능 <span class="badge" id="nb-perf" hidden></span></button>
     <button data-v="orders">주문 <span class="badge" id="nb-orders" hidden></span></button>
     <button data-v="requests">말로 받은 의뢰</button>
     <button data-v="costs">API 비용</button>
@@ -130,6 +132,27 @@
       <div class="pipe" id="pipe"></div>
       <div class="card" style="margin-top:12px"><b>일치율 변화</b><p class="meta">녹화마다 Spark 1.3 이 Spark Open 과 같은 동작으로 본 단계 비율 (처리한 순서대로). 검은 선 = 최근 5개 평균.</p><div id="agree"></div></div>
       <div class="card scroll"><b>2차 검증 — Spark 1.3 ↔ Spark Open(816B)</b><p class="meta">'센서로 검증 + 두 모델이 같은 동작'인 단계가 정답이 돼요. 다르게 본 단계는 Spark Open 쪽으로 바로잡아요.</p><div id="cross"></div></div>
+    </section>
+
+    <section data-p="perf" hidden>
+      <h1 id="perf-h1"></h1><p class="lead" id="perf-lead"></p>
+      <div id="perf-alerts"></div>
+      <div class="grid g4" id="perf-kpis"></div>
+      <div class="grid g2" style="margin-top:12px">
+        <div class="card"><b id="perf-t-label"></b><p class="meta" id="perf-m-label"></p><div id="perf-label"></div></div>
+        <div class="card"><b id="perf-t-conf"></b><p class="meta" id="perf-m-conf"></p><div id="perf-conf"></div></div>
+      </div>
+      <div class="grid g2">
+        <div class="card"><b id="perf-t-glim"></b><p class="meta" id="perf-m-glim"></p><div id="perf-glim"></div></div>
+        <div class="card"><b id="perf-t-cited"></b><p class="meta" id="perf-m-cited"></p><div id="perf-cited"></div></div>
+      </div>
+      <h2 id="perf-h2" style="margin:22px 0 4px;font-size:19px"></h2><p class="lead" id="perf-lead2"></p>
+      <div class="grid g2 mon">
+        <div class="card"><b id="perf-t-agree"></b><div id="perf-agree"></div></div>
+        <div class="card"><b id="perf-t-time"></b><div id="perf-time"></div></div>
+        <div class="card"><b id="perf-t-reid"></b><div id="perf-reid"></div></div>
+        <div class="card"><b id="perf-t-stage"></b><div id="perf-stage"></div></div>
+      </div>
     </section>
 
     <section data-p="orders" hidden>
@@ -198,11 +221,12 @@ async function start() {
 }
 
 async function refresh() {
-  const [s, a, e, o, q, c] = await Promise.allSettled([api("/api/admin/sessions"), api("/api/admin/appeals"), api("/api/admin/evolve"),
-    api("/api/admin/orders"), api("/api/admin/requests"), api("/api/admin/costs")]);
+  const [s, a, e, o, q, c, pf] = await Promise.allSettled([api("/api/admin/sessions"), api("/api/admin/appeals"), api("/api/admin/evolve"),
+    api("/api/admin/orders"), api("/api/admin/requests"), api("/api/admin/costs"), api("/api/admin/perf")]);
   const v = x => x.status === "fulfilled" ? x.value : null;
   D.sessions = v(s)?.sessions || []; D.appeals = v(a)?.appeals || []; D.evolve = v(e) || {datasets: [], evals: []};
-  D.orders = v(o)?.orders || []; D.requests = v(q)?.requests || []; D.costs = v(c) || {};
+  D.orders = v(o)?.orders || []; D.requests = v(q)?.requests || []; D.costs = v(c) || {}; D.perf = v(pf);
+  try { renderPerf(); } catch (err) { console.error(err); }
   renderHome(); renderSessions(); renderAppeals(); renderEvolve(); renderOrders(); renderRequests(); renderCosts();
   const needA = D.appeals.filter(x => x.state === "review").length, needO = D.orders.filter(x => x.status === "pending").length;
   badge("nb-appeals", needA); badge("nb-orders", needO);
@@ -315,6 +339,96 @@ function renderEvolve() {
     : `<div class="empty">아직 없음</div>`;
 }
 
+
+// ---------- 성능: 사람 정답 기준 벤치마크 + 녹화마다 모니터링 (datacash/perf.py) ----------
+const EN = () => document.documentElement.lang === "en";
+const tx = (ko, en) => EN() ? en : ko;
+const svgNS = (w, h, body) => `<svg viewBox="0 0 ${w} ${h}" width="100%" style="display:block;margin-top:8px;font:12px -apple-system,system-ui,sans-serif">${body}</svg>`;
+function hbars(rows, max, unit, w = 560) {        // rows: [label, value, color]
+  const h = rows.length * 34 + 6, lx = 230, bw = w - lx - 70;
+  return svgNS(w, h, rows.map(([l, v, c], i) => `<text x="${lx - 8}" y="${i * 34 + 22}" text-anchor="end" fill="#6E6E73">${esc(l)}</text>
+    <rect x="${lx}" y="${i * 34 + 8}" width="${Math.max(2, bw * v / max)}" height="20" rx="5" fill="${c}"/>
+    <text x="${lx + bw * v / max + 6}" y="${i * 34 + 23}" font-weight="700" fill="#333">${v}${unit}</text>`).join(""));
+}
+function series(vals, {limit, avg, max = 1, fmt = v => v, colorOf, kind = "bar", w = 560, h = 170}) {
+  const n = vals.length, pl = 36, pb = 18, iw = w - pl - 8, ih = h - pb - 8, X = i => pl + iw * (i + .5) / n, Y = v => 8 + ih * (1 - Math.min(v, max) / max);
+  let b = [0, .5, 1].map(f => `<line x1="${pl}" x2="${w - 8}" y1="${Y(max * f)}" y2="${Y(max * f)}" stroke="#ECECEE"/><text x="${pl - 6}" y="${Y(max * f) + 4}" text-anchor="end" fill="#8E8E93">${fmt(max * f)}</text>`).join("");
+  if (kind === "bar") b += vals.map((v, i) => `<rect x="${X(i) - iw / n * .38}" y="${Y(v)}" width="${iw / n * .76}" height="${Y(0) - Y(v)}" rx="2" fill="${colorOf ? colorOf(v, i) : "#2E9BF0"}"><title>${fmt(v)}</title></rect>`).join("");
+  else b += vals.map((v, i) => `<circle cx="${X(i)}" cy="${Y(v)}" r="3.5" fill="${colorOf ? colorOf(v, i) : "#2E9BF0"}" opacity=".75"/>`).join("");
+  if (avg) b += `<polyline fill="none" stroke="#333" stroke-width="2.2" points="${avg.map((v, i) => `${X(i)},${Y(v)}`).join(" ")}"/>`;
+  if (limit != null) b += `<line x1="${pl}" x2="${w - 8}" y1="${Y(limit)}" y2="${Y(limit)}" stroke="#FF5F5F" stroke-dasharray="5 4"/><text x="${w - 10}" y="${Y(limit) - 4}" text-anchor="end" fill="#E84646">${tx("경고", "alert")} ${fmt(limit)}</text>`;
+  b += `<text x="${pl}" y="${h - 3}" fill="#8E8E93">${tx("처리 순서 →", "processing order →")} (${n})</text>`;
+  return svgNS(w, h, b);
+}
+function renderPerf() {
+  const P = D.perf; if (!P) return;
+  const set = (id, h) => { const e = document.getElementById(id); if (e) e.innerHTML = h; };
+  const B = P.benchmarks || {}, ep = (B.epic || {}).stages || {}, S = P.summary, L = P.limits;
+  set("perf-h1", tx("성능 — 측정과 모니터링", "Performance — measured & monitored"));
+  set("perf-lead", tx("위는 사람이 붙인 정답과 비교한 고정 벤치마크 (scripts/perf_report.py 로 재현), 아래는 녹화가 처리될 때마다 쌓이는 값이에요. 기준을 넘으면 경고가 떠요.",
+    "Top: fixed benchmarks against human ground truth (reproduce with scripts/perf_report.py). Bottom: live values from every processed clip — alerts fire past the limits."));
+  const why = {agreement: tx("최근 5편 일치율", "last-5 agreement"), slow: tx("처리 시간", "processing time"), reid: tx("치환 뒤 '같은 사람' 장면", "post-swap re-ID frames"), failed: tx("처리 실패", "failed")};
+  const recent = P.alerts.slice(-6).reverse();
+  set("perf-alerts", `<div class="card" style="border-color:${P.alerts.length ? "#FFC9C9" : "var(--line)"}"><div class="top"><b>${tx("경고", "Alerts")}</b>
+    <span class="st ${P.alerts.length ? "bad" : "ok"}">${P.alerts.length ? P.alerts.length + tx("건", "") : tx("모두 기준 안", "all within limits")}</span></div>
+    ${recent.map(a => `<div class="meta">⚠ ${esc(why[a.kind] || a.kind)} · ${esc(a.sid)} · ${a.kind === "reid" ? pct(a.value) : a.kind === "agreement" ? pct(a.value) : esc(a.value ?? "")}${a.kind === "slow" ? tx("초", " s") : ""} ${a.limit != null ? `(${tx("기준", "limit")} ${a.kind === "slow" ? a.limit + tx("초", " s") : pct(a.limit)})` : ""}</div>`).join("")}</div>`);
+  badge("nb-perf", P.alerts.filter(a => a.kind === "agreement" || a.kind === "failed").length);
+  const g = B.glimmer || [];
+  const kp = [
+    [tx("라벨 장면 정확도", "Label frame accuracy"), ep.base && ep.ensemble ? `${pct(ep.base.frame_acc)} → ${pct(ep.ensemble.frame_acc)}` : "-", tx("사람 정답 · EPIC 새 8구간", "vs human truth · EPIC held-out")],
+    [tx("경계 오차", "Boundary error"), ep.base ? `${ep.base.boundary_ms_median} → ${(ep["chunk20_slow+pick"] || {}).boundary_ms_median} ms` : "-", tx("중앙값", "median")],
+    ["Muse Glimmer 30B", g.length ? `${pct(g[1])} → ${pct(g[3])}` : "-", tx("학습 전 → v80 (사람 정답 학습)", "base → v80 fine-tuned on human labels")],
+    [tx("두 모델 일치 (최근 5편)", "Spark 1.3 ↔ Open (last 5)"), pct(S.agreement_last5), tx(`처음 5편 ${pct(S.agreement_first5)} · 전체 ${pct(S.agreement_all)}`, `first 5 ${pct(S.agreement_first5)} · all ${pct(S.agreement_all)}`)],
+  ];
+  set("perf-kpis", kp.map(([k, b, e]) => `<div class="card kpi"><span>${k}</span><b>${b}</b><em>${e}</em></div>`).join(""));
+  set("perf-t-label", tx("단계 라벨 정확도 — 방법을 하나씩 더할 때", "Step-label accuracy — one method at a time"));
+  set("perf-m-label", tx("EPIC-KITCHENS-100 새 8구간 (사람 정답 271단계, 방법을 다 고른 뒤에만 열어 봄). 0.1초마다 같은 동작인가.", "EPIC-KITCHENS-100 held-out 8 clips (271 human-labelled steps, opened only after methods were chosen). Same action every 0.1 s?"));
+  const stages = [["base", tx("60초 한 번에", "60 s in one call"), "#C7C7CC"], ["chunk20_slow", tx("+ 20초 조각 · 0.5배속", "+ 20 s chunks, 0.5×"), "#2E9BF0"],
+    ["chunk20_slow+pick", tx("+ 경계 장면 고르기", "+ boundary pick (Spark Open)"), "#2E9BF0"], ["ensemble", tx("+ 다섯 벌 합치기", "+ 5-run fusion"), "#FF5F5F"]].filter(r => ep[r[0]]);
+  set("perf-label", hbars(stages.map(([k, l, c]) => [l, +(100 * ep[k].frame_acc).toFixed(1), c]), 70, "%")
+    + hbars(stages.map(([k, l, c]) => [l + tx(" · 경계", " · boundary"), ep[k].boundary_ms_median, k === "chunk20_slow+pick" ? "#FF5F5F" : "#C7C7CC"]), 500, " ms"));
+  set("perf-t-conf", tx("어디서 틀리나 — 혼동 행렬 (지금 방법)", "Where it goes wrong — confusion matrix (current method)"));
+  set("perf-m-conf", tx("행 = 사람 정답, 열 = Muse Spark 라벨, 칸 = 행 안의 비율. 대각선이 맞은 것.", "Row = human truth, column = Muse Spark label, cell = share of the row. Diagonal = correct."));
+  const C = ((B.epic || {}).confusion || {}).ensemble || {}, cls = ["take", "put", "articulate", "move", "wash", "pour", "other"].filter(x => Object.keys(C).some(k => k.startsWith(x + "->")));
+  set("perf-conf", cls.length ? `<table style="font-size:12px;text-align:center"><tr><th></th>${cls.map(c => `<th style="text-align:center">${c}</th>`).join("")}</tr>${cls.map(r => {
+      const tot = Object.entries(C).filter(([k]) => k.startsWith(r + "->")).reduce((t, [, v]) => t + v, 0);
+      return `<tr><th>${r}</th>${cls.map(q => { const f = (C[`${r}->${q}`] || 0) / Math.max(1, tot);
+        return `<td style="padding:7px;background:rgba(46,155,240,${f.toFixed(2)});color:${f > .5 ? "#fff" : "#333"};font-weight:${r === q ? 700 : 400}">${f ? Math.round(100 * f) : ""}</td>`; }).join("")}</tr>`; }).join("")}</table>` : `<div class="empty">-</div>`);
+  set("perf-t-glim", tx("Muse Glimmer 30B 학습 진화", "Muse Glimmer 30B fine-tuning progress"));
+  set("perf-m-glim", tx("같은 평가 122단계 (사람 정답, 학습에 안 쓴 녹화 8편). Fireworks LoRA r16.", "Same 122 steps (human labels, 8 held-out recordings). Fireworks LoRA r16."));
+  const GT = P.glimmer.trainings || [];
+  set("perf-glim", (g.length ? hbars([[tx("가장 많은 동작만", "majority class"), +(100 * g[0]).toFixed(1), "#E5E5EA"], [tx("학습 전", "base (no training)"), +(100 * g[1]).toFixed(1), "#8E8E93"],
+      [tx("v79 · Spark 라벨로", "v79 · trained on Spark labels"), +(100 * g[2]).toFixed(1), "#FFAF5F"], [tx("v80 · 사람 정답으로", "v80 · trained on human labels"), +(100 * g[3]).toFixed(1), "#FF5F5F"]], 70, "%") : "")
+    + `<table style="margin-top:8px;font-size:12px"><tr><th>${tx("학습", "Run")}</th><th>${tx("데이터", "Data")}</th><th>epoch</th><th>${tx("상태", "State")}</th><th>${tx("끝", "Finished")}</th></tr>
+      ${GT.slice().reverse().map(t => { const d = (P.glimmer.datasets || []).find(x => x.version === t.dataset) || {};
+        return `<tr><td>${esc(String(t.output_model || "").split("/").pop())}</td><td>v${t.dataset} · ${d.train_steps ?? "-"} ${tx("단계", "steps")}</td><td>${t.epochs}</td>
+        <td><span class="st ${String(t.state).includes("COMPLETED") ? "ok" : "wait"}">${esc(String(t.state).replace("JOB_STATE_", "").toLowerCase())}</span></td><td class="meta">${esc((t.finished || "").slice(0, 16).replace("T", " "))}</td></tr>`; }).join("")}</table>`);
+  set("perf-t-cited", tx("다른 감각 · 개인정보 · 비용 (전 → 후)", "Other senses · privacy · cost (before → after)"));
+  set("perf-m-cited", tx("문서에 남긴 측정값 그대로 — 출처 함께.", "Measured values as recorded in the docs — with sources."));
+  set("perf-cited", `<table style="font-size:13px">${(B.cited || []).map(c => { const gain = c.better === "lower" ? c.before / c.after : c.after / c.before;
+      const f = v => c.unit === "$" ? "$" + v : v + (c.unit === "%" ? "%" : " " + c.unit);
+      return `<tr><td>${esc(EN() ? c.en : c.ko)}<div class="meta">${esc(c.source)}${c.note ? " · " + esc(c.note) : ""}</div></td><td class="nw">${f(c.before)} → <b>${f(c.after)}</b></td>
+      <td><span class="st ok">${c.better === "lower" ? (gain >= 2 ? gain.toFixed(1) + "×" : "−" + Math.round(100 * (1 - c.after / c.before)) + "%") : "+" + (c.after - c.before) + "%p"}</span></td></tr>`; }).join("")}</table>`);
+  set("perf-h2", tx("서비스 모니터링 — 녹화마다", "Live monitoring — every processed clip"));
+  set("perf-lead2", tx(`녹화 ${S.recordings}편 · 처리 시간 중앙값 ${S.time_median_s}초 · 반려 ${S.rejected} · 실패 ${S.failed}. 빨간 점선 = 경고 기준.`,
+    `${S.recordings} clips · median processing ${S.time_median_s} s · rejected ${S.rejected} · failed ${S.failed}. Red dashed line = alert limit.`));
+  const ag = P.agreement;
+  set("perf-t-agree", tx("Spark 1.3 ↔ Spark Open 일치율 (검은 선 = 최근 5편)", "Spark 1.3 ↔ Spark Open agreement (black = last-5 mean)"));
+  set("perf-agree", series(ag.map(a => a.rate), {kind: "dot", avg: ag.map(a => a.last5), limit: L.agreement_last5, fmt: v => Math.round(v * 100) + "%"}));
+  const ss = P.sessions, lim = S.time_median_s * L.time_x_median;
+  set("perf-t-time", tx("녹화 하나 처리 시간", "Processing time per clip"));
+  set("perf-time", series(ss.map(s => s.total_s), {max: Math.max(lim * 1.1, ...ss.map(s => s.total_s)), limit: lim, fmt: v => Math.round(v) + tx("초", "s"),
+    colorOf: v => v > lim ? "#FF5F5F" : "#8E8E93"}));
+  set("perf-t-reid", tx("얼굴 치환 뒤에도 '같은 사람'으로 보이는 장면 (SFace 0.363)", "Frames still 'same person' after face swap (SFace 0.363)"));
+  set("perf-reid", series(ss.map(s => s.reid || 0), {max: .7, limit: L.reid, fmt: v => Math.round(v * 100) + "%", colorOf: v => v > L.reid ? "#FF5F5F" : "#2E9BF0"}));
+  const sm = S.stage_median_s, names = {joints: tx("관절", "pose"), precheck: tx("미리 훑기", "precheck"), mask: "SAM 3.1", face_swap: tx("얼굴 치환", "face swap"),
+    speech: "Voice Transcribe", understand: "Spark 1.3", review: "Spark Open", boundaries: tx("경계", "boundaries"), export: tx("내보내기", "export")};
+  set("perf-t-stage", tx("단계별 처리 시간 중앙값 (처리 순서)", "Median time per stage (pipeline order)"));
+  const order = ["joints", "precheck", "mask", "face_swap", "speech", "understand", "review", "boundaries", "export"].filter(k => sm[k] != null);
+  set("perf-stage", hbars(order.map(k => [names[k], sm[k], ["mask", "speech", "understand", "review", "boundaries"].includes(k) ? "#FF5F5F" : "#C7C7CC"]), Math.max(...order.map(k => sm[k])) * 1.15, tx("초", " s"))
+    + `<div class="legend"><span><i style="background:#FF5F5F"></i>${tx("Meta 모델 호출", "Meta model call")}</span><span><i style="background:#C7C7CC"></i>${tx("이 맥", "on this Mac")}</span></div>`);
+}
+
 function renderOrders() {
   document.getElementById("orders").innerHTML = D.orders.length ? D.orders.map(o => `<div class="card"><div class="top"><b>${esc(o.org)} · ${esc(o.email)}</b>
     <span class="st ${o.status === "ready" ? "ok" : o.status === "failed" ? "bad" : "wait"}">${esc(o.status)}</span></div>
@@ -366,7 +480,7 @@ if (token) start(); else document.getElementById("gate").hidden = false;
   if (link) link.onclick = e => { e.preventDefault(); const u = new URL(location.href); u.searchParams.set("lang", lang === "en" ? "ko" : "en"); location.href = u; };
   if (lang !== "en") return;
   document.documentElement.lang = "en";
-  const M = {"DataCash · 운영자": "DataCash · Operator", "DataCash 운영자": "DataCash Operator", "서버 토큰을 넣어 주세요.": "Enter the server token.", "서버 토큰": "Server token", "들어가기": "Enter", "운영자 화면": "Operator", "운영자": "Operator", "한눈에": "Overview", "이의 신청이 없어요": "No appeals", "이의 신청": "Appeals", "모델 진화 — Spark 1.3 × Spark Open": "Model evolution — Spark 1.3 × Spark Open", "모델 진화": "Model evolution", "아직 주문이 없어요": "No orders yet", "주문 승인 ·": "Approve order ·", "주문": "Orders", "말로 받은 의뢰": "Requests", "API 비용": "API costs", "사람 정답 달기 →": "Human labels →", "← 구매 기업 화면": "← Buyer page", "녹화 처리, 이의 신청, 모델 진화, API 비용을 한 화면에서 봐요.": "Processing, appeals, model evolution and API costs in one place.", "최근 녹화 5개 · Spark 1.3 ↔ Spark Open · 검증": "Last 5 · Spark 1.3 ↔ Spark Open · verified", "최근 녹화": "Recent recordings", "모두 보기": "See all", "결정이 필요한 일": "Needs a decision", "줄을 누르면 원본과 얼굴을 바꾼 판매용 영상을 나란히 볼 수 있어요. 원본은 시연 서버에만 남아 있어요.": "Click a row to compare the original with the face-swapped sale video. Originals exist only on this demo server.", "전체 미션": "All missions", "미션": "Mission", "상태": "Status", "참여자 보상": "Payouts", "추가 보상(원": "Bonus (KRW", "· 추가 보상": "· bonus", "보상": "Reward", "가상 인물": "Synthetic face", "같은 사람": "Re-ID", "기준 넘은 장면": "Over threshold", "처리 시간": "Time", "관절·검수": "Pose · check", "가리기(SAM": "Mask (SAM", "얼굴 치환": "Face swap", "라벨(Spark": "Label (Spark", "그 외": "Other", "라벨이 틀렸어요": "Wrong labels", "와 반려된 녹화는 더 높은 모델(Muse Spark Open 816B · Fireworks, 없으면 Spark 1.3 최대 추론)로 먼저 다시 봐요.": " and rejected clips are re-checked first by a bigger model (Muse Spark Open 816B, else Spark 1.3 max reasoning).", "바로잡은 라벨은 모델 진화의 정답이 돼요. 판단이 안 되면 여기서 결정해 주세요.": "Corrected labels become examples for model evolution. Decide here if it stays unclear.", "모든 녹화를 Spark 1.3 이 먼저 라벨하고, 더 큰 Spark Open(816B)이 따로 다시 봐요. 같게 본 단계는 정답이 되고, 다르게 본 단계는 Spark Open 동작으로 바로잡아요. 정답과 바로잡음은 다음 녹화부터 Spark 1.3 질문에 예시로 붙어요 — 가중치를 바꾸지 않고 쓸수록 정확해져요.": "Spark 1.3 labels every clip; the larger Spark Open (816B) reviews it independently. Matching steps become examples, mismatches are corrected to Spark Open. Examples feed the next Spark 1.3 prompts — better with use, no weight changes.", "일치율 변화": "Agreement over time", "녹화마다 Spark 1.3 이 Spark Open 과 같은 동작으로 본 단계 비율 (처리한 순서대로). 검은 선 = 최근 5개 평균.": "Share of steps where Spark 1.3 and Spark Open agree, per clip in processing order. Black line = last-5 average.", "2차 검증 — Spark 1.3 ↔ Spark Open(816B": "Second opinion — Spark 1.3 ↔ Spark Open (816B", "센서로 검증 + 두 모델이 같은 동작": "Sensor-verified + both models agree", "인 단계가 정답이 돼요. 다르게 본 단계는 Spark Open 쪽으로 바로잡아요.": " → becomes an example. Mismatches are corrected to Spark Open.", "계약·결제를 확인한 뒤 승인하면 묶음(LeRobot)이 만들어지고 구매자 화면에 내려받기 주소가 나타나요.": "Approve after contract and payment: a LeRobot bundle is built and a download link appears for the buyer.", "채팅 의뢰로 열린 미션이에요. 목표 시간을 채웠거나 계약이 끝나면 닫아 주세요 — 닫으면 앱에서 사라져요.": "Missions opened by chat requests. Close when the target is met or the contract ends — they leave the app.", "Meta Model API 호출마다 장부에 적어요. 한도를 넘으면 그 단계만 건너뛰어요.": "Every Meta Model API call is logged. Over budget, only that step is skipped.", "모델별": "By model", "최근 호출": "Recent calls", "티슈 뽑기": "Pull a tissue", "컵 집어 옮기기": "Move a cup", "작은 과일 따기": "Pick a small fruit", "승인하고 묶음 만들기": "Approve & build bundle", "승인된 녹화 + 이의 신청 추가 보상": "Approved clips + appeal bonuses", "승인": "Approved", "반려": "Rejected", "처리 실패 ·": "Failed ·", "실패": "Failed", "다시 처리 중": "Reprocessing", "처리 중": "Processing", "대기": "Queued", "업로드 전": "Not uploaded", "자동 확인": "Auto check", "다시 보는 중": "Re-checking", "결정 필요": "Needs decision", "인정 안 함": "Denied", "인정": "Accepted", "갱신": "Updated", "· 반려": "· rejected", "· 처리 중": "· processing", "두 모델 일치": "Models agree", "아직 2차 검증 전": "No second opinion yet", "한도": "Budget", "· 호출": "· calls", "녹화가 없어요": "No recordings", "지금 결정할 일이 없어요 ✓": "Nothing to decide ✓", "표정 줄임 시험": "Expression-reduced trial", "닫기": "Close", "· 치환": "· swapped", "원본 없음 (처리 후 삭제됨": "No original (deleted after processing", "원본 (운영자만": "Original (operator only", "판매용 영상 없음": "No sale video", "판매용 — 얼굴 치환·가림": "Sale copy — face-swapped · masked", "같이 재생": "Play both", "멈춤": "Pause", "· 녹화": "· clip", "· 기기": "· device", "원래 라벨": "Original label", "바로잡은 라벨": "Corrected label", "근거": "Evidence", "→ 정답 · 다음 녹화의 Spark 1.3 질문에": "→ example · used in the next Spark 1.3 prompts", "지난 바로잡음": "Past corrections", "예시로 쓰여요": "used as examples", "결정 이유": "Reason", "① 1차 라벨": "① First label", "영상을 직접 보고 단계·손·쥐는 방식": "Watches the video: steps, hand, grasp", "② 2차 검증": "② Second opinion", "키 없음": "No key", "편 · 바로잡음": " clips · corrected", "장면 16장을 따로 라벨해 맞대 봄": "Labels 16 frames independently and compares", "③ 정답 예시": "③ Examples", "단계 · 이의 신청": " steps · appeals", "다음 녹화의 Spark 1.3 질문에 붙음": "Added to the next Spark 1.3 prompts", "④ 일치율": "④ Agreement", "→ 최근": "→ latest", "아직 없음 — 녹화가 처리되면 쌓여요": "None yet — fills in as clips are processed", "아직 없음": "None yet", "오르면 바로잡을 단계·검증 비용이 줄어요": "Higher = fewer corrections, lower cost", "편 · 전체": " clips · overall", "· 처음 5편": "· first 5", "→ 최근 5편": "→ last 5", "다르게 본 단계 (Spark 1.3 → Spark Open": "Mismatched steps (Spark 1.3 → Spark Open", "MB · 녹화": " MB · clips", "편 · 받은 횟수": " · downloads", "모으는 중": "Collecting", "닫힘": "Closed", "의뢰 닫기": "Close request", "의뢰가 없어요": "No requests", "쓴 돈": "Spent", "남은 돈": "Left", "남음": "left", "일 동안": " days", "Spark Open 전용 크레딧": "Spark Open credits", "번 · 가격 추정": "× · estimated price", "크레딧": "credits", "정답": "Examples", "단계": "steps", "이의 신청 ·": "Appeal ·", "라벨": "Labels", "녹화": "Recordings", "처음": "first", "없음": "none", "오류": "Error", "요청": "Requested", "일치": "agree", "호출": "Calls", "구간": "Segment", "겹친 컵 빼기": "Pull a cup from a stack", "파우치·봉지 뜯기": "Tear open a pouch", "분무기 뿌리기": "Use a spray bottle", "소스·튜브 짜기": "Squeeze a sauce bottle", "병뚜껑 열고 닫기": "Twist a bottle cap", "안경·접시 닦기": "Wipe glasses or a plate", "포도·작은 과일 따기": "Pick grapes", "상자 들어 올려 옮기기": "Lift and carry a box", "물건 건네주기": "Hand an object over", "블록 쌓기·끼우기": "Stack or snap blocks", "상자에 물건 포장하기": "Pack items into a box", "상자 테이프로 봉하기": "Seal a box with tape", "선반에 물건 채우고 줄 맞추기": "Restock and face a shelf", "통에서 물건 하나씩 꺼내기 (피킹)": "Pick items from a bin", "수건·티셔츠 개기": "Fold a towel or T-shirt", "옷걸이에 옷 걸기": "Hang clothes on a hanger", "컵에 물 따르기": "Pour water into a cup", "충전 케이블 꽂고 빼기": "Plug and unplug a cable", "드라이버로 나사 조이고 풀기": "Drive a screw with a screwdriver", "서랍 열고 꺼내고 닫기": "Open a drawer, take out, close", "가격 추정": "est."}, UNITS = [["시간", " h"], ["장면", " frames"], ["단계", " steps"], ["원", " KRW"], ["편", " clips"], ["번", "×"], ["초", " s"]];
+  const M = {"DataCash · 운영자": "DataCash · Operator", "DataCash 운영자": "DataCash Operator", "서버 토큰을 넣어 주세요.": "Enter the server token.", "서버 토큰": "Server token", "들어가기": "Enter", "운영자 화면": "Operator", "운영자": "Operator", "한눈에": "Overview", "이의 신청이 없어요": "No appeals", "이의 신청": "Appeals", "모델 진화 — Spark 1.3 × Spark Open": "Model evolution — Spark 1.3 × Spark Open", "모델 진화": "Model evolution", "아직 주문이 없어요": "No orders yet", "주문 승인 ·": "Approve order ·", "주문": "Orders", "말로 받은 의뢰": "Requests", "API 비용": "API costs", "사람 정답 달기 →": "Human labels →", "← 구매 기업 화면": "← Buyer page", "녹화 처리, 이의 신청, 모델 진화, API 비용을 한 화면에서 봐요.": "Processing, appeals, model evolution and API costs in one place.", "최근 녹화 5개 · Spark 1.3 ↔ Spark Open · 검증": "Last 5 · Spark 1.3 ↔ Spark Open · verified", "최근 녹화": "Recent recordings", "모두 보기": "See all", "결정이 필요한 일": "Needs a decision", "줄을 누르면 원본과 얼굴을 바꾼 판매용 영상을 나란히 볼 수 있어요. 원본은 시연 서버에만 남아 있어요.": "Click a row to compare the original with the face-swapped sale video. Originals exist only on this demo server.", "전체 미션": "All missions", "미션": "Mission", "상태": "Status", "참여자 보상": "Payouts", "추가 보상(원": "Bonus (KRW", "· 추가 보상": "· bonus", "보상": "Reward", "가상 인물": "Synthetic face", "같은 사람": "Re-ID", "기준 넘은 장면": "Over threshold", "처리 시간": "Time", "관절·검수": "Pose · check", "가리기(SAM": "Mask (SAM", "얼굴 치환": "Face swap", "라벨(Spark": "Label (Spark", "그 외": "Other", "라벨이 틀렸어요": "Wrong labels", "와 반려된 녹화는 더 높은 모델(Muse Spark Open 816B · Fireworks, 없으면 Spark 1.3 최대 추론)로 먼저 다시 봐요.": " and rejected clips are re-checked first by a bigger model (Muse Spark Open 816B, else Spark 1.3 max reasoning).", "바로잡은 라벨은 모델 진화의 정답이 돼요. 판단이 안 되면 여기서 결정해 주세요.": "Corrected labels become examples for model evolution. Decide here if it stays unclear.", "모든 녹화를 Spark 1.3 이 먼저 라벨하고, 더 큰 Spark Open(816B)이 따로 다시 봐요. 같게 본 단계는 정답이 되고, 다르게 본 단계는 Spark Open 동작으로 바로잡아요. 정답과 바로잡음은 다음 녹화부터 Spark 1.3 질문에 예시로 붙어요 — 가중치를 바꾸지 않고 쓸수록 정확해져요.": "Spark 1.3 labels every clip; the larger Spark Open (816B) reviews it independently. Matching steps become examples, mismatches are corrected to Spark Open. Examples feed the next Spark 1.3 prompts — better with use, no weight changes.", "일치율 변화": "Agreement over time", "녹화마다 Spark 1.3 이 Spark Open 과 같은 동작으로 본 단계 비율 (처리한 순서대로). 검은 선 = 최근 5개 평균.": "Share of steps where Spark 1.3 and Spark Open agree, per clip in processing order. Black line = last-5 average.", "2차 검증 — Spark 1.3 ↔ Spark Open(816B": "Second opinion — Spark 1.3 ↔ Spark Open (816B", "센서로 검증 + 두 모델이 같은 동작": "Sensor-verified + both models agree", "인 단계가 정답이 돼요. 다르게 본 단계는 Spark Open 쪽으로 바로잡아요.": " → becomes an example. Mismatches are corrected to Spark Open.", "계약·결제를 확인한 뒤 승인하면 묶음(LeRobot)이 만들어지고 구매자 화면에 내려받기 주소가 나타나요.": "Approve after contract and payment: a LeRobot bundle is built and a download link appears for the buyer.", "채팅 의뢰로 열린 미션이에요. 목표 시간을 채웠거나 계약이 끝나면 닫아 주세요 — 닫으면 앱에서 사라져요.": "Missions opened by chat requests. Close when the target is met or the contract ends — they leave the app.", "Meta Model API 호출마다 장부에 적어요. 한도를 넘으면 그 단계만 건너뛰어요.": "Every Meta Model API call is logged. Over budget, only that step is skipped.", "모델별": "By model", "최근 호출": "Recent calls", "티슈 뽑기": "Pull a tissue", "컵 집어 옮기기": "Move a cup", "작은 과일 따기": "Pick a small fruit", "승인하고 묶음 만들기": "Approve & build bundle", "승인된 녹화 + 이의 신청 추가 보상": "Approved clips + appeal bonuses", "승인": "Approved", "반려": "Rejected", "처리 실패 ·": "Failed ·", "실패": "Failed", "다시 처리 중": "Reprocessing", "처리 중": "Processing", "대기": "Queued", "업로드 전": "Not uploaded", "자동 확인": "Auto check", "다시 보는 중": "Re-checking", "결정 필요": "Needs decision", "인정 안 함": "Denied", "인정": "Accepted", "갱신": "Updated", "· 반려": "· rejected", "· 처리 중": "· processing", "두 모델 일치": "Models agree", "아직 2차 검증 전": "No second opinion yet", "한도": "Budget", "· 호출": "· calls", "녹화가 없어요": "No recordings", "지금 결정할 일이 없어요 ✓": "Nothing to decide ✓", "표정 줄임 시험": "Expression-reduced trial", "성능": "Performance", "닫기": "Close", "· 치환": "· swapped", "원본 없음 (처리 후 삭제됨": "No original (deleted after processing", "원본 (운영자만": "Original (operator only", "판매용 영상 없음": "No sale video", "판매용 — 얼굴 치환·가림": "Sale copy — face-swapped · masked", "같이 재생": "Play both", "멈춤": "Pause", "· 녹화": "· clip", "· 기기": "· device", "원래 라벨": "Original label", "바로잡은 라벨": "Corrected label", "근거": "Evidence", "→ 정답 · 다음 녹화의 Spark 1.3 질문에": "→ example · used in the next Spark 1.3 prompts", "지난 바로잡음": "Past corrections", "예시로 쓰여요": "used as examples", "결정 이유": "Reason", "① 1차 라벨": "① First label", "영상을 직접 보고 단계·손·쥐는 방식": "Watches the video: steps, hand, grasp", "② 2차 검증": "② Second opinion", "키 없음": "No key", "편 · 바로잡음": " clips · corrected", "장면 16장을 따로 라벨해 맞대 봄": "Labels 16 frames independently and compares", "③ 정답 예시": "③ Examples", "단계 · 이의 신청": " steps · appeals", "다음 녹화의 Spark 1.3 질문에 붙음": "Added to the next Spark 1.3 prompts", "④ 일치율": "④ Agreement", "→ 최근": "→ latest", "아직 없음 — 녹화가 처리되면 쌓여요": "None yet — fills in as clips are processed", "아직 없음": "None yet", "오르면 바로잡을 단계·검증 비용이 줄어요": "Higher = fewer corrections, lower cost", "편 · 전체": " clips · overall", "· 처음 5편": "· first 5", "→ 최근 5편": "→ last 5", "다르게 본 단계 (Spark 1.3 → Spark Open": "Mismatched steps (Spark 1.3 → Spark Open", "MB · 녹화": " MB · clips", "편 · 받은 횟수": " · downloads", "모으는 중": "Collecting", "닫힘": "Closed", "의뢰 닫기": "Close request", "의뢰가 없어요": "No requests", "쓴 돈": "Spent", "남은 돈": "Left", "남음": "left", "일 동안": " days", "Spark Open 전용 크레딧": "Spark Open credits", "번 · 가격 추정": "× · estimated price", "크레딧": "credits", "정답": "Examples", "단계": "steps", "이의 신청 ·": "Appeal ·", "라벨": "Labels", "녹화": "Recordings", "처음": "first", "없음": "none", "오류": "Error", "요청": "Requested", "일치": "agree", "호출": "Calls", "구간": "Segment", "겹친 컵 빼기": "Pull a cup from a stack", "파우치·봉지 뜯기": "Tear open a pouch", "분무기 뿌리기": "Use a spray bottle", "소스·튜브 짜기": "Squeeze a sauce bottle", "병뚜껑 열고 닫기": "Twist a bottle cap", "안경·접시 닦기": "Wipe glasses or a plate", "포도·작은 과일 따기": "Pick grapes", "상자 들어 올려 옮기기": "Lift and carry a box", "물건 건네주기": "Hand an object over", "블록 쌓기·끼우기": "Stack or snap blocks", "상자에 물건 포장하기": "Pack items into a box", "상자 테이프로 봉하기": "Seal a box with tape", "선반에 물건 채우고 줄 맞추기": "Restock and face a shelf", "통에서 물건 하나씩 꺼내기 (피킹)": "Pick items from a bin", "수건·티셔츠 개기": "Fold a towel or T-shirt", "옷걸이에 옷 걸기": "Hang clothes on a hanger", "컵에 물 따르기": "Pour water into a cup", "충전 케이블 꽂고 빼기": "Plug and unplug a cable", "드라이버로 나사 조이고 풀기": "Drive a screw with a screwdriver", "서랍 열고 꺼내고 닫기": "Open a drawer, take out, close", "가격 추정": "est."}, UNITS = [["시간", " h"], ["장면", " frames"], ["단계", " steps"], ["원", " KRW"], ["편", " clips"], ["번", "×"], ["초", " s"]];
   const keys = Object.keys(M).sort((a, b) => b.length - a.length);
   const HAN = /[\uac00-\ud7a3]/;
   const tr = s => {

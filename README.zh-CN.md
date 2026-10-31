@@ -35,6 +35,24 @@ Meta Global AI Developer Hackathon（Indie Developer · Push the Frontier）参�
 
 每次 API 调用的费用都记录在 `data/api_ledger.jsonl`；超出预算时只跳过该步骤。
 
+## 实测性能
+
+以下数字均与**人工标注真值**或物理基准比较，可在不调用 API 的情况下复现：`python scripts/perf_report.py`（输出到 `docs/perf/`）。运营页面的 **Performance** 标签页显示同样的图表，并对每条录制进行实时监控和告警。
+
+| 指标 | 之前 → 现在 | 测量于 |
+|---|---|---|
+| 步骤标签逐帧准确率（Muse Spark 1.3） | **35.6% → 54.3%** | EPIC-KITCHENS-100 留出 8 段，271 个人工步骤 |
+| 步骤边界误差（中位数） | **430 → 182 ms** | 同上 |
+| Muse Glimmer 30B（LoRA，Fireworks） | **41.8% → 54.1%**（v80，用人工标注训练） | 8 条留出录制的 122 个人工步骤 |
+| 手表 ↔ 视频同步误差 | **24.7 → 3.7 ms**（目标 < 10 ms） | 37 条录制 |
+| 每条录制换脸时间 | **636 → 84 s**（7.5×） | `docs/privacy_eval.md` |
+| SAM 3.1 成本，4 条录制 | **$2.92 → $0.27**（−91%） | 4 条真实录制 |
+
+![](docs/perf/label_accuracy.en.png)
+![](docs/perf/confusion.en.png)
+![](docs/perf/glimmer.en.png)
+![](docs/perf/monitoring.en.png)
+
 ## 核心技术
 
 ### 1. 保留数据价值的隐私处理

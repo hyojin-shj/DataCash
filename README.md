@@ -35,6 +35,28 @@ Built for the Meta Global AI Developer Hackathon (Indie Developer · Push the Fr
 
 Every API call is logged with its cost in `data/api_ledger.jsonl`; if the budget is hit, only that step is skipped.
 
+## Measured performance
+
+Every number below is measured against **human ground truth** or a physical reference, and can be reproduced from stored results with no API calls: `python scripts/perf_report.py` (writes `docs/perf/`).
+The operator page has a **Performance** tab with the same charts plus live monitoring of every processed recording, with alerts when quality drops.
+
+| What | Before → now | Measured on |
+|---|---|---|
+| Step-label frame accuracy (Muse Spark 1.3) | **35.6% → 54.3%** | EPIC-KITCHENS-100, 8 held-out clips, 271 human-labelled steps |
+| Step boundary error (median) | **430 → 182 ms** | same |
+| Muse Glimmer 30B step accuracy (LoRA, Fireworks) | **41.8% → 54.1%** (v80, trained on our human labels; v79 trained on Spark labels: 32.8%) | 122 human-labelled steps from 8 held-out recordings |
+| Watch ↔ video sync error | **24.7 → 3.7 ms** (target < 10 ms) | 37 phone + watch recordings |
+| Face swap time per recording | **636 → 84 s** (7.5×) | `docs/privacy_eval.md` |
+| SAM 3.1 cost, 4 recordings | **$2.92 → $0.27** (−91%) | 4 real recordings |
+| Grip level low · mid · high | **83%** (chance 33%) | 3 calibration recordings, Galaxy Watch4 |
+
+![Step-label accuracy, one method at a time](docs/perf/label_accuracy.en.png)
+![Confusion matrix, first vs now](docs/perf/confusion.en.png)
+![Muse Glimmer fine-tuning](docs/perf/glimmer.en.png)
+![Live monitoring](docs/perf/monitoring.en.png)
+
+Live monitoring (same values as the operator page, `datacash/perf.py`): Spark 1.3 ↔ Spark Open agreement per recording with a last-5 mean (alert below 50%), processing time per recording (alert above 2× median), and frames that still look like the same person after face swap (SFace 0.363, alert above 5% — those recordings are flagged for review).
+
 ## Key ideas
 
 ### 1. Privacy that keeps the data valuable
