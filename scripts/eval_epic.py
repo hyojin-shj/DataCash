@@ -217,6 +217,13 @@ def _use_vocab() -> None:
         spark.PROMPT = spark.PROMPT.replace("container), other.", f"container), {add}, other.")
 
 
+# 10-31 합치기 실험: 지금 처리(chunk20_slow)를 조각 시작점만 엇갈려 더 돌린다 → datacash/understand/fuse.py 로 합침
+EXPERIMENTS.update({"slow_o7": {"chunk": 20.0, "extra": "", "slow": 2.0, "offset": 7.0},
+                    "slow_o13": {"chunk": 20.0, "extra": "", "slow": 2.0, "offset": 13.0},
+                    "state_o10": {"chunk": 20.0, "extra": STATE, "slow": 2.0, "offset": 10.0},
+                    "slow_o3": {"chunk": 20.0, "extra": "", "slow": 2.0, "offset": 3.0},
+                    "slow_o16": {"chunk": 20.0, "extra": "", "slow": 2.0, "offset": 16.0},
+                    "state_o4": {"chunk": 20.0, "extra": STATE, "slow": 2.0, "offset": 4.0}})
 VOTES = {"vote3": ["chunk20", "chunk20_r2", "chunk20_r3"]}          # 0.1초마다 다수결 (같은 표면 첫 번째 것)
 SET = "dev"                                                         # dev: 방법 고르는 8구간 · test: 고른 방법을 확인하는 새 8구간
 
@@ -230,7 +237,7 @@ def _exp_dir() -> Path:
 
 
 def _sub(clip: Path, t0: float, dur: float, slow: float) -> Path:
-    dst = D / "tmp" / f"{clip.stem}_{t0:.0f}_{slow:g}.mp4"
+    dst = D / "tmp" / f"{clip.stem}_{t0:.0f}_{dur:.0f}_{slow:g}.mp4"      # 길이도 이름에 — 엇갈린 조각이 같은 시작점에서 동시에 겹치지 않게
     dst.parent.mkdir(parents=True, exist_ok=True)
     vf = "scale=640:-2" + (f",setpts={slow}*PTS" if slow != 1 else "")
     ffmpeg_run(["-ss", t0, "-t", dur, "-i", clip, "-vf", vf, "-an", "-c:v", "libx264", "-preset", "veryfast", "-crf", 23,
@@ -238,12 +245,13 @@ def _sub(clip: Path, t0: float, dur: float, slow: float) -> Path:
     return dst
 
 
-def _label(clip: Path, chunk, extra: str, pad: float = 0.0, slow: float = 1.0) -> list:
+def _label(clip: Path, chunk, extra: str, pad: float = 0.0, slow: float = 1.0, offset: float = 0.0) -> list:
+    """offset: 조각 시작점을 이만큼 엇갈린다 (첫 조각은 0~offset) — 여러 번 돌려 합칠 때 자른 자리 오류가 겹치지 않게."""
     from datacash.understand.spark import understand_clip
 
     if not chunk:
         return understand_clip(clip, MISSION, WIN_S, extra=extra)["steps"]
-    steps, t0 = [], 0.0
+    steps, t0 = [], (offset - chunk if offset else 0.0)
     while t0 < WIN_S - 1:
         a, b = max(0.0, t0 - pad), min(WIN_S, t0 + chunk + pad)       # 보내는 구간 (겹침 포함)
         sub = _sub(clip, a, b - a, slow)
@@ -255,6 +263,29 @@ def _label(clip: Path, chunk, extra: str, pad: float = 0.0, slow: float = 1.0) -
         sub.unlink(missing_ok=True)
         t0 += chunk
     return sorted(steps, key=lambda s: s["start_s"])
+
+
+def _label_open(clip: Path, e: dict) -> list:
+    """Fireworks 이미지 모델로 chunk 초씩, 초당 fps 장 (번호를 그려 넣어) — Spark 1.3 과 다른 눈으로 본 라벨 벌."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    from datacash.understand.spark_open import label_frames
+
+    cuts = [(a, min(WIN_S, a + e["chunk"])) for a in [x * e["chunk"] for x in range(int(WIN_S // e["chunk"]))]]
+
+    def one(c):
+        a, b = c
+        return [{**x, "start_s": max(a, x["start_s"]), "end_s": min(b, x["end_s"])} for x in
+                label_frames(clip, a, b, MISSION, e.get("extra", ""), n=int((b - a) * e["fps"]), model=e["model"],
+                             numbered=e.get("numbered", True))["steps"]]
+
+    with ThreadPoolExecutor(3) as ex:
+        return sorted([x for part in ex.map(one, cuts) for x in part if x["end_s"] > x["start_s"]], key=lambda x: x["start_s"])
+
+
+FW = "accounts/fireworks/models/"
+EXPERIMENTS.update({"open_num": {"chunk": 20.0, "fps": 2, "model": FW + "muse-spark-open", "extra": ""},
+                    "kimi_num": {"chunk": 20.0, "fps": 2, "model": FW + "kimi-k3", "extra": ""}})
 
 
 def vote(runs: list, step_s: float = 0.1) -> list:
@@ -300,7 +331,10 @@ def exp(names: list) -> None:
         dst.parent.mkdir(parents=True, exist_ok=True)
         e = EXPERIMENTS[n]
         try:
-            steps = _label(_clip(w), e["chunk"], e["extra"], e.get("pad", 0.0), e.get("slow", 1.0))
+            if e.get("model"):
+                steps = _label_open(_clip(w), e)
+            else:
+                steps = _label(_clip(w), e["chunk"], e["extra"], e.get("pad", 0.0), e.get("slow", 1.0), e.get("offset", 0.0))
         except Exception as ex:
             print(f"{n} {dst.stem} 실패: {type(ex).__name__} {ex}")
             return

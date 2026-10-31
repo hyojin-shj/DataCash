@@ -145,10 +145,37 @@ def _frame_parts(frames: List[tuple], max_images: Optional[int]) -> list:
     return parts
 
 
+def _number(img, k: int):
+    """장면 오른쪽 아래에 번호를 크게 (NumPro, arXiv 2411.10332 — 소수 초보다 정수 번호가 시각을 더 잘 읽게 한다)."""
+    img = img.copy()
+    h = img.shape[0]
+    sc, th = h / 300, max(2, int(h / 120))
+    (tw, tht), _ = cv2.getTextSize(str(k), cv2.FONT_HERSHEY_SIMPLEX, sc, th)
+    org = (img.shape[1] - tw - int(h * 0.03), h - int(h * 0.04))
+    cv2.putText(img, str(k), org, cv2.FONT_HERSHEY_SIMPLEX, sc, (0, 0, 0), th + 3, cv2.LINE_AA)
+    cv2.putText(img, str(k), org, cv2.FONT_HERSHEY_SIMPLEX, sc, (0, 0, 255), th, cv2.LINE_AA)
+    return img
+
+
+def _ask_model(model: str, parts: list):
+    """Fireworks 의 다른 이미지 모델로 (라벨을 여러 모델로 받아 합칠 때)."""
+    from openai import OpenAI
+
+    c = OpenAI(base_url=PROVIDERS[1][2], api_key=_key(PROVIDERS[1][1]), timeout=240, max_retries=1)
+    kw = {"response_format": {"type": "json_object"}}
+    try:
+        return c.chat.completions.create(model=model, messages=[{"role": "user", "content": parts}], max_tokens=16000, **kw)
+    except Exception as e:      # noqa: BLE001
+        if getattr(e, "status_code", 400) not in (400, 422):
+            raise
+        return c.chat.completions.create(model=model, messages=[{"role": "user", "content": parts}], max_tokens=16000)
+
+
 def label_frames(video, t0: float, t1: Optional[float], mission: str, extra: str = "", primitives: Optional[list] = None,
-                 n: int = FRAMES, client=None) -> dict:
+                 n: int = FRAMES, client=None, model: Optional[str] = None, numbered: bool = False) -> dict:
     """동작 구간 [t0, t1] 의 장면 n 장 → spark.SCHEMA 형식 {task, completed, steps, mistakes, environment} (시각은 영상 기준 초).
-    client 를 주면 그것으로 부른다 (시험용)."""
+    client 를 주면 그것으로 부른다 (시험용). model: Fireworks 의 다른 이미지 모델 (기본은 Spark Open).
+    numbered: 장면마다 번호를 그려 넣고 번호 → 시각 표를 준다."""
 
     cap = cv2.VideoCapture(str(video))
     dur = cap.get(7) / (cap.get(5) or 30)
@@ -157,19 +184,28 @@ def label_frames(video, t0: float, t1: Optional[float], mission: str, extra: str
     t0 = max(0.0, min(t0, t1 - 0.5))
     frames = _grab(video, [t0 + (t1 - t0) * (k + 0.5) / n for k in range(n)])
     times = [t for t, _ in frames]
+    if numbered:
+        frames = [(t, _number(f, k + 1)) for k, (t, f) in enumerate(frames)]
+        extra = (extra + "\n" if extra else "") + ("Each frame has its number in red at the bottom-right. Frame number -> time: "
+                                                   + ", ".join(f"{k + 1}={t:.2f}s" for k, t in enumerate(times))
+                                                   + ". Decide each step boundary by the first frame number where the next action has "
+                                                     "started, then give its time in seconds.")
     prompt = (PROMPT.format(mission=mission, dur=t1, primitives=" -> ".join(primitives) if primitives else "not given")
               .replace("The clip is", "You see frames sampled from a video; times below are seconds from the video start. The video is")
               + f"\nFrames cover {t0:.1f}s to {t1:.1f}s. Give step times in the same seconds."
               + ("\n" + extra if extra else "")
               + "\nReturn ONLY a JSON object matching this JSON schema:\n" + json.dumps(SCHEMA))
     build = lambda mx: [{"type": "text", "text": prompt}] + _frame_parts(frames, mx)  # noqa: E731
-    if client is not None:
+    if model:
+        prov, r = model.split("/")[-1], _ask_model(model, build(None))
+    elif client is not None:
         prov, r = "test", client.chat.completions.create(model=PROVIDERS[0][3], messages=[{"role": "user", "content": build(None)}],
                                                         response_format={"type": "json_object"}, reasoning_effort=REASONING,
                                                         max_tokens=16000)
     else:
         prov, r = _ask(build)
-    _record(getattr(r, "usage", None), f"spark-open label {Path(video).name} {len(times)} frames", prov)
+    _record(getattr(r, "usage", None), f"{'label ' + prov if model else 'spark-open label'} {Path(video).name} {len(times)} frames",
+            "fireworks" if model else prov)
     text = r.choices[0].message.content or "{}"
     out = json.loads(text[text.find("{"): text.rfind("}") + 1])
     steps = []
@@ -181,7 +217,7 @@ def label_frames(video, t0: float, t1: Optional[float], mission: str, extra: str
         if s.get("action") in PRIMITIVES and b > a:
             steps.append({**s, "start_s": max(t0, a), "end_s": min(t1, b)})
     out["steps"] = sorted(steps, key=lambda s: s["start_s"])
-    out["model"] = f"muse-spark-open ({prov})"
+    out["model"] = prov if model else f"muse-spark-open ({prov})"
     out["frames"] = times
     return out
 

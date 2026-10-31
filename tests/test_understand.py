@@ -164,3 +164,32 @@ def test_chunked_maps_times_back_and_joins_cut(tmp_path):
     acts = [(round(s["start_s"], 1), round(s["end_s"], 1), s["action"]) for s in u["steps"]]
     assert acts == [(5.0, 10.0, "grasp"), (10.0, 28.0, "lift"), (28.0, 50.0, "place")]
     assert sorted(round(m["t_s"], 1) for m in u["mistakes"]) == [7.0, 27.0]
+
+
+def test_ensemble_staggers_cuts_and_fuses(tmp_path):
+    """여러 벌: 자른 자리를 엇갈려 보내고(첫 조각이 짧다), 벌마다 조금씩 다른 경계를 합쳐 한 줄로 (API 호출 없음)."""
+    import cv2
+    import numpy as np
+
+    from datacash.understand.spark import understand_ensemble
+
+    src = tmp_path / "v.mp4"
+    w = cv2.VideoWriter(str(src), cv2.VideoWriter_fourcc(*"mp4v"), 10, (64, 48))
+    for i in range(300):                              # 30초
+        w.write(np.full((48, 64, 3), i % 255, np.uint8))
+    w.release()
+
+    def fake(clip, mission, dur):                     # 어느 조각이든 전부 grasp 라고 답한다
+        return {"task": "t", "completed": "yes", "environment": {}, "mistakes": [],
+                "steps": [{"start_s": 0.0, "end_s": dur, "action": "grasp", "instruction": "x", "hand": "right"}]}
+
+    seen = []
+
+    def label(clip, mission, dur):
+        seen.append(round(dur))
+        return fake(clip, mission, dur)
+
+    u = understand_ensemble(src, 0.0, 30.0, "m", runs=[(0.0, ""), (7.0, ""), (13.0, "")], label=label, work_dir=tmp_path)
+    assert 14 in seen and 26 in seen                   # 0~7초 · 0~13초 조각 (0.5배속이라 두 배)
+    assert [s["action"] for s in u["steps"]] == ["grasp"] and u["runs"] == 3
+    assert u["steps"][0]["agree"] == 1.0 and u["steps"][0]["hand"] == "right"

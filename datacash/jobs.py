@@ -223,12 +223,13 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
         except Exception as e:
             report["skipped"].append(f"speech: {type(e).__name__}: {str(e)[:200]}")
 
-    # 3. 단계 라벨 — 1차 Muse Spark 1.3 (20초씩 0.5배속, 같은 미션 정답 예시를 붙여서) → 2차 Muse Spark Open 이 따로 보고
+    # 3. 단계 라벨 — 1차 Muse Spark 1.3 (20초씩 0.5배속, 자른 자리·질문을 바꿔 다섯 벌 → 합침, 같은 미션 정답 예시를 붙여서)
+    #    → 2차 Muse Spark Open 이 따로 보고
     #    다르면 바로잡는다 → 경계마다 Spark Open 이 '다음 동작이 시작된 첫 장면'을 골라 경계 시각을 다듬는다
     steps, mistakes, scene = None, None, None
     if use_api:
         try:
-            from .understand.spark import understand_chunked
+            from .understand.spark import understand_ensemble
 
             src = masked or video
             cap = cv2.VideoCapture(str(src))
@@ -245,9 +246,10 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
             g = gain_for(video_luma(src, start_s=t0))        # 어두우면 밝혀서 보낸다
             if g > 1.01:
                 report["brightened"] = round(g, 2)
-            u = understand_chunked(src, t0, t0 + min(dur - t0, 90), f"{mission.get('title_en')} ({mission.get('title')})",
-                                   primitives=mission.get("primitives"), mission_id=mission.get("id", ""), gain=g, work_dir=out)
+            u = understand_ensemble(src, t0, t0 + min(dur - t0, 90), f"{mission.get('title_en')} ({mission.get('title')})",
+                                    primitives=mission.get("primitives"), mission_id=mission.get("id", ""), gain=g, work_dir=out)
             steps, mistakes = u["steps"], u["mistakes"]     # 시각은 이미 녹화 기준
+            report["label_runs"] = u.get("runs", 1)
             scene = {"task": u["task"], "completed": u["completed"], "environment": u["environment"], "model": u["model"]}
             lap("understand")
             try:                                  # 2차 검증 (Baseten → Fireworks 크레딧, Meta API 한도와 따로)

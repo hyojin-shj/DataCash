@@ -9,7 +9,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Optional
 
-from ..meta.client import MetaClient, data_url
+from ..meta.client import BudgetExceeded, MetaClient, data_url
 
 MODEL = "muse-spark-1.3"
 
@@ -103,11 +103,12 @@ SLOW = 2.0         # 그리고 이만큼 느리게 늘려 보낸다 (모델이 �
 
 def understand_chunked(src, t0: float, t1: float, mission: str, primitives: Optional[list] = None, mission_id: str = "",
                        gain: float = 1.0, work_dir=None, chunk_s: float = CHUNK_S, slow: float = SLOW, side: int = 640,
-                       client: Optional[MetaClient] = None, label=None) -> dict:
+                       client: Optional[MetaClient] = None, label=None, offset: float = 0.0, extra: str = "") -> dict:
     """src 의 [t0, t1] 를 chunk_s 씩 잘라 slow 배 느리게 보내고, 단계·실수 시각을 녹화 시각(초)으로 이어 붙인다.
     단계는 가운데가 그 조각에 든 것만 쓰고, 자른 자리에 맞닿은 같은 동작은 하나로 잇는다.
     돌려주는 형식은 understand_clip 과 같다 (task·environment 는 첫 조각, completed 는 마지막 조각).
-    label(clip, mission, dur) → understand_clip 형식 (시험용으로 바꿔 끼운다)."""
+    label(clip, mission, dur) → understand_clip 형식 (시험용으로 바꿔 끼운다).
+    offset: 첫 조각을 offset 초로 짧게 끊어 자른 자리를 엇갈린다 (여러 벌 합치기용). extra: 질문 끝에 붙일 말."""
     from concurrent.futures import ThreadPoolExecutor
 
     from ..media import clip_mp4
@@ -115,17 +116,22 @@ def understand_chunked(src, t0: float, t1: float, mission: str, primitives: Opti
     work = Path(work_dir or Path(src).parent)
     cuts = []
     a = t0
+    if 0.5 < offset < t1 - t0 - 0.5:
+        cuts.append((t0, t0 + offset))
+        a = t0 + offset
     while a < t1 - 0.5:
         b = min(t1, a + chunk_s)
         if t1 - b < 0.5 * chunk_s and t1 - b > 0:     # 끝에 짧게 남는 조각은 앞 조각에 붙인다
             b = t1
         cuts.append((a, b))
         a = b
-    ask = label or (lambda clip, m, dur: understand_clip(clip, m, dur, client=client, primitives=primitives, mission_id=mission_id))
+    ask = label or (lambda clip, m, dur: understand_clip(clip, m, dur, client=client, primitives=primitives, mission_id=mission_id,
+                                                         extra=extra))
 
     def one(k):
         a, b = cuts[k]
-        clip = clip_mp4(src, work / f"understand_clip_{k}.mp4", a, b - a, max_side=side, audio=False, gain=gain, slow=slow)
+        clip = clip_mp4(src, work / f"understand_clip_{offset:g}_{len(extra)}_{k}.mp4", a, b - a, max_side=side, audio=False,
+                        gain=gain, slow=slow)
         try:
             return ask(clip, mission, (b - a) * slow)
         finally:
@@ -148,3 +154,47 @@ def understand_chunked(src, t0: float, t1: float, mission: str, primitives: Opti
             "environment": outs[0]["environment"] if outs else {"place": "", "tools": [], "materials": [], "lighting": ""},
             "steps": sorted(steps, key=lambda s: s["start_s"]), "mistakes": mistakes,
             "model": f"{MODEL} ({len(cuts)} chunks of {chunk_s:g}s, {slow:g}x slow)"}
+
+
+# 여러 벌 합치기 (10-31): 같은 구간을 자른 자리를 엇갈려(0·7·13초) 세 번 + 물체 상태로 이름 정하라는 질문으로 두 번 → 0.1초마다 합쳐
+# Viterbi 로 한 줄 (fuse.py). EPIC 사람 정답(docs/label_eval.md '여러 벌 합치기'): 한 벌 평균 장면 정확도 새 구간 48% → 54%,
+# 방법 고르기 구간 43% → 48%. 여덟 벌은 다섯 벌과 같았다. 비용은 다섯 배 (1분에 약 $0.45).
+STATE = ("Name each step by how the object's state changes: object goes from a surface (or container) into the hand = "
+         "grasp/lift; object goes from the hand onto a surface (or into a container) = place/release; object stays in the hand "
+         "and only moves = transport; hand works a door, drawer, lid, tap or knob = the articulation primitive. "
+         "Look at the first and last moments of each step before naming it.")
+RUNS = [(0.0, ""), (7.0, ""), (13.0, ""), (0.0, STATE), (10.0, STATE)]     # (자른 자리 엇갈림, 질문에 붙일 말)
+SWITCH = 1.0
+
+
+def understand_ensemble(src, t0: float, t1: float, mission: str, runs=RUNS, switch: float = SWITCH, **kw) -> dict:
+    """understand_chunked 를 runs 만큼 (자른 자리·질문을 바꿔) 돌려 단계를 합친다. 형식은 understand_clip 과 같고,
+    단계마다 agree (벌들이 같은 동작을 낸 몫) 를 붙인다. 이름 외의 칸(instruction·hand·objects…)은 첫 벌에서 가장 많이 겹친 같은 동작 단계의 것.
+    한 벌이 실패해도 나머지로 합친다 (모두 실패하면 예외)."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    from .fuse import fuse
+
+    def one(r):
+        try:
+            return understand_chunked(src, t0, t1, mission, offset=r[0], extra=r[1], **kw)
+        except BudgetExceeded:
+            raise
+        except Exception:       # noqa: BLE001
+            return None
+
+    with ThreadPoolExecutor(len(runs)) as ex:
+        outs = [o for o in ex.map(one, runs) if o]
+    if not outs:
+        raise RuntimeError("모든 벌이 실패")
+    steps = fuse([o["steps"] for o in outs], t0, t1, switch=switch)
+    pool = [x for o in outs for x in o["steps"]]
+    for st in steps:
+        same = [x for x in pool if x["action"] == st["action"]]
+        ov = lambda x: min(x["end_s"], st["end_s"]) - max(x["start_s"], st["start_s"])  # noqa: E731
+        best = max(same, key=ov, default=None)
+        if best is not None:
+            st.update({k: v for k, v in best.items() if k not in ("start_s", "end_s", "action")})
+    first = outs[0]
+    return {**first, "steps": steps, "mistakes": first["mistakes"],
+            "model": f"{MODEL} ({len(outs)} runs fused, {CHUNK_S:g}s chunks, {SLOW:g}x slow)", "runs": len(outs)}
