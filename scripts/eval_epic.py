@@ -224,6 +224,14 @@ EXPERIMENTS.update({"slow_o7": {"chunk": 20.0, "extra": "", "slow": 2.0, "offset
                     "slow_o3": {"chunk": 20.0, "extra": "", "slow": 2.0, "offset": 3.0},
                     "slow_o16": {"chunk": 20.0, "extra": "", "slow": 2.0, "offset": 16.0},
                     "state_o4": {"chunk": 20.0, "extra": STATE, "slow": 2.0, "offset": 4.0}})
+# 10-31 미션별 동작 목록: 부엌 미션이라면 고를 동작 — 다섯 벌 합치기를 같은 자리에서 이 목록으로 (이때 actions_for 는 미션 동작으로
+# 목록을 줄였다: 기본 7개 + 아래. 지금 actions_for 는 줄이지 않고 더하기만 해서 결과 재현용으로 목록을 그대로 적어 둔다)
+KITCHEN = ["reach", "grasp", "lift", "pull", "push", "twist", "press", "wipe", "insert", "transport", "place", "release", "pour", "other",
+           "open", "close", "wash", "stir", "cut", "scoop", "shake"]
+EXPERIMENTS.update({f"kit_{n}": {"chunk": 20.0, "extra": x, "slow": 2.0, "offset": o, "actions": KITCHEN}
+                    for n, o, x in [("o0", 0.0, ""), ("o7", 7.0, ""), ("o13", 13.0, ""), ("s0", 0.0, STATE), ("s10", 10.0, STATE)]})
+MERGE_OURS.update({"tighten": "articulate", "loosen": "articulate"})
+LENIENT.update({"tighten": "articulate", "loosen": "articulate"})
 VOTES = {"vote3": ["chunk20", "chunk20_r2", "chunk20_r3"]}          # 0.1초마다 다수결 (같은 표면 첫 번째 것)
 SET = "dev"                                                         # dev: 방법 고르는 8구간 · test: 고른 방법을 확인하는 새 8구간
 
@@ -245,7 +253,7 @@ def _sub(clip: Path, t0: float, dur: float, slow: float) -> Path:
     return dst
 
 
-def _label(clip: Path, chunk, extra: str, pad: float = 0.0, slow: float = 1.0, offset: float = 0.0) -> list:
+def _label(clip: Path, chunk, extra: str, pad: float = 0.0, slow: float = 1.0, offset: float = 0.0, actions=None) -> list:
     """offset: 조각 시작점을 이만큼 엇갈린다 (첫 조각은 0~offset) — 여러 번 돌려 합칠 때 자른 자리 오류가 겹치지 않게."""
     from datacash.understand.spark import understand_clip
 
@@ -255,7 +263,7 @@ def _label(clip: Path, chunk, extra: str, pad: float = 0.0, slow: float = 1.0, o
     while t0 < WIN_S - 1:
         a, b = max(0.0, t0 - pad), min(WIN_S, t0 + chunk + pad)       # 보내는 구간 (겹침 포함)
         sub = _sub(clip, a, b - a, slow)
-        for s in understand_clip(sub, MISSION, (b - a) * slow, extra=extra)["steps"]:
+        for s in understand_clip(sub, MISSION, (b - a) * slow, extra=extra, actions=actions)["steps"]:
             x = {**s, "start_s": a + s["start_s"] / slow, "end_s": a + s["end_s"] / slow}
             mid = (x["start_s"] + x["end_s"]) / 2
             if t0 <= mid < t0 + chunk:                                 # 가운데가 이 조각에 든 단계만 (겹친 곳 두 번 세지 않게)
@@ -334,7 +342,8 @@ def exp(names: list) -> None:
             if e.get("model"):
                 steps = _label_open(_clip(w), e)
             else:
-                steps = _label(_clip(w), e["chunk"], e["extra"], e.get("pad", 0.0), e.get("slow", 1.0), e.get("offset", 0.0))
+                steps = _label(_clip(w), e["chunk"], e["extra"], e.get("pad", 0.0), e.get("slow", 1.0), e.get("offset", 0.0),
+                               e.get("actions"))
         except Exception as ex:
             print(f"{n} {dst.stem} 실패: {type(ex).__name__} {ex}")
             return

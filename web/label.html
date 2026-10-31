@@ -122,7 +122,8 @@ const GUIDE = {
   pull: "몸 쪽으로 당기기 (티슈 뽑기·서랍)", push: "몸 바깥쪽으로 밀기", wipe: "면을 문지르는 동안", open: "뚜껑·문·서랍 열기", close: "닫기",
   other: "어디에도 안 맞을 때만 (되도록 쓰지 않기)"
 };
-let SES = [], cur = null, A = [], steps = [], sel = -1, dirty = false;
+let SES = [], cur = null, A = [], steps = [], sel = -1, dirty = false, spent = 0, lastTick = Date.now();
+setInterval(() => { const now = Date.now(); if (cur && !document.hidden) spent += Math.min(5, (now - lastTick) / 1000); lastTick = now; }, 1000);
 const v = document.getElementById("v");
 
 async function enter() { token = document.getElementById("tok").value.trim(); start(); }
@@ -139,7 +140,7 @@ async function loadList() {
   document.getElementById("prog").textContent = `정답 단 녹화 ${done} / ${SES.length - out}편` + (out ? ` · 뺀 녹화 ${out}편` : "");
   document.getElementById("list").innerHTML = SES.map(s => `<button data-sid="${esc(s.sid)}" class="${cur && cur.sid === s.sid ? "on" : ""}">
     ${s.excluded ? '<span style="color:var(--sub)">빠짐</span> ' : s.human_steps != null ? '<span class="ok">✓</span> ' : ""}${esc(s.mission)}
-    <small>${esc(s.sid)} · ${s.excluded ? "정답에서 뺌" : s.human_steps != null ? "정답 " + s.human_steps + "단계" : "Spark " + s.spark_steps + "단계"}</small></button>`).join("");
+    <small>${esc(s.sid)} · ${s.excluded ? "정답에서 뺌" : s.human_steps != null ? "정답 " + s.human_steps + "단계" + (s.seconds ? " · " + Math.round(s.seconds / 60 * 10) / 10 + "분 봄" : "") : "Spark " + s.spark_steps + "단계"}</small></button>`).join("");
   document.querySelectorAll("#list button").forEach(b => b.onclick = () => open_(b.dataset.sid));
 }
 async function open_(sid) {
@@ -148,7 +149,7 @@ async function open_(sid) {
   A = cur.actions;
   steps = (cur.human ? cur.human.steps : cur.spark).map(s => ({start_s: +s.start_s, end_s: +s.end_s, action: s.action, objects: s.objects || []}));
   document.getElementById("note").value = cur.human ? cur.human.note || "" : "";
-  sel = steps.length ? 0 : -1; dirty = false;
+  sel = steps.length ? 0 : -1; dirty = false; spent = 0;
   document.getElementById("empty").hidden = true; document.getElementById("work").hidden = false;
   document.getElementById("title").textContent = cur.mission + " · " + sid;
   document.getElementById("sub").textContent = cur.human ? (cur.human.excluded ? "정답에서 뺀 녹화예요 — 단계를 달고 저장하면 다시 들어가요" : `사람 정답 저장됨 (${cur.human.labeled_at})`) : "아직 사람 정답 없음 — Spark 라벨에서 시작해요";
@@ -240,7 +241,7 @@ async function save() {
   if (bad) { setMsg(`끝이 시작보다 늦어야 해요 (${bad.start_s.toFixed(2)}초 단계)`, "bad"); return; }
   try {
     const r = await api("/api/admin/label/" + encodeURIComponent(cur.sid), {method: "PUT", headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({steps, note: document.getElementById("note").value})});
+      body: JSON.stringify({steps, note: document.getElementById("note").value, seconds: spent + ((cur.human && cur.human.seconds) || 0)})});
     cur.human = r; dirty = false; setMsg(`저장했어요 · ${r.steps.length}단계`, "ok");
     document.getElementById("sub").textContent = `사람 정답 저장됨 (${r.labeled_at})`;
     loadList();

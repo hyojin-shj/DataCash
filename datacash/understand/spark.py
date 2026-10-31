@@ -6,6 +6,7 @@ Muse Wonder 는 한국에서 쓸 수 없어 Spark 1.3 을 쓴다.
 
 from __future__ import annotations
 
+import copy
 from pathlib import Path
 from typing import Optional
 
@@ -17,7 +18,36 @@ MODEL = "muse-spark-1.3"
 # 순서가 판매 데이터의 annotation.primitive 번호다 — 새 동작은 끝에만 붙인다 (open·close 는 10-30: 열기·닫기를 'other' 로 내던 것,
 # EPIC 정답으로 열기·닫기류 정확도 37% → 47~49%, docs/label_eval.md).
 PRIMITIVES = ["reach", "grasp", "lift", "pull", "push", "twist", "press", "squeeze", "tear", "wipe", "insert", "transport",
-              "place", "handover", "release", "pour", "fold", "other", "open", "close"]
+              "place", "handover", "release", "pour", "fold", "other", "open", "close",
+              "wash", "stir", "cut", "scoop", "shake", "tighten", "loosen"]
+# 미션마다 더 고를 수 있는 동작 (10-31): 원래 20개는 늘 두고, 그 미션에 맞는 동작(missions.json 의 extra_actions)만 더한다.
+# 씻기처럼 목록에 없는 동작은 'other' 로 나가거나 비슷한 것과 헷갈린다 — EPIC 부엌 목록(씻기·젓기·자르기…)을 더하니 씻기 정확도
+# 45 → 90%(방법 고르기)·65 → 77%(새 구간), 전체는 48.3 → 57.1% / 54.3 → 54.0%. 반대로 목록을 미션 동작만으로 줄이면
+# 우리 녹화 8편에서 53.9 → 50.8% 로 떨어져 줄이지는 않는다 (docs/label_eval.md 실험 7). wash 이후 7개는 이때 붙였다.
+BASE = PRIMITIVES[:PRIMITIVES.index("close") + 1]
+ACTION_DEFS = {
+    "reach": "hand moves toward the object", "grasp": "fingers close on it", "lift": "raise it off the surface",
+    "pull": "pull toward you or out", "push": "push away from you", "twist": "rotate it with the wrist",
+    "press": "press a button, trigger or surface", "squeeze": "squeeze to push contents out", "tear": "tear or rip it",
+    "wipe": "wipe or polish a surface with a cloth or hand", "insert": "snap or fit it into place", "transport": "carry while holding",
+    "place": "set it down", "handover": "give to or take from another person", "release": "fingers open",
+    "pour": "pour liquid or contents out", "fold": "fold cloth or paper", "open": "open a door, drawer, lid, bag or container",
+    "close": "close a door, drawer, lid or container", "wash": "wash, rinse or scrub under water", "stir": "stir or mix with a tool",
+    "cut": "cut, slice, chop or peel", "scoop": "scoop with a spoon, cup or hand", "shake": "shake it back and forth",
+    "tighten": "turn a screw, bolt or cap until tight", "loosen": "turn a screw, bolt or cap to loosen or remove it",
+    "other": "none of the above"}
+
+
+def actions_for(primitives: Optional[list] = None, extra: Optional[list] = None) -> list:
+    """미션 → 고를 수 있는 동작 목록 (PRIMITIVES 순서): 원래 20개 + 미션의 예상 동작·extra_actions."""
+    want = set(BASE) | set(primitives or []) | set(extra or [])
+    return [a for a in PRIMITIVES if a in want]
+
+
+def _schema(actions: list) -> dict:
+    out = copy.deepcopy(SCHEMA)
+    out["properties"]["steps"]["items"]["properties"]["action"]["enum"] = actions
+    return out
 GRASP_TYPES = ["power", "precision", "pinch", "lateral", "two_hand", "none", "unclear"]
 
 SCHEMA = {
@@ -52,10 +82,7 @@ PROMPT = """You label hand-manipulation videos for training robot hands and huma
 Mission: {mission}. Expected primitive order (a hint, not a rule; repetitions are normal): {primitives}.
 The clip is {dur:.1f} seconds long.
 Split the active part of the clip into consecutive steps, ONE manipulation primitive per step, from this set:
-reach (hand moves toward the object), grasp (fingers close on it), lift, pull, push, twist, press (button/trigger), squeeze,
-tear, wipe, insert (snap/fit into place), transport (carry while holding), place (set it down), handover (give to/take from
-another person), release (fingers open), open (a door, drawer, lid, bag or container), close (a door, drawer, lid or
-container), other. Repeat the sequence for every repetition you see.
+{actions}. Repeat the sequence for every repetition you see.
 For each step give start/end seconds (relative to clip start, within 0..{dur:.1f}), an imperative instruction a robot could
 follow, which hand, the grasp type, the objects touched, and whether the step succeeded.
 Also list mistakes (drops, slips, misses, re-grasps, tearing too much) with time and whether they were recovered, and the
@@ -75,19 +102,23 @@ def _hints(mission_id: str = "") -> str:
 
 def understand_clip(clip, mission: str, duration_s: float, client: Optional[MetaClient] = None,
                     model: str = MODEL, primitives: Optional[list] = None, reasoning: Optional[str] = None,
-                    extra: str = "", mission_id: str = "") -> dict:
+                    extra: str = "", mission_id: str = "", actions: Optional[list] = None) -> dict:
     """reasoning: 추론 세기 ('max' 는 이의 신청 다시 보기용 — 느리고 비싸지만 가장 꼼꼼하다). extra: 프롬프트 끝에 붙일 말.
-    mission_id: 같은 미션의 정답 예시를 붙인다 (모델 진화)."""
+    mission_id: 같은 미션의 정답 예시를 붙인다 (모델 진화). actions: 고를 수 있는 동작 (actions_for, 없으면 전체)."""
     c = client or MetaClient()
+    acts = actions or PRIMITIVES
     kw = {"reasoning_effort": reasoning} if reasoning else {}
     out = c.chat_json(model, [{"role": "user", "content": [
         {"type": "text", "text": PROMPT.format(mission=mission, dur=duration_s,
-                                               primitives=" -> ".join(primitives) if primitives else "not given")
+                                               primitives=" -> ".join(primitives) if primitives else "not given",
+                                               actions=", ".join(f"{a} ({ACTION_DEFS[a]})" for a in acts))
                  + _hints(mission_id) + (("\n" + extra) if extra else "")},
         {"type": "video_url", "video_url": {"url": data_url(clip)}}]}],
-        SCHEMA, "manipulation_labels", f"spark understand{' ' + reasoning if reasoning else ''} {Path(clip).name}",
+        _schema(list(acts)), "manipulation_labels", f"spark understand{' ' + reasoning if reasoning else ''} {Path(clip).name}",
         estimate_usd=0.3 if reasoning == "max" else 0.05, **kw)
     for st in out["steps"]:   # 구간 밖 시각은 잘라 둔다
+        if st["action"] not in acts:
+            st["action"] = "other"
         st["start_s"] = float(max(0.0, min(duration_s, st["start_s"])))
         st["end_s"] = float(max(st["start_s"], min(duration_s, st["end_s"])))
     out["steps"] = sorted([s for s in out["steps"] if s["end_s"] > s["start_s"]], key=lambda s: s["start_s"])
@@ -103,7 +134,8 @@ SLOW = 2.0         # 그리고 이만큼 느리게 늘려 보낸다 (모델이 �
 
 def understand_chunked(src, t0: float, t1: float, mission: str, primitives: Optional[list] = None, mission_id: str = "",
                        gain: float = 1.0, work_dir=None, chunk_s: float = CHUNK_S, slow: float = SLOW, side: int = 640,
-                       client: Optional[MetaClient] = None, label=None, offset: float = 0.0, extra: str = "") -> dict:
+                       client: Optional[MetaClient] = None, label=None, offset: float = 0.0, extra: str = "",
+                       actions: Optional[list] = None) -> dict:
     """src 의 [t0, t1] 를 chunk_s 씩 잘라 slow 배 느리게 보내고, 단계·실수 시각을 녹화 시각(초)으로 이어 붙인다.
     단계는 가운데가 그 조각에 든 것만 쓰고, 자른 자리에 맞닿은 같은 동작은 하나로 잇는다.
     돌려주는 형식은 understand_clip 과 같다 (task·environment 는 첫 조각, completed 는 마지막 조각).
@@ -126,7 +158,7 @@ def understand_chunked(src, t0: float, t1: float, mission: str, primitives: Opti
         cuts.append((a, b))
         a = b
     ask = label or (lambda clip, m, dur: understand_clip(clip, m, dur, client=client, primitives=primitives, mission_id=mission_id,
-                                                         extra=extra))
+                                                         extra=extra, actions=actions))
 
     def one(k):
         a, b = cuts[k]

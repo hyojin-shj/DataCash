@@ -193,3 +193,13 @@ def test_ensemble_staggers_cuts_and_fuses(tmp_path):
     assert 14 in seen and 26 in seen                   # 0~7초 · 0~13초 조각 (0.5배속이라 두 배)
     assert [s["action"] for s in u["steps"]] == ["grasp"] and u["runs"] == 3
     assert u["steps"][0]["agree"] == 1.0 and u["steps"][0]["hand"] == "right"
+
+
+def test_mission_actions_add_without_removing():
+    """미션별 동작: 원래 20개는 그대로 두고 미션의 extra_actions 만 더한다 (줄이면 우리 녹화에서 떨어졌다)."""
+    from datacash.understand.spark import BASE, PRIMITIVES, _schema, actions_for
+
+    assert actions_for() == BASE and len(BASE) == 20
+    a = actions_for(["reach", "grasp", "twist", "release"], ["tighten", "loosen"])
+    assert a == BASE + ["tighten", "loosen"] and set(a) <= set(PRIMITIVES)
+    assert _schema(a)["properties"]["steps"]["items"]["properties"]["action"]["enum"] == a

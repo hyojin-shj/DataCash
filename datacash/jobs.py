@@ -229,7 +229,7 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
     steps, mistakes, scene = None, None, None
     if use_api:
         try:
-            from .understand.spark import understand_ensemble
+            from .understand.spark import actions_for, understand_ensemble
 
             src = masked or video
             cap = cv2.VideoCapture(str(src))
@@ -247,7 +247,8 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
             if g > 1.01:
                 report["brightened"] = round(g, 2)
             u = understand_ensemble(src, t0, t0 + min(dur - t0, 90), f"{mission.get('title_en')} ({mission.get('title')})",
-                                    primitives=mission.get("primitives"), mission_id=mission.get("id", ""), gain=g, work_dir=out)
+                                    primitives=mission.get("primitives"), mission_id=mission.get("id", ""), gain=g, work_dir=out,
+                                    actions=actions_for(mission.get("primitives"), mission.get("extra_actions")))
             steps, mistakes = u["steps"], u["mistakes"]     # 시각은 이미 녹화 기준
             report["label_runs"] = u.get("runs", 1)
             scene = {"task": u["task"], "completed": u["completed"], "environment": u["environment"], "model": u["model"]}

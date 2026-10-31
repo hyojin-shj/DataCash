@@ -380,6 +380,7 @@ class HumanStep(BaseModel):
 class HumanIn(BaseModel):
     steps: List[HumanStep] = Field(max_length=300)
     note: str = Field("", max_length=500)
+    seconds: float = Field(0, ge=0)  # 이 녹화를 보며 고친 시간 (화면이 계산) — 너무 짧으면 Spark 라벨을 그대로 저장한 것일 수 있다
     excluded: bool = False          # 정답으로 쓸 수 없는 녹화 (예: 동작이 거의 안 보임) — 채점·학습에서 뺀다
 
 
@@ -991,7 +992,8 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
             rows.append({"sid": sid, "mission": MTITLE.get(s.get("mission"), s.get("mission")), "minutes": s.get("minutes"),
                          "spark_steps": len(json.loads(cert.read_text()).get("steps") or []),
                          "human_steps": len(hj["steps"]) if hj else None, "labeled_at": hj and hj.get("labeled_at"),
-                         "excluded": bool(hj and hj.get("excluded"))})
+                         "excluded": bool(hj and hj.get("excluded")),
+                         "seconds": hj and hj.get("seconds")})
         return {"sessions": rows}
 
     @app.get("/api/admin/label/{sid}")
@@ -1021,7 +1023,8 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
             s["start_s"], s["end_s"] = round(s["start_s"], 2), round(s["end_s"], 2)
             s["objects"] = [o.strip()[:40] for o in s["objects"] if o.strip()]
         HUMAN.mkdir(parents=True, exist_ok=True)
-        out = {"sid": sid, "steps": [] if b.excluded else steps, "note": b.note, "excluded": b.excluded, "labeled_at": datetime.now(timezone.utc).isoformat(timespec="seconds")}
+        out = {"sid": sid, "steps": [] if b.excluded else steps, "note": b.note, "excluded": b.excluded, "seconds": round(b.seconds),
+               "labeled_at": datetime.now(timezone.utc).isoformat(timespec="seconds")}
         (HUMAN / f"{sid}.json").write_text(json.dumps(out, ensure_ascii=False, indent=1))
         return out
 

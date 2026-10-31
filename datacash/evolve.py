@@ -35,8 +35,11 @@ SIDE = 448                # 학습·평가 장면 크기 (긴 쪽)
 WINDOW_S = 1.0            # ④ 새 녹화를 이만큼씩 잘라 묻는다
 AUGMENT = 6               # 학습용 단계 하나에서 장면 3장을 뽑는 구간을 조금씩 바꿔 이만큼 만든다 (데이터가 적을 때 늘리기)
 HARD_WEIGHT = 3           # 이의 신청에서 바로잡은 단계(모델이 틀리기 쉬운 '어려운 문제')는 이만큼 더 넣는다
+FRAMES = 8                # 단계마다 보여 줄 장면 수 (10-31: 3 → 8 — Spark 처럼 흐름을 보게. 첫 장은 단계 바로 앞)
+PRE_S = 0.3               # 첫 장을 단계 시작보다 이만큼 앞에서 — 집기(물체가 면 위에 있다가 손으로) ↔ 놓기(반대)를 가리려면 직전 모습이 필요
+HARD_ACTIONS = {"grasp", "lift", "transport", "place", "release"}   # 서로 가장 많이 헷갈리는 동작 — 학습에 두 배로
 
-QUESTION = """Frames from one step of a robot-learning video (start, middle, end), mission: "{mission}".
+QUESTION = """Frames in time order from one step of a robot-learning video (the first frame is just before the step), mission: "{mission}".
 Gray areas are privacy masks; ignore them. Which manipulation primitive is the hand doing in this step?
 Answer JSON {{"action": one of: {prims}}}."""
 
@@ -231,7 +234,7 @@ def record_agreement(sid: str, mission_id: str, steps: int, agree: int, model: s
 
 # ---------- ① 데이터 쌓기 ----------
 
-def _frames(video, t0: float, t1: float, n: int = 3) -> List[np.ndarray]:
+def _frames(video, t0: float, t1: float, n: int = FRAMES) -> List[np.ndarray]:
     cap = cv2.VideoCapture(str(video))
     out = []
     for k in range(n):
@@ -253,7 +256,16 @@ def labeled_steps(out_dir) -> Optional[dict]:
     c = json.loads(cert.read_text())
     m = c.get("mission")
     mission = (m.get("title_en") or m.get("title") or m.get("id")) if isinstance(m, dict) else (m or "")
-    steps = [{"start_s": s["start_s"], "end_s": s["end_s"], "action": s["action"], "source": "spark+sensors"}
+    mid = m.get("id") if isinstance(m, dict) else ""
+    human = ROOT / "human" / f"{out.name}.json"
+    if human.exists():                           # 운영자가 /label 에서 단 사람 정답이 있으면 그것만 (Spark 라벨은 사람 정답과 40~50% 만 맞아 그대로 배우면 Spark 수준에 머문다)
+        h = json.loads(human.read_text())
+        if h.get("excluded"):
+            return None
+        steps = [{"start_s": s["start_s"], "end_s": s["end_s"], "action": s["action"], "source": "human"}
+                 for s in h["steps"] if s["action"] in PRIMITIVES and s["end_s"] - s["start_s"] >= 0.2]
+        return {"id": out.name, "mission": mission, "mission_id": mid, "video": video, "steps": steps} if steps else None
+    steps =[{"start_s": s["start_s"], "end_s": s["end_s"], "action": s["action"], "source": "spark+sensors"}
              for s in c.get("steps") or [] if s.get("verified") and s.get("action") in PRIMITIVES]
     cross = ROOT / "crosscheck" / f"{out.name}.json"
     if cross.exists():                           # 교차 검증(scripts/crosscheck.py): 더 큰 Spark Open 도 같은 동작이라고 본 단계만
@@ -264,7 +276,6 @@ def labeled_steps(out_dir) -> Optional[dict]:
         if f.get("action") in PRIMITIVES:
             steps.append({"start_s": f["start_s"], "end_s": f["end_s"], "action": f["action"], "source": f.get("source", "appeal")})
     steps = sorted((s for s in steps if s["end_s"] - s["start_s"] >= 0.2), key=lambda s: s["start_s"])
-    mid = m.get("id") if isinstance(m, dict) else ""
     return {"id": out.name, "mission": mission, "mission_id": mid, "video": video, "steps": steps} if steps else None
 
 
@@ -275,6 +286,7 @@ def build_dataset(out_dirs, log=print) -> Optional[dict]:
         return None
     reg = _registry()
     key = sorted(f"{r['id']}:{len(r['steps'])}:{len(corrections(r['id']))}" for r in recs)
+    key.append(f"frames{FRAMES}-pre{PRE_S}-prev-hard2")      # 질문·장면 방식이 바뀌면 다시 만든다
     if reg["datasets"] and reg["datasets"][-1]["key"] == key:
         return reg["datasets"][-1]
     sft = ROOT / "sft"
@@ -286,22 +298,25 @@ def build_dataset(out_dirs, log=print) -> Optional[dict]:
         for k, s in enumerate(r["steps"]):
             d = s["end_s"] - s["start_s"]
             # 평가용은 한 번만, 학습용은 구간을 조금씩 옮겨 여러 벌 (같은 동작의 다른 순간) · 어려운 문제는 더
-            n = 1 if split == "eval" else AUGMENT * (HARD_WEIGHT if s["source"] in ("appeal", "review") else 1)
+            n = 1 if split == "eval" else AUGMENT * (HARD_WEIGHT if s["source"] in ("appeal", "review") else 1) \
+                * (2 if s["action"] in HARD_ACTIONS else 1)
+            prev = r["steps"][k - 1]["action"] if k else None
             for v in range(n):
                 j0 = 0.0 if v == 0 else ((v * 37) % 11 - 5) / 50 * d          # -10% ~ +10% 이동
                 j1 = 0.0 if v == 0 else ((v * 53) % 11 - 5) / 50 * d
                 paths = []
-                for j, f in enumerate(_frames(r["video"], max(0.0, s["start_s"] + j0), s["end_s"] + j1)):
+                for j, f in enumerate(_frames(r["video"], max(0.0, s["start_s"] - PRE_S + j0), s["end_s"] + j1)):
                     p = img / f"{r['id']}_{k}_{v}_{j}.jpg"
                     cv2.imwrite(str(p), f, [cv2.IMWRITE_JPEG_QUALITY, 88])
                     paths.append(f"images/{p.name}")
-                if len(paths) < 3:
+                if len(paths) < FRAMES:
                     continue
                 rows[split].append({"messages": [
                     {"role": "user", "content": [{"type": "image", "path": p} for p in paths]
-                     + [{"type": "text", "text": question(r["mission"], order=mission_primitives(r.get("mission_id", "")))}]},
+                     + [{"type": "text", "text": question(r["mission"], order=mission_primitives(r.get("mission_id", "")), prev=prev)}]},
                     {"role": "assistant", "content": json.dumps({"action": s["action"]})}],
-                    "meta": {"recording": r["id"], "mission_id": r.get("mission_id", ""), "step": k, "variant": v, "source": s["source"]}})
+                    "meta": {"recording": r["id"], "mission_id": r.get("mission_id", ""), "step": k, "variant": v, "source": s["source"],
+                             "prev": prev}})
     for split, rs in rows.items():
         (sft / f"{split}.jsonl").write_text("".join(json.dumps(x, ensure_ascii=False) + "\n" for x in rs))
     # 학습 전 모델은 어떤 녹화도 보지 않았으니 정답 단계 전체(늘린 벌 빼고 한 벌씩)로도 잰다 — 숫자가 덜 흔들린다
@@ -323,20 +338,24 @@ def build_dataset(out_dirs, log=print) -> Optional[dict]:
 
 # ---------- ② 실력 재기 ----------
 
-def question(mission: str, style: Optional[str] = None, order: Optional[List[str]] = None) -> str:
+def question(mission: str, style: Optional[str] = None, order: Optional[List[str]] = None, prev: Optional[str] = "") -> str:
+    """prev: 바로 앞 단계 동작 (None 이면 첫 단계, "" 이면 말하지 않음 — 예전 데이터와 같은 질문)."""
     style = style or STYLE
     extra = STYLES.get(style, "")
     q = QUESTION.format(mission=mission, prims=", ".join(PRIMITIVES))
     if style.startswith("hint") and order:
         q += "\n" + HINT.format(order=" -> ".join(order))
+    if prev != "":
+        q += "\n" + (f"Previous step: {prev}." if prev else "This is the first step.")
     return q + ("\n" + extra if extra else "")
 
 
 def _ask(client, images: List[np.ndarray], mission: str, style: Optional[str] = None, reasoning: str = "low",
-         order: Optional[List[str]] = None) -> Optional[str]:
+         order: Optional[List[str]] = None, text: Optional[str] = None, prev: Optional[str] = "") -> Optional[str]:
+    """text: 질문을 그대로 (학습 데이터에 적힌 것) — 없으면 mission·order·prev 로 만든다."""
     parts = [{"type": "image_url", "image_url": {"url": "data:image/jpeg;base64," +
              base64.b64encode(cv2.imencode(".jpg", f, [cv2.IMWRITE_JPEG_QUALITY, 88])[1]).decode()}} for f in images]
-    parts.append({"type": "text", "text": question(mission, style, order)})
+    parts.append({"type": "text", "text": text or question(mission, style, order, prev)})
     try:
         r = client.chat.completions.create(model="muse-glimmer", max_tokens=300 if reasoning == "low" else 1500, temperature=0,
                                            extra_body={"reasoning_effort": reasoning},
@@ -373,7 +392,7 @@ def evaluate(adapter: Optional[str] = None, split: str = "eval", client=None, lo
             mission = content[-1]["text"].split('mission: "', 1)[-1].split('"', 1)[0]
             y.append(json.loads(x["messages"][1]["content"])["action"])
             order = mission_primitives((x.get("meta") or {}).get("mission_id", ""))
-            p.append(_ask(client, imgs, mission, style, reasoning, order) or "none")
+            p.append(_ask(client, imgs, mission, style, reasoning, order, text=None if style else content[-1]["text"]) or "none")
     finally:
         if started and not keep_running:
             glimmer.stop()
@@ -415,7 +434,8 @@ def label_video(video, mission: str, t0: float = 0.0, client=None, order: Option
     steps: List[dict] = []
     t = t0
     while t < dur - 0.2:
-        a = _ask(client, _frames(video, t, min(dur, t + WINDOW_S)), mission, order=order) or "other"
+        a = _ask(client, _frames(video, max(0.0, t - PRE_S), min(dur, t + WINDOW_S)), mission, order=order,
+                 prev=steps[-1]["action"] if steps else None) or "other"
         if steps and steps[-1]["action"] == a:
             steps[-1]["end_s"] = min(dur, t + WINDOW_S)
         else:

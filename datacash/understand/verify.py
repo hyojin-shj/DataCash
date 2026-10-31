@@ -17,7 +17,8 @@ from typing import List, Optional
 import numpy as np
 
 # 손이 물체에 닿아 있어야 하는 기본 동작 / 소리가 나기 쉬운 기본 동작 (spark.PRIMITIVES)
-GRASPY = {"grasp", "lift", "pull", "push", "twist", "press", "squeeze", "tear", "wipe", "insert", "transport", "place", "handover", "pour", "fold", "open", "close"}
+GRASPY = {"grasp", "lift", "pull", "push", "twist", "press", "squeeze", "tear", "wipe", "insert", "transport", "place", "handover", "pour", "fold", "open", "close",
+          "wash", "stir", "cut", "scoop", "shake", "tighten", "loosen"}
 NOISY = {"place", "tear", "wipe", "insert", "press", "squeeze"}
 
 

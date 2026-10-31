@@ -19,7 +19,14 @@
     "fold": "접기",
     "other": "기타",
     "open": "열기",
-    "close": "닫기"
+    "close": "닫기",
+    "wash": "씻기",
+    "stir": "젓기",
+    "cut": "자르기",
+    "scoop": "뜨기",
+    "shake": "흔들기",
+    "tighten": "조이기",
+    "loosen": "풀기"
   },
   "missions": [
     {
@@ -252,6 +259,9 @@
         "place",
         "release"
       ],
+      "extra_actions": [
+        "shake"
+      ],
       "situations": [
         "식물에",
         "유리에",
@@ -307,6 +317,11 @@
         "place",
         "release"
       ],
+      "extra_actions": [
+        "open",
+        "close",
+        "shake"
+      ],
       "situations": [
         "거의 가득 찬 병",
         "거의 빈 병",
@@ -360,6 +375,12 @@
         "grasp",
         "twist",
         "release"
+      ],
+      "extra_actions": [
+        "open",
+        "close",
+        "tighten",
+        "loosen"
       ],
       "situations": [
         "페트병",
@@ -416,6 +437,9 @@
         "place",
         "release"
       ],
+      "extra_actions": [
+        "wash"
+      ],
       "situations": [
         "안경",
         "접시",
@@ -470,6 +494,9 @@
         "transport",
         "place",
         "release"
+      ],
+      "extra_actions": [
+        "wash"
       ],
       "situations": [
         "포도",
@@ -695,6 +722,10 @@
         "push",
         "release"
       ],
+      "extra_actions": [
+        "close",
+        "insert"
+      ],
       "situations": [
         "작은 상자",
         "큰 상자",
@@ -752,6 +783,9 @@
         "wipe",
         "tear",
         "release"
+      ],
+      "extra_actions": [
+        "cut"
       ],
       "situations": [
         "박스 테이프 (커터 있는 것)",
@@ -1046,6 +1080,12 @@
         "place",
         "release"
       ],
+      "extra_actions": [
+        "open",
+        "close",
+        "shake",
+        "stir"
+      ],
       "situations": [
         "페트병",
         "주전자",
@@ -1163,6 +1203,10 @@
         "twist",
         "release"
       ],
+      "extra_actions": [
+        "tighten",
+        "loosen"
+      ],
       "situations": [
         "십자 드라이버",
         "일자 드라이버",
@@ -1222,6 +1266,10 @@
         "place",
         "push",
         "release"
+      ],
+      "extra_actions": [
+        "open",
+        "close"
       ],
       "situations": [
         "손잡이 있는 서랍",
