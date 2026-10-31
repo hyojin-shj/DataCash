@@ -32,7 +32,10 @@ READY_ACCURACY = 0.8      # 평가용 단계 정확도가 이보다 높아야 Sp
 READY_EXAMPLES = 200      # 그리고 학습한 단계가 이만큼은 있어야
 EVAL_EVERY = 4            # 녹화 4개 중 1개는 평가용 (녹화 단위로 나눠야 점수가 부풀지 않는다)
 SIDE = 448                # 학습·평가 장면 크기 (긴 쪽)
-WINDOW_S = 1.0            # ④ 새 녹화를 이만큼씩 잘라 묻는다
+WINDOW_S = 0.5            # ④ 새 녹화를 이만큼씩 잘라 묻는다 (사람 정답 단계는 평균 1.25초 — 1초 창은 거칠다)
+STAY = 1 - WINDOW_S / 1.25   # 창 하나 뒤에도 같은 동작일 확률 (순서 디코딩) — 평균 단계 길이에서
+ASK_PREV = False          # 질문에 앞 단계 이름을 넣나 — 넣으면 실제로 쓸 때 자기 답을 넣어야 해서 틀림이 이어진다 (10-31 v81: 사람 정답을
+                          # 넣으면 61.5%, 자기 답이면 53.3%). 대신 순서는 순서 디코딩(decode)으로 쓴다
 AUGMENT = 6               # 학습용 단계 하나에서 장면 3장을 뽑는 구간을 조금씩 바꿔 이만큼 만든다 (데이터가 적을 때 늘리기)
 HARD_WEIGHT = 3           # 이의 신청에서 바로잡은 단계(모델이 틀리기 쉬운 '어려운 문제')는 이만큼 더 넣는다
 FRAMES = 8                # 단계마다 보여 줄 장면 수 (10-31: 3 → 8 — Spark 처럼 흐름을 보게. 첫 장은 단계 바로 앞)
@@ -286,7 +289,7 @@ def build_dataset(out_dirs, log=print) -> Optional[dict]:
         return None
     reg = _registry()
     key = sorted(f"{r['id']}:{len(r['steps'])}:{len(corrections(r['id']))}" for r in recs)
-    key.append(f"frames{FRAMES}-pre{PRE_S}-prev-hard2")      # 질문·장면 방식이 바뀌면 다시 만든다
+    key.append(f"frames{FRAMES}-pre{PRE_S}-{'prev' if ASK_PREV else 'noprev'}-hard2")      # 질문·장면 방식이 바뀌면 다시 만든다
     if reg["datasets"] and reg["datasets"][-1]["key"] == key:
         return reg["datasets"][-1]
     sft = ROOT / "sft"
@@ -300,7 +303,7 @@ def build_dataset(out_dirs, log=print) -> Optional[dict]:
             # 평가용은 한 번만, 학습용은 구간을 조금씩 옮겨 여러 벌 (같은 동작의 다른 순간) · 어려운 문제는 더
             n = 1 if split == "eval" else AUGMENT * (HARD_WEIGHT if s["source"] in ("appeal", "review") else 1) \
                 * (2 if s["action"] in HARD_ACTIONS else 1)
-            prev = r["steps"][k - 1]["action"] if k else None
+            prev = (r["steps"][k - 1]["action"] if k else None) if ASK_PREV else ""
             for v in range(n):
                 j0 = 0.0 if v == 0 else ((v * 37) % 11 - 5) / 50 * d          # -10% ~ +10% 이동
                 j1 = 0.0 if v == 0 else ((v * 53) % 11 - 5) / 50 * d
@@ -348,6 +351,44 @@ def question(mission: str, style: Optional[str] = None, order: Optional[List[str
     if prev != "":
         q += "\n" + (f"Previous step: {prev}." if prev else "This is the first step.")
     return q + ("\n" + extra if extra else "")
+
+
+def _dist(r) -> dict:
+    """답(JSON {"action": ...})의 동작 이름이 시작하는 토큰 자리 top_logprobs → {동작: 확률}. 첫 토큰이 여러 동작에 맞으면 나눈다."""
+    toks = (r.choices[0].logprobs.content or []) if getattr(r.choices[0], "logprobs", None) else []
+    txt, k = "", None
+    for i, t in enumerate(toks):
+        if txt.replace(" ", "").endswith('"action":"'):
+            k = i
+            break
+        txt += t.token
+    out = {}
+    for c in (toks[k].top_logprobs or []) if k is not None else []:
+        s = c.token.strip().strip('"')
+        match = [a for a in PRIMITIVES if s and a.startswith(s)]
+        for a in match:
+            out[a] = out.get(a, 0.0) + float(np.exp(c.logprob)) / len(match)
+    if not out:
+        a = json.loads(r.choices[0].message.content or "{}").get("action")
+        out = {a: 1.0} if a in PRIMITIVES else {}
+    z = sum(out.values()) or 1.0
+    return {a: v / z for a, v in out.items()}
+
+
+def _ask_dist(client, images: List[np.ndarray], mission: str, order: Optional[List[str]] = None,
+              model: str = "muse-glimmer") -> dict:
+    """한 구간의 동작 확률 (순서 디코딩용). 실패하면 빈 dict (그 창은 순서 확률만으로)."""
+    parts = [{"type": "image_url", "image_url": {"url": "data:image/jpeg;base64," +
+             base64.b64encode(cv2.imencode(".jpg", f, [cv2.IMWRITE_JPEG_QUALITY, 88])[1]).decode()}} for f in images]
+    parts.append({"type": "text", "text": question(mission, None, order, "")})
+    try:
+        r = client.chat.completions.create(model=model, max_tokens=300, temperature=0, logprobs=True, top_logprobs=5,
+                                           extra_body={"reasoning_effort": "low"},
+                                           response_format={"type": "json_schema", "json_schema": {"name": "step", "schema": SCHEMA}},
+                                           messages=[{"role": "user", "content": parts}])
+        return _dist(r)
+    except Exception:
+        return {}
 
 
 def _ask(client, images: List[np.ndarray], mission: str, style: Optional[str] = None, reasoning: str = "low",
@@ -418,6 +459,69 @@ def evaluate(adapter: Optional[str] = None, split: str = "eval", client=None, lo
     return entry
 
 
+# ---------- 순서 디코딩: 단계마다 Glimmer 확률 × 미션별 '다음 동작' 확률 → 녹화 전체를 한 번에 (Viterbi) ----------
+# Glimmer 가 틀리는 것은 대부분 바로 옆 단계와의 혼동이다 (다가가기 → 들기, 쥐기 → 들기, 당기기 → 쥐기 …, 10-31 v81 평가).
+# 미션은 순서가 거의 정해져 있어서 (reach → grasp → lift → transport → place → release 되풀이) 사람 정답에서 배운 순서로 바로잡는다.
+
+def transitions(exclude=(), alpha: float = 0.5, beta: float = 4.0) -> dict:
+    """사람 정답(human/)에서 미션별 동작 잇기 확률. exclude: 빼 둘 녹화 (평가용). 미션 것이 적으면 전체 것으로 메운다.
+    {'start': {mission: {a: p}}, 'next': {mission: {a: {b: p}}}, 'g_start', 'g_next'} — 미션 '' 는 전체."""
+    seqs = []
+    for p in sorted((ROOT / "human").glob("*.json")) if (ROOT / "human").exists() else []:
+        h = json.loads(p.read_text())
+        if h.get("excluded") or h["sid"] in exclude or not h["steps"]:
+            continue
+        cert = config.DATA / "server" / "out" / h["sid"] / "certificate.json"
+        m = (json.loads(cert.read_text()).get("mission") or {}) if cert.exists() else {}
+        seqs.append((m.get("id", "") if isinstance(m, dict) else "", [s["action"] for s in h["steps"]]))
+    K = len(PRIMITIVES)
+
+    def count(ss):
+        st, nx = {}, {}
+        for seq in ss:
+            st[seq[0]] = st.get(seq[0], 0) + 1
+            for a, b in zip(seq, seq[1:]):
+                nx.setdefault(a, {})[b] = nx.get(a, {}).get(b, 0) + 1
+        return st, nx
+
+    gs, gn = count([q for _, q in seqs])
+    g_start = {a: (gs.get(a, 0) + alpha) / (sum(gs.values()) + alpha * K) for a in PRIMITIVES}
+    g_next = {a: {b: (gn.get(a, {}).get(b, 0) + alpha) / (sum(gn.get(a, {}).values()) + alpha * K) for b in PRIMITIVES} for a in PRIMITIVES}
+    out = {"start": {}, "next": {}, "g_start": g_start, "g_next": g_next}
+    for mid in {m for m, _ in seqs}:
+        ms, mn = count([q for m, q in seqs if m == mid])
+        out["start"][mid] = {a: (ms.get(a, 0) + beta * g_start[a]) / (sum(ms.values()) + beta) for a in PRIMITIVES}
+        out["next"][mid] = {a: {b: (mn.get(a, {}).get(b, 0) + beta * g_next[a][b]) / (sum(mn.get(a, {}).values()) + beta)
+                                for b in PRIMITIVES} for a in PRIMITIVES}
+    return out
+
+
+def decode(dists: List[dict], mission_id: str, trans: dict, weight: float = 1.0, floor: float = 1e-3,
+           stay: Optional[float] = None) -> List[str]:
+    """dists: 단계(또는 창)마다 {동작: 확률} (Glimmer). weight: 순서 확률을 얼마나 믿을지 (0 이면 단계마다 가장 높은 것).
+    stay: 단계가 아니라 고른 창마다일 때, 다음 창도 같은 동작일 확률."""
+    if not dists:
+        return []
+    st = trans["start"].get(mission_id, trans["g_start"])
+    nx = trans["next"].get(mission_id, trans["g_next"])
+    A = PRIMITIVES
+    em = [np.log(np.array([d.get(a, 0.0) for a in A]) + floor) for d in dists]
+    D = em[0] + weight * np.log([st[a] for a in A])
+    T = np.array([[nx[a][b] for b in A] for a in A])
+    if stay is not None:
+        T = stay * np.eye(len(A)) + (1 - stay) * T
+    T = weight * np.log(T)
+    back = []
+    for e in em[1:]:
+        cand = D[:, None] + T
+        back.append(cand.argmax(0))
+        D = cand.max(0) + e
+    path = [int(D.argmax())]
+    for b in reversed(back):
+        path.append(int(b[path[-1]]))
+    return [A[k] for k in reversed(path)]
+
+
 # ---------- ④ 쓰기 ----------
 
 def ready_adapter() -> Optional[str]:
@@ -426,21 +530,22 @@ def ready_adapter() -> Optional[str]:
     return good[-1]["adapter"] if good else None
 
 
-def label_video(video, mission: str, t0: float = 0.0, client=None, order: Optional[List[str]] = None) -> List[dict]:
-    """학습한 Glimmer 로 새 녹화에 단계 라벨: WINDOW_S 마다 장면 3장을 묻고 같은 동작이 이어지면 한 단계로."""
+def label_video(video, mission: str, t0: float = 0.0, client=None, order: Optional[List[str]] = None, mission_id: str = "",
+                model: str = "muse-glimmer", trans: Optional[dict] = None) -> List[dict]:
+    """학습한 Glimmer 로 새 녹화에 단계 라벨: WINDOW_S 마다 장면을 물어 동작 확률을 받고, 미션 순서와 함께 녹화 전체를
+    한 번에 정한다 (decode). 같은 동작이 이어진 창은 한 단계로."""
     cap = cv2.VideoCapture(str(video))
     dur = cap.get(7) / (cap.get(5) or 30)
     cap.release()
+    ts = list(np.arange(t0, dur - 0.2, WINDOW_S))
+    dists = [_ask_dist(client, _frames(video, max(0.0, t - PRE_S), min(dur, t + WINDOW_S)), mission, order, model) for t in ts]
+    path = decode(dists, mission_id, trans or transitions(), stay=STAY)
     steps: List[dict] = []
-    t = t0
-    while t < dur - 0.2:
-        a = _ask(client, _frames(video, max(0.0, t - PRE_S), min(dur, t + WINDOW_S)), mission, order=order,
-                 prev=steps[-1]["action"] if steps else None) or "other"
+    for t, a in zip(ts, path):
         if steps and steps[-1]["action"] == a:
-            steps[-1]["end_s"] = min(dur, t + WINDOW_S)
+            steps[-1]["end_s"] = float(min(dur, t + WINDOW_S))
         else:
-            steps.append({"action": a, "start_s": t, "end_s": min(dur, t + WINDOW_S)})
-        t += WINDOW_S
+            steps.append({"action": a, "start_s": float(t), "end_s": float(min(dur, t + WINDOW_S))})
     return [s for s in steps if s["action"] != "other"]
 
 

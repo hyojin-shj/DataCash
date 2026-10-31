@@ -45,7 +45,7 @@ def test_dataset_eval_and_ready(tmp_path, monkeypatch):
     assert ds["train_steps"] == (a + hard + 2 * a) + 2 * (a + 2 * a + 2 * a) and ds["from_appeals"] == hard
     rows = [json.loads(l) for l in (tmp_path / "evolve" / "sft" / "train.jsonl").read_text().splitlines()]
     assert [c["type"] for c in rows[0]["messages"][0]["content"]] == ["image"] * evolve.FRAMES + ["text"]
-    assert "This is the first step." in rows[0]["messages"][0]["content"][-1]["text"]
+    assert "Previous step" not in rows[0]["messages"][0]["content"][-1]["text"]      # 앞 단계는 질문이 아니라 순서 디코딩으로 (ASK_PREV)
     assert sum(json.loads(r["messages"][1]["content"]) == {"action": "lift"} for r in rows) == hard   # 바로잡은 정답
     fw = [json.loads(l) for l in evolve.export_fireworks("train").read_text().splitlines()]
     assert fw[0]["messages"][0]["content"][0]["image_url"]["url"].startswith("data:image/jpeg;base64,")
@@ -62,8 +62,30 @@ def test_dataset_eval_and_ready(tmp_path, monkeypatch):
     assert tuned["accuracy"] == 1.0 and tuned["ready"] and evolve.ready_adapter() == str(adapter)
 
 
-def test_label_video_merges_windows(tmp_path):
-    _recording(tmp_path / "r")
+def test_label_video_merges_windows(tmp_path, monkeypatch):
+    monkeypatch.setattr(evolve, "ROOT", tmp_path / "evolve")          # 사람 정답 없음 → 순서 확률은 고르게
+    _recording(tmp_path / "r")                                         # 4초 영상 → WINDOW_S 창 여러 개
+    n = len(np.arange(0, 4.0 - 0.2, evolve.WINDOW_S))
     steps = evolve.label_video(tmp_path / "r" / "masked_swap.mp4", "pick cup",
-                               client=FakeGlimmer(["reach", "grasp", "grasp"]))
-    assert [s["action"] for s in steps] == ["reach", "grasp"] and steps[1]["end_s"] >= 2.9
+                               client=FakeGlimmer(["reach", "reach"] + ["grasp"] * (n - 2)))
+    assert [s["action"] for s in steps] == ["reach", "grasp"] and steps[1]["end_s"] >= 3.5
+
+
+def test_sequence_decode_fixes_neighbour_confusion(tmp_path, monkeypatch):
+    """순서 디코딩: 사람 정답에서 배운 '다음 동작' 확률로 애매한 단계를 바로잡는다 (평가 녹화는 빼고 배운다)."""
+    monkeypatch.setattr(evolve, "ROOT", tmp_path / "evolve")
+    monkeypatch.setattr(evolve.config, "DATA", tmp_path)
+    (tmp_path / "evolve" / "human").mkdir(parents=True)
+    seq = ["reach", "grasp", "lift", "place", "release"] * 3
+    for k in range(4):
+        sid = f"r{k}"
+        (tmp_path / "evolve" / "human" / f"{sid}.json").write_text(json.dumps(
+            {"sid": sid, "steps": [{"start_s": i, "end_s": i + 1, "action": a} for i, a in enumerate(seq)]}))
+        (tmp_path / "server" / "out" / sid).mkdir(parents=True)
+        (tmp_path / "server" / "out" / sid / "certificate.json").write_text(json.dumps({"mission": {"id": "pick"}}))
+    trans = evolve.transitions(exclude={"r3"})
+    # 쥐기 단계에서 Glimmer 가 들기를 조금 더 높게 봤다 → 다가가기 다음은 쥐기라서 바로잡힌다
+    dists = [{"reach": 0.9}, {"lift": 0.55, "grasp": 0.45}, {"lift": 0.9}, {"place": 0.8}, {"release": 0.9}]
+    assert evolve.decode(dists, "pick", trans, weight=0) == ["reach", "lift", "lift", "place", "release"]
+    assert evolve.decode(dists, "pick", trans, weight=1) == ["reach", "grasp", "lift", "place", "release"]
+    assert evolve.decode(dists, "모르는 미션", trans, weight=1)[1] == "grasp"        # 미션을 모르면 전체 순서로
