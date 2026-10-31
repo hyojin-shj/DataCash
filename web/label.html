@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DataCash · 사람 정답</title>
+<link rel="icon" href="/static/favicon.png">
+<style>
+  :root {
+    --primary: #FF5F5F; --primary-dark: #E84646; --primary-soft: #FFECEC;
+    --accent: #FFAF5F; --accent-soft: #FFF3E3;
+    --ink: #333333; --sub: #6E6E73; --line: #ECECEE; --bg: #FAFAFB; --card: #FFFFFF;
+    --ok: #16A36B; --ok-soft: #E6F7EF; --blue: #2E9BF0;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", sans-serif;
+         color: var(--ink); background: var(--bg); line-height: 1.5; font-size: 14px; }
+  a { color: var(--primary-dark); text-decoration: none; }
+  .app { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+  aside { background: #fff; border-right: 1px solid var(--line); padding: 18px 12px; height: 100vh; position: sticky; top: 0; overflow-y: auto; }
+  aside h2 { font-size: 15px; margin: 0 8px 4px; }
+  aside .prog { margin: 0 8px 14px; color: var(--sub); font-size: 12px; }
+  aside button { display: block; width: 100%; border: 0; background: none; text-align: left; padding: 8px 10px; border-radius: 10px;
+                 font: inherit; cursor: pointer; color: var(--ink); }
+  aside button:hover { background: var(--bg); }
+  aside button.on { background: var(--primary-soft); }
+  aside button small { display: block; color: var(--sub); font-size: 12px; }
+  aside button .ok { color: var(--ok); font-weight: 700; }
+  main { padding: 20px 26px 60px; min-width: 0; max-width: 1200px; }
+  h1 { font-size: 20px; margin: 0 0 2px; }
+  .lead { color: var(--sub); margin: 0 0 14px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 12px; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  video { width: 100%; max-height: 52vh; background: #000; border-radius: 10px; display: block; }
+  .btn { border: 1px solid var(--line); background: #fff; border-radius: 9px; padding: 6px 12px; font: inherit; cursor: pointer; }
+  .btn:hover { background: var(--bg); }
+  .btn.main { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 700; }
+  .btn.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .now { font-variant-numeric: tabular-nums; font-weight: 700; min-width: 84px; }
+  .tl { position: relative; height: 26px; background: #F3F3F5; border-radius: 6px; margin-top: 6px; cursor: pointer; overflow: hidden; }
+  .tl .seg { position: absolute; top: 2px; bottom: 2px; border-radius: 4px; font-size: 11px; color: #fff; padding: 0 4px;
+             overflow: hidden; white-space: nowrap; line-height: 22px; border-right: 1px solid #fff; }
+  .tl .seg.sel { outline: 2px solid var(--ink); z-index: 2; }
+  .tl .head { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--primary-dark); z-index: 3; pointer-events: none; }
+  .tlname { font-size: 12px; color: var(--sub); margin-top: 8px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 4px 6px; border-bottom: 1px solid var(--line); text-align: left; }
+  th { font-size: 12px; color: var(--sub); font-weight: 600; }
+  tr.sel td { background: var(--accent-soft); }
+  td input[type=number] { width: 78px; } td input.obj { width: 100%; min-width: 120px; }
+  input, select { font: inherit; padding: 3px 6px; border: 1px solid var(--line); border-radius: 7px; background: #fff; }
+  .keys { color: var(--sub); font-size: 12px; }
+  .keys kbd { background: #fff; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 0 5px; font-size: 11px; }
+  .msg { font-size: 13px; } .msg.ok { color: var(--ok); } .msg.bad { color: var(--primary-dark); }
+  .gate { max-width: 360px; margin: 18vh auto; }
+  @media (max-width: 760px) { .app { grid-template-columns: 1fr; } aside { position: static; height: auto; } }
+</style>
+</head>
+<body>
+<div class="gate card" id="gate" hidden>
+  <b>운영자 토큰</b>
+  <div class="row" style="margin-top:8px"><input id="tok" type="password" style="flex:1"><button class="btn main" onclick="enter()">들어가기</button></div>
+</div>
+<div class="app" id="app" hidden>
+  <aside>
+    <h2>사람 정답</h2>
+    <div class="prog" id="prog"></div>
+    <div id="list"></div>
+    <div style="margin:16px 8px 0;font-size:12px"><a href="/admin">← 운영자 화면</a></div>
+  </aside>
+  <main>
+    <div id="empty"><h1>녹화를 고르세요</h1><p class="lead">왼쪽에서 녹화를 고르면 영상과 Spark 라벨이 나와요. Spark 라벨을 고쳐서 정답을 만들어요.</p></div>
+    <div id="work" hidden>
+      <div class="row" style="justify-content:space-between">
+        <div><h1 id="title"></h1><p class="lead" id="sub"></p></div>
+        <div class="row"><span class="msg" id="msg"></span><button class="btn main" onclick="save()">저장 (⌘S)</button></div>
+      </div>
+      <div class="card">
+        <video id="v" preload="auto" playsinline></video>
+        <div class="row" style="margin-top:8px">
+          <button class="btn" onclick="toggle()">▶︎ / ❚❚</button>
+          <span class="now" id="now">0.00초</span>
+          <span style="color:var(--sub)">속도</span>
+          <button class="btn sp" data-r="0.25">0.25</button><button class="btn sp" data-r="0.5">0.5</button>
+          <button class="btn sp on" data-r="1">1</button><button class="btn sp" data-r="2">2</button>
+        </div>
+        <div class="tlname">사람 정답 (고치는 줄)</div><div class="tl" id="tl-h"></div>
+        <div class="tlname">Spark 라벨 (참고)</div><div class="tl" id="tl-s"></div>
+        <p class="keys" style="margin:10px 0 0">
+          <kbd>Space</kbd> 재생·멈춤 · <kbd>←</kbd><kbd>→</kbd> 0.1초 (<kbd>Shift</kbd> 1초) ·
+          <kbd>N</kbd> 지금 시각에서 새 단계 (지금 단계는 여기서 끝) · <kbd>S</kbd> 고른 단계 시작 = 지금 · <kbd>E</kbd> 끝 = 지금 ·
+          <kbd>↑</kbd><kbd>↓</kbd> 단계 고르기 · <kbd>1</kbd>~<kbd>9</kbd> 동작 바꾸기 · <kbd>Del</kbd> 지우기
+        </p>
+      </div>
+      <div class="card">
+        <div class="row" style="justify-content:space-between;margin-bottom:6px">
+          <b>단계 <span id="cnt"></span></b>
+          <div class="row"><button class="btn" onclick="fromSpark()">Spark 라벨로 다시 시작</button><button class="btn" onclick="clearAll()">모두 지우기</button></div>
+        </div>
+        <table><thead><tr><th></th><th>시작</th><th>끝</th><th>동작</th><th>물체</th><th></th></tr></thead><tbody id="rows"></tbody></table>
+        <div class="row" style="margin-top:10px"><input id="note" placeholder="메모 (예: 손이 자주 화면 밖)" style="flex:1"></div>
+      </div>
+      <div class="card keys" id="guide"></div>
+    </div>
+  </main>
+</div>
+<script>
+let token = new URLSearchParams(location.search).get("token") || "";
+try { token = token || sessionStorage.getItem("dc_admin_token") || ""; } catch (e) {}
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const api = async (path, opt) => {
+  const r = await fetch(path + (path.includes("?") ? "&" : "?") + "token=" + encodeURIComponent(token), opt);
+  if (r.status === 401 || r.status === 403) throw new Error("token");
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+};
+const COLORS = ["#2E9BF0", "#FF5F5F", "#16A36B", "#FFAF5F", "#8E5CF7", "#00A3A3", "#D94F9B", "#7A8B00", "#B5651D", "#5C6BC0",
+                "#E84646", "#0F8A5F", "#C77700", "#6A3FC9", "#008080", "#A0306E", "#556B2F", "#8B4513", "#3949AB", "#777"];
+const GUIDE = {
+  reach: "손이 물체 쪽으로 움직이기 시작 ~ 물체에 닿기 직전", grasp: "닿은 순간 ~ 손가락이 물체를 감싸 쥐기까지", lift: "쥔 물체가 바닥·면에서 떨어져 올라가는 동안",
+  transport: "들고 다른 곳으로 옮기는 동안", place: "물체를 내려 면에 닿게 하기까지", release: "손가락을 펴서 물체에서 손이 떨어지기까지",
+  pull: "몸 쪽으로 당기기 (티슈 뽑기·서랍)", push: "몸 바깥쪽으로 밀기", wipe: "면을 문지르는 동안", open: "뚜껑·문·서랍 열기", close: "닫기",
+  other: "어디에도 안 맞을 때만 (되도록 쓰지 않기)"
+};
+let SES = [], cur = null, A = [], steps = [], sel = -1, dirty = false;
+const v = document.getElementById("v");
+
+async function enter() { token = document.getElementById("tok").value.trim(); start(); }
+async function start() {
+  try { await loadList(); } catch (e) { document.getElementById("gate").hidden = false; document.getElementById("app").hidden = true; return; }
+  try { sessionStorage.setItem("dc_admin_token", token); } catch (e) {}
+  document.getElementById("gate").hidden = true; document.getElementById("app").hidden = false;
+  const want = new URLSearchParams(location.search).get("sid");
+  if (want) open_(want);
+}
+async function loadList() {
+  SES = (await api("/api/admin/label")).sessions;
+  const done = SES.filter(s => s.human_steps != null).length;
+  document.getElementById("prog").textContent = `정답 단 녹화 ${done} / ${SES.length}편 · 목표 10편`;
+  document.getElementById("list").innerHTML = SES.map(s => `<button data-sid="${esc(s.sid)}" class="${cur && cur.sid === s.sid ? "on" : ""}">
+    ${s.human_steps != null ? '<span class="ok">✓</span> ' : ""}${esc(s.mission)}
+    <small>${esc(s.sid)} · ${s.human_steps != null ? "정답 " + s.human_steps + "단계" : "Spark " + s.spark_steps + "단계"}</small></button>`).join("");
+  document.querySelectorAll("#list button").forEach(b => b.onclick = () => open_(b.dataset.sid));
+}
+async function open_(sid) {
+  if (dirty && !confirm("저장하지 않은 고침이 있어요. 버릴까요?")) return;
+  cur = await api("/api/admin/label/" + encodeURIComponent(sid));
+  A = cur.actions;
+  steps = (cur.human ? cur.human.steps : cur.spark).map(s => ({start_s: +s.start_s, end_s: +s.end_s, action: s.action, objects: s.objects || []}));
+  document.getElementById("note").value = cur.human ? cur.human.note || "" : "";
+  sel = steps.length ? 0 : -1; dirty = false;
+  document.getElementById("empty").hidden = true; document.getElementById("work").hidden = false;
+  document.getElementById("title").textContent = cur.mission + " · " + sid;
+  document.getElementById("sub").textContent = cur.human ? `사람 정답 저장됨 (${cur.human.labeled_at})` : "아직 사람 정답 없음 — Spark 라벨에서 시작해요";
+  v.src = `/api/admin/sessions/${encodeURIComponent(sid)}/video?kind=swap&token=${encodeURIComponent(token)}`;
+  document.getElementById("guide").innerHTML = "<b>동작 기준</b><br>" + Object.entries(GUIDE).map(([k, g]) =>
+    `<b>${esc(name(k))}</b> (${k}) — ${esc(g)}`).join("<br>") + "<br>단계 사이 틈은 비워 둬도 돼요 (채점에서 빠짐). 경계는 0.1초 단위로 맞추면 충분해요.";
+  setMsg(""); render(); loadList();
+}
+const name = a => (A.find(x => x[0] === a) || [a, a])[1];
+const color = a => COLORS[Math.max(0, A.findIndex(x => x[0] === a)) % COLORS.length];
+const dur = () => v.duration || Math.max(1, ...steps.map(s => s.end_s), ...(cur ? cur.spark.map(s => s.end_s) : []));
+
+function render() {
+  steps.sort((a, b) => a.start_s - b.start_s);
+  document.getElementById("cnt").textContent = `(${steps.length}개)`;
+  document.getElementById("rows").innerHTML = steps.map((s, i) => `<tr class="${i === sel ? "sel" : ""}" data-i="${i}">
+    <td><button class="btn" data-go="${i}" title="여기로">▶︎</button></td>
+    <td><input type="number" step="0.1" min="0" value="${s.start_s.toFixed(2)}" data-k="start_s"></td>
+    <td><input type="number" step="0.1" min="0" value="${s.end_s.toFixed(2)}" data-k="end_s"></td>
+    <td><select data-k="action">${A.map(([a, ko], j) => `<option value="${a}" ${a === s.action ? "selected" : ""}>${j < 9 ? (j + 1) + ". " : ""}${esc(ko)} (${a})</option>`).join("")}</select></td>
+    <td><input class="obj" value="${esc(s.objects.join(", "))}" data-k="objects" placeholder="cup, table"></td>
+    <td><button class="btn" data-del="${i}">지우기</button></td></tr>`).join("");
+  document.querySelectorAll("#rows tr").forEach(tr => {
+    const i = +tr.dataset.i;
+    tr.onclick = () => { sel = i; paint(); };
+    tr.querySelectorAll("[data-k]").forEach(el => el.onchange = () => {
+      const k = el.dataset.k;
+      steps[i][k] = k === "objects" ? el.value.split(",").map(x => x.trim()).filter(Boolean) : k === "action" ? el.value : Math.max(0, +el.value);
+      mark(); render();
+    });
+  });
+  document.querySelectorAll("[data-go]").forEach(b => b.onclick = e => { e.stopPropagation(); sel = +b.dataset.go; v.currentTime = steps[sel].start_s; paint(); });
+  document.querySelectorAll("[data-del]").forEach(b => b.onclick = e => { e.stopPropagation(); del(+b.dataset.del); });
+  paint();
+}
+function bar(el, list, editable) {
+  const d = dur();
+  el.innerHTML = list.map((s, i) => `<div class="seg ${editable && i === sel ? "sel" : ""}" style="left:${s.start_s / d * 100}%;width:${(s.end_s - s.start_s) / d * 100}%;background:${color(s.action)}" title="${esc(name(s.action))} ${s.start_s.toFixed(1)}–${s.end_s.toFixed(1)}초">${esc(name(s.action))}</div>`).join("")
+    + `<div class="head" style="left:${v.currentTime / d * 100}%"></div>`;
+}
+function paint() {
+  bar(document.getElementById("tl-h"), steps, true);
+  bar(document.getElementById("tl-s"), cur ? cur.spark.map(s => ({...s, start_s: +s.start_s, end_s: +s.end_s})) : [], false);
+  document.querySelectorAll("#rows tr").forEach(tr => tr.classList.toggle("sel", +tr.dataset.i === sel));
+  document.getElementById("now").textContent = v.currentTime.toFixed(2) + "초";
+}
+["tl-h", "tl-s"].forEach(id => document.getElementById(id).onclick = e => {
+  const r = e.currentTarget.getBoundingClientRect(), t = (e.clientX - r.left) / r.width * dur();
+  v.currentTime = t;
+  if (id === "tl-h") { const k = steps.findIndex(s => s.start_s <= t && t < s.end_s); if (k >= 0) sel = k; }
+  paint();
+});
+v.ontimeupdate = paint;
+(function tick() { if (!v.paused) paint(); requestAnimationFrame(tick); })();
+document.querySelectorAll(".sp").forEach(b => b.onclick = () => {
+  v.playbackRate = +b.dataset.r; document.querySelectorAll(".sp").forEach(x => x.classList.toggle("on", x === b));
+});
+function toggle() { v.paused ? v.play() : v.pause(); }
+function mark() { dirty = true; setMsg("저장 안 됨", "bad"); }
+function setMsg(t, k) { const m = document.getElementById("msg"); m.textContent = t; m.className = "msg " + (k || ""); }
+function del(i) { steps.splice(i, 1); sel = Math.min(sel, steps.length - 1); mark(); render(); }
+function split() {
+  const t = +v.currentTime.toFixed(2), k = steps.findIndex(s => s.start_s < t && t < s.end_s);
+  if (k >= 0) {
+    const old = steps[k].end_s; steps[k].end_s = t;
+    steps.push({start_s: t, end_s: old, action: steps[k].action, objects: [...steps[k].objects]});
+  } else {
+    const nxt = steps.filter(s => s.start_s > t).map(s => s.start_s);
+    const prev = steps.filter(s => s.end_s <= t).pop();
+    steps.push({start_s: t, end_s: Math.min(t + 1, nxt.length ? Math.min(...nxt) : dur()), action: prev ? prev.action : "reach", objects: prev ? [...prev.objects] : []});
+  }
+  steps.sort((a, b) => a.start_s - b.start_s);
+  sel = steps.findIndex(s => s.start_s === t); mark(); render();
+}
+function fromSpark() { if (!confirm("지금 단계를 지우고 Spark 라벨로 다시 시작할까요?")) return;
+  steps = cur.spark.map(s => ({start_s: +s.start_s, end_s: +s.end_s, action: s.action, objects: s.objects || []})); sel = 0; mark(); render(); }
+function clearAll() { if (!confirm("단계를 모두 지울까요?")) return; steps = []; sel = -1; mark(); render(); }
+async function save() {
+  if (!cur) return;
+  const bad = steps.find(s => !(s.end_s > s.start_s));
+  if (bad) { setMsg(`끝이 시작보다 늦어야 해요 (${bad.start_s.toFixed(2)}초 단계)`, "bad"); return; }
+  try {
+    const r = await api("/api/admin/label/" + encodeURIComponent(cur.sid), {method: "PUT", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({steps, note: document.getElementById("note").value})});
+    cur.human = r; dirty = false; setMsg(`저장했어요 · ${r.steps.length}단계`, "ok");
+    document.getElementById("sub").textContent = `사람 정답 저장됨 (${r.labeled_at})`;
+    loadList();
+  } catch (e) { setMsg("저장 못 함: " + e.message, "bad"); }
+}
+document.addEventListener("keydown", e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === "s") { e.preventDefault(); save(); return; }
+  const tag = (e.target.tagName || "").toLowerCase();
+  if (tag === "input" || tag === "select" || tag === "textarea" || !cur) return;
+  const s = steps[sel], t = +v.currentTime.toFixed(2);
+  if (e.key === " ") { e.preventDefault(); toggle(); }
+  else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+    e.preventDefault(); v.pause(); v.currentTime = Math.max(0, v.currentTime + (e.key === "ArrowLeft" ? -1 : 1) * (e.shiftKey ? 1 : 0.1)); paint(); }
+  else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+    e.preventDefault(); if (!steps.length) return; sel = Math.max(0, Math.min(steps.length - 1, sel + (e.key === "ArrowUp" ? -1 : 1)));
+    v.currentTime = steps[sel].start_s; paint(); }
+  else if (e.key === "n" || e.key === "N") split();
+  else if ((e.key === "s" || e.key === "S") && s) { s.start_s = t; mark(); render(); }
+  else if ((e.key === "e" || e.key === "E") && s) { s.end_s = t; mark(); render(); }
+  else if ((e.key === "Delete" || e.key === "Backspace") && s) { e.preventDefault(); del(sel); }
+  else if (/^[1-9]$/.test(e.key) && s && A[+e.key - 1]) { s.action = A[+e.key - 1][0]; mark(); render(); }
+});
+window.addEventListener("beforeunload", e => { if (dirty) { e.preventDefault(); e.returnValue = ""; } });
+start();
+</script>
+</body>
+</html>

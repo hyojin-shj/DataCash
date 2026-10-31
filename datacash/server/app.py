@@ -67,6 +67,7 @@ from ..appeals import Appeals
 from ..payout import Payouts
 from ..requests import Requests, eligible
 from ..people import People, embed_jpeg
+from ..understand.spark import PRIMITIVES
 
 LANGS = ("en", "ko", "ja", "zh-CN", "es")
 
@@ -367,6 +368,18 @@ class PersonIn(BaseModel):
 
 class FaceIn(BaseModel):
     photos_b64: List[str] = Field(min_length=1, max_length=3)
+
+
+class HumanStep(BaseModel):
+    start_s: float = Field(ge=0)
+    end_s: float = Field(gt=0)
+    action: str
+    objects: List[str] = Field(default_factory=list, max_length=5)
+
+
+class HumanIn(BaseModel):
+    steps: List[HumanStep] = Field(max_length=300)
+    note: str = Field("", max_length=500)
 
 
 class DonorIn(BaseModel):
@@ -954,6 +967,61 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
         if not p.exists():
             raise HTTPException(404, "영상이 없음 (원본은 처리 후 지워졌을 수 있음)")
         return FileResponse(p, media_type="video/mp4")
+
+    # ---- 사람 정답: 운영자가 녹화를 보며 단계를 직접 단다 (/label). 우리 녹화의 진짜 정확도 재기 · Glimmer 학습 정답 ----
+    HUMAN = config.DATA / "evolve" / "human"
+    MTITLE = {m["id"]: m["title"] for m in json.loads((config.ROOT / "datacash" / "missions.json").read_text())["missions"]}
+
+    @app.get("/label", response_class=HTMLResponse)
+    def label_page():
+        return (WEB / "label.html").read_text()
+
+    @app.get("/api/admin/label")
+    def label_list(token: str = Query("")):
+        admin_auth(token)
+        rows = []
+        for p in sorted((root / "status").glob("*.json"), reverse=True):
+            s, sid = json.loads(p.read_text()), p.stem
+            cert = root / "out" / sid / "certificate.json"
+            if s.get("state") != "done" or not cert.exists() or not (root / "out" / sid / "masked_swap.mp4").exists():
+                continue
+            h = HUMAN / f"{sid}.json"
+            hj = json.loads(h.read_text()) if h.exists() else None
+            rows.append({"sid": sid, "mission": MTITLE.get(s.get("mission"), s.get("mission")), "minutes": s.get("minutes"),
+                         "spark_steps": len(json.loads(cert.read_text()).get("steps") or []),
+                         "human_steps": len(hj["steps"]) if hj else None, "labeled_at": hj and hj.get("labeled_at")})
+        return {"sessions": rows}
+
+    @app.get("/api/admin/label/{sid}")
+    def label_get(sid: str, token: str = Query("")):
+        admin_auth(token)
+        cert = root / "out" / sid / "certificate.json"
+        if not SID.match(sid) or not cert.exists():
+            raise HTTPException(404)
+        c = json.loads(cert.read_text())
+        h = HUMAN / f"{sid}.json"
+        names = json.loads((config.ROOT / "datacash" / "missions.json").read_text())["primitives_ko"]
+        m = c.get("mission") or {}
+        m = m if isinstance(m, dict) else {"id": m}
+        return {"sid": sid, "mission": " · ".join(x for x in (MTITLE.get(m.get("id"), m.get("title") or m.get("id")), m.get("situation")) if x), "actions": [[a, names.get(a, a)] for a in PRIMITIVES],
+                "spark": [{k: s.get(k) for k in ("start_s", "end_s", "action", "objects")} for s in c.get("steps") or []],
+                "human": json.loads(h.read_text()) if h.exists() else None}
+
+    @app.put("/api/admin/label/{sid}")
+    def label_put(sid: str, b: HumanIn, token: str = Query("")):
+        admin_auth(token)
+        if not SID.match(sid) or not (root / "out" / sid / "certificate.json").exists():
+            raise HTTPException(404)
+        steps = sorted((s.model_dump() for s in b.steps), key=lambda s: s["start_s"])
+        for s in steps:
+            if s["action"] not in PRIMITIVES or s["end_s"] <= s["start_s"]:
+                raise HTTPException(400, f"단계가 맞지 않음: {s}")
+            s["start_s"], s["end_s"] = round(s["start_s"], 2), round(s["end_s"], 2)
+            s["objects"] = [o.strip()[:40] for o in s["objects"] if o.strip()]
+        HUMAN.mkdir(parents=True, exist_ok=True)
+        out = {"sid": sid, "steps": steps, "note": b.note, "labeled_at": datetime.now(timezone.utc).isoformat(timespec="seconds")}
+        (HUMAN / f"{sid}.json").write_text(json.dumps(out, ensure_ascii=False, indent=1))
+        return out
 
     @app.get("/api/admin/costs")
     def admin_costs(token: str = Query("")):
