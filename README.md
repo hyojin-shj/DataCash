@@ -50,6 +50,8 @@ No clapping required: phone↔watch clock round-trips, an 18–20 kHz acoustic b
 We moved Goel, Wobbrock & Patel's *GripSense* (UIST 2012) to the wrist. The watch buzzes briefly; the tighter you grip, the more the hand absorbs it — high-frequency gyro energy drops while 4–12 Hz finger tremor rises. A per-person decision tree, trained on self-rated levels (release · light · normal · tight, no scale needed), outputs grip level 0–3 (`datacash/touch/`). Measured on a Galaxy Watch4 (IMU capped at 100 Hz, 1 calibration, train on round 1 → test on round 2 and back): a 25-tree forest with 2-second smoothing reaches 59% on 4 levels (chance 25%, tight 100%); while the video sees the hand touching an object, a 50-tree regression forest gives grip as a 0–100 score (shown as e.g. “mid (57)”) — cut into low · mid · high it is right 88% of the time, mean score error 15 points.
 Heart rate, beat-to-beat intervals and skin temperature come from the Samsung Health Sensor SDK (`docs/samsung_health_sdk.md`).
 
+![Grip calibration once at the start → personal model → grip scored 0–100 in every recording; on the unseen round 97% light read as low, 56% normal as mid, 95% tight as high](docs/grip_quality.en.png)
+
 ### 4. Plain-language requests → missions
 A buyer types what they need; Muse Spark (structured output) designs the missions (actions, objects, conditions to vary), eligibility (age, gender) and sensor packs, and the server fits a quote to the budget. Once confirmed, the missions appear only for eligible contributors — the request *is* the collection distribution.
 
