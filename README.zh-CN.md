@@ -1,6 +1,6 @@
 [English](README.md) · [한국어](README.ko.md) · [Español](README.es.md) · **中文** · [日本語](README.ja.md)
 
-[![DataCash 视频 (2:35)](docs/demo_video.jpg)](docs/DataCash_3min.mp4)
+[![DataCash 视频 (2:35)](docs/demo_video.jpg)](https://youtu.be/gw3gqoHlFvA)
 
 # DataCash
 
