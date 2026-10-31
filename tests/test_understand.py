@@ -116,7 +116,7 @@ def test_second_opinion_relabels_and_feeds_examples(tmp_path, monkeypatch):
     assert steps[2]["action"] == "tear" and steps[2]["relabeled_from"] == "pull"
     assert evolve.corrections("20261029_120000")[0]["source"] == "review"
     assert "reach 1.0s -> grasp 1.0s" in evolve.gold_examples("pull_tissue") and evolve.gold_examples("twist_cap") == ""
-    assert "was actually \"tear\"" in evolve.correction_hints()
+    assert evolve.correction_hints() == ""                       # 2차 검증 바로잡음은 예시로 붙이지 않는다 (정답과 28% 만 맞음)
     assert evolve._registry()["agreement"][-1]["rate"] == 0.75
     monkeypatch.setattr(spark_open, "adjudicate", lambda *a, **k: ["reach", "place", "pull", "release"])   # 다시 보니 1.3 이 맞으면 유지
     steps[2].update(action="pull", relabeled_from=None)

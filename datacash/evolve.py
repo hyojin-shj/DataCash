@@ -93,7 +93,8 @@ def gold_examples(mission_id: str, limit: int = 3) -> str:
         r = json.loads(p.read_text())
         if r.get("mission_id") != mission_id:
             continue
-        seq = [x for x in r["rows"] if x["agree"] and x["verified"] and x.get("confirmed", True)]
+        seq = [x for x in r["rows"] if x["agree"] and x["verified"] and x.get("confirmed", True)
+               and x["spark13"] != "other"]           # '기타'는 EPIC 정답과 0~3% 만 맞는다 (docs/label_eval.md 정답 예시 기준)
         if len(seq) < 2:
             continue
         lines.append("- " + " -> ".join(f'{x["spark13"]} {x["end_s"] - x["start_s"]:.1f}s' for x in seq[:14]))
@@ -104,7 +105,9 @@ def gold_examples(mission_id: str, limit: int = 3) -> str:
 
 
 def correction_hints(limit: int = 6) -> str:
-    """Spark 프롬프트에 붙일 '지난 바로잡음' (가중치를 바꿀 수 없는 API 모델은 예시로 배운다). 없으면 빈 문자열."""
+    """Spark 프롬프트에 붙일 '지난 바로잡음' (가중치를 바꿀 수 없는 API 모델은 예시로 배운다). 없으면 빈 문자열.
+    2차 검증이 바로잡은 것(source=review)은 뺀다 — EPIC 정답으로 재 보니 바로잡은 뒤에도 28% 만 맞아, 예시로 가르치면 틀린 걸 가르친다.
+    라벨 자체는 그대로 바로잡고(21% → 28%) feedback/ 에도 남긴다. 붙이는 것은 이의 신청에서 인정된 것만."""
     d = ROOT / "feedback"
     if not d.exists():
         return ""
@@ -112,6 +115,8 @@ def correction_hints(limit: int = 6) -> str:
     for p in sorted(d.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True):
         r = json.loads(p.read_text())
         for f in r["fixes"]:
+            if f.get("source") == "review":
+                continue
             lines.append(f'- in a "{r.get("mission") or "manipulation"}" video, a step labeled "{f["was"]}" was actually "{f["action"]}"'
                          + (f' ({f["note"]})' if f.get("note") else ""))
     return ("Past corrections (confirmed on appeal or by a larger reviewer model; avoid repeating them):\n"
