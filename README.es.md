@@ -70,6 +70,20 @@ Se carga con `lerobot` 0.6.1 real (`scripts/validate_lerobot.py`).
 
 Los compradores eligen paquetes de sensores por hora de datos — video (obligatorio) ₩35.000 · pose ₩20.000 · audio ₩5.000 · IMU de muñeca ₩15.000 · tacto ₩25.000 · biometría ₩50.000 (`datacash/pricing.py`).
 
+## Arquitectura
+
+**Flujo general** — la empresa pide en palabras, se abren misiones, los participantes graban con teléfono y reloj, el servidor procesa, entrega el dataset y paga la recompensa.
+
+![Arquitectura](docs/architecture.en.svg)
+
+**Cómo se procesa una grabación** (`datacash/jobs.py`) — primero los pasos locales sin coste, así las grabaciones inservibles se rechazan antes de llamar a un modelo de Meta.
+
+![Procesamiento](docs/pipeline.en.svg)
+
+**Tecnologías y despliegue** — hoy no hay Docker ni nube: un solo Mac ejecuta el servidor y todo el procesamiento, y las apps del teléfono y del reloj lo encuentran por mDNS en la misma Wi-Fi.
+
+![Tecnologías](docs/tech_stack.en.svg)
+
 ## Ejecutar
 
 ```bash

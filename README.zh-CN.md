@@ -70,6 +70,20 @@ Meta Global AI Developer Hackathon（Indie Developer · Push the Frontier）参�
 
 企业按每小时数据选择传感器组合 —— 视频（必选）₩35,000 · 姿态 ₩20,000 · 声音 ₩5,000 · 手腕 IMU ₩15,000 · 触觉 ₩25,000 · 生物信息 ₩50,000（`datacash/pricing.py`）。
 
+## 架构
+
+**整体流程** — 企业用一句话提出需求，任务随即开放；参与者用手机和手表录制上传，服务器处理后交付数据集并发放奖励。
+
+![整体架构](docs/architecture.en.svg)
+
+**一段录像的处理顺序**（`datacash/jobs.py`）— 先做不花钱的本地步骤，无法使用的录像在调用 Meta 模型之前就被拒收。
+
+![处理流程](docs/pipeline.en.svg)
+
+**技术栈与部署** — 目前不使用 Docker 或云：一台 Mac 运行服务器和全部处理，手机和手表应用在同一 Wi-Fi 下通过 mDNS 找到服务器并直接上传。
+
+![技术栈](docs/tech_stack.en.svg)
+
 ## 运行
 
 ```bash

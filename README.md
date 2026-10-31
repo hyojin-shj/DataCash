@@ -70,6 +70,20 @@ Loads with the real `lerobot` 0.6.1 (`scripts/validate_lerobot.py`).
 
 Buyers pick sensor packs per hour of data — video (required) ₩35,000 · pose ₩20,000 · audio ₩5,000 · wrist IMU ₩15,000 · touch ₩25,000 · biometrics ₩50,000 (`datacash/pricing.py`).
 
+## Architecture
+
+**Overall flow** — a buyer asks in words, missions open, participants record with phone and watch, the server processes the upload, delivers the dataset and pays the reward.
+
+![Architecture](docs/architecture.en.svg)
+
+**How one recording is processed** (`datacash/jobs.py`) — free local steps run first, so unusable recordings are rejected before any Meta model is called.
+
+![Processing pipeline](docs/pipeline.en.svg)
+
+**Tech stack and deployment** — today there is no Docker or cloud: one Mac runs the server and all processing, and the phone and watch apps find it over mDNS on the same Wi-Fi and upload directly.
+
+![Tech stack](docs/tech_stack.en.svg)
+
 ## Run it
 
 ```bash
