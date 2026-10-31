@@ -1,5 +1,7 @@
 [English](README.md) · [한국어](README.ko.md) · [Español](README.es.md) · **中文** · [日本語](README.ja.md)
 
+[![DataCash 视频 (2:35)](docs/demo_video.jpg)](docs/DataCash_3min.mp4)
+
 # DataCash
 
 **只用大家手里已有的手机和手表，收集机器人学习所需的人手数据。**

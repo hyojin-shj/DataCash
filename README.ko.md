@@ -1,5 +1,7 @@
 [English](README.md) · **한국어** · [Español](README.es.md) · [中文](README.zh-CN.md) · [日本語](README.ja.md)
 
+[![DataCash 영상 (2:35)](docs/demo_video.jpg)](docs/DataCash_3min.mp4)
+
 # DataCash (데이터캐시)
 
 **집에 이미 있는 폰과 워치만으로, 로봇이 배울 사람의 손 데이터를 모은다.**
