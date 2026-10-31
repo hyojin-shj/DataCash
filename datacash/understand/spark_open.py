@@ -23,7 +23,7 @@ import numpy as np
 
 from .. import config
 from ..light import lift
-from .spark import PRIMITIVES, PROMPT, SCHEMA
+from .spark import ACTION_DEFS, PRIMITIVES, PROMPT, SCHEMA
 
 PROVIDERS = [   # (이름, 키 이름, 주소, 모델) — 앞에서부터 쓴다
     ("baseten", "BASETEN_API_KEY", "https://inference.baseten.co/v1", "meta-models/muse-spark-open-1026"),
@@ -199,7 +199,8 @@ def label_frames(video, t0: float, t1: Optional[float], mission: str, extra: str
                                                    + ", ".join(f"{k + 1}={t:.2f}s" for k, t in enumerate(times))
                                                    + ". Decide each step boundary by the first frame number where the next action has "
                                                      "started, then give its time in seconds.")
-    prompt = (PROMPT.format(mission=mission, dur=t1, primitives=" -> ".join(primitives) if primitives else "not given")
+    prompt = (PROMPT.format(mission=mission, dur=t1, primitives=" -> ".join(primitives) if primitives else "not given",
+                            actions=", ".join(f"{a} ({ACTION_DEFS[a]})" for a in PRIMITIVES))
               .replace("The clip is", "You see frames sampled from a video; times below are seconds from the video start. The video is")
               + f"\nFrames cover {t0:.1f}s to {t1:.1f}s. Give step times in the same seconds."
               + ("\n" + extra if extra else "")

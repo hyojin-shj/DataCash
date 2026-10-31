@@ -203,3 +203,32 @@ def test_mission_actions_add_without_removing():
     a = actions_for(["reach", "grasp", "twist", "release"], ["tighten", "loosen"])
     assert a == BASE + ["tighten", "loosen"] and set(a) <= set(PRIMITIVES)
     assert _schema(a)["properties"]["steps"]["items"]["properties"]["action"]["enum"] == a
+
+
+def test_spark_open_prompt_formats(tmp_path, monkeypatch):
+    """2차 검증이 실제 질문을 만들 수 있는지 (10-31 에 spark.PROMPT 에 {actions} 가 생겨 Spark Open 이 KeyError 로 매번 건너뛰어졌다)."""
+    import json
+    from types import SimpleNamespace
+
+    import cv2
+    import numpy as np
+
+    from datacash.understand import spark_open
+
+    v = tmp_path / "v.mp4"
+    w = cv2.VideoWriter(str(v), cv2.VideoWriter_fourcc(*"mp4v"), 10, (64, 48))
+    for _ in range(30):
+        w.write(np.full((48, 64, 3), 128, np.uint8))
+    w.release()
+    seen = {}
+
+    def create(**k):
+        seen["prompt"] = k["messages"][0]["content"][0]["text"]
+        body = {"task": "t", "completed": True, "steps": [{"start_s": 0.2, "end_s": 1.0, "action": "grasp"}], "mistakes": [], "environment": {}}
+        return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=json.dumps(body)))], usage=None)
+
+    monkeypatch.setattr(spark_open, "_record", lambda *a, **k: None)
+    client = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=create)))
+    out = spark_open.label_frames(v, 0.0, None, "Pull a tissue", client=client, n=4)
+    assert "grasp (" in seen["prompt"] and "{actions}" not in seen["prompt"]
+    assert out["steps"]
