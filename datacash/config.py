@@ -12,7 +12,7 @@ OPENDATA = DATA / "opendata"      # 라이선스 확인된 Wikimedia Commons 영
 OUT = Path(os.environ.get("DATACASH_OUT", ROOT / "out"))
 
 API_BASE = "https://api.meta.ai/v1"
-API_BUDGET_USD = float(os.environ.get("DATACASH_API_BUDGET_USD", "28.6"))  # 이 장부 기준 누적 사용 한도 ($10 → 10-27 오후 $8.6 사용 시점에서 $20 더)
+API_BUDGET_USD = float(os.environ.get("DATACASH_API_BUDGET_USD", "30.6"))  # 이 장부 기준 누적 사용 한도 ($10 → 10-27 오후 $8.6 사용 시점에서 $20 더 → 10-31 $2 더)
 LEDGER = DATA / "api_ledger.jsonl"
 
 # 브랜드 (기획 이미지 docs/1026_datacash_brand.png)
