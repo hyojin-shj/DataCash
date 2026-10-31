@@ -110,7 +110,7 @@ public class PayoutActivity extends BaseActivity {
             TextView right = sent ? Ui.text(this, Ui.plusWon(this, py.optInt("amount")), 15, Ui.OK, true)
                     : Ui.chip(this, getString(R.string.waiting_chip, py.optInt("amount")), Ui.ACCENT_INK, Ui.ACCENT_SOFT);
             list.addView(Ui.row(this, sent ? Icon.CHECK : Icon.STAR, sent ? Ui.OK : Ui.ACCENT_INK, sent ? Ui.OK_SOFT : Ui.ACCENT_SOFT,
-                    st.optString("title", getString(R.string.recording)),
+                    Store.titleOf(this, st, getString(R.string.recording)),
                     (id.length() >= 8 ? id.substring(0, 4) + "." + id.substring(4, 6) + "." + id.substring(6, 8) : id)
                             + (sent ? " · " + py.optString("label") : " · " + getString(R.string.waiting_account)), right, null));
             n++;

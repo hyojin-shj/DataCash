@@ -485,7 +485,7 @@ if (token) start(); else document.getElementById("gate").hidden = false;
   const HAN = /[\uac00-\ud7a3]/;
   const tr = s => {
     if (!HAN.test(s)) return s;
-    for (const [u, e] of UNITS) s = s.replace(new RegExp("([\\d.,%)]+)\\s*" + u, "g"), "$1" + e);
+    for (const [u, e] of UNITS) s = s.replace(new RegExp("(\\d[\\d.,%)]*)\\s*" + u, "g"), "$1" + e);
     for (const k of keys) if (s.includes(k)) s = s.split(k).join(M[k]);
     return s;
   };

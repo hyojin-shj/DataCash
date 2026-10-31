@@ -142,7 +142,10 @@ final class Uploader {
             File f = new File(dir, "upload.json");
             JSONObject o = f.exists() ? new JSONObject(Files.read(f)) : new JSONObject();
             File m = new File(dir, "meta.json");
-            if (m.exists()) o.put("title", new JSONObject(Files.read(m)).getJSONObject("mission").optString("title"));
+            if (m.exists()) {
+                JSONObject mi = new JSONObject(Files.read(m)).getJSONObject("mission");
+                o.put("title", mi.optString("title")).put("mission_id", mi.optString("id"));
+            }
             return o;
         } catch (Exception e) {
             return new JSONObject();

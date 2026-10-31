@@ -109,7 +109,7 @@ public class AppealsActivity extends BaseActivity {
             if (!st.optString("state").equals("rejected") || appealed.contains(d.getName())) continue;
             TextView b = Ui.chip(this, getString(R.string.appeal), Ui.PRIMARY_DARK, Ui.PRIMARY_SOFT);
             b.setOnClickListener(v -> ask(this, d.getName(), this::load));
-            can.addView(Ui.row(this, Icon.FILM, Ui.SUB, Ui.FIELD, st.optString("title", getString(R.string.recording)), getString(R.string.rejected_line, st.optString("error", "")), b, null));
+            can.addView(Ui.row(this, Icon.FILM, Ui.SUB, Ui.FIELD, Store.titleOf(this, st, getString(R.string.recording)), getString(R.string.rejected_line, st.optString("error", "")), b, null));
         }
         java.util.List<JSONObject> going = new java.util.ArrayList<>(), done = new java.util.ArrayList<>();
         for (int i = 0; i < as.length(); i++) {

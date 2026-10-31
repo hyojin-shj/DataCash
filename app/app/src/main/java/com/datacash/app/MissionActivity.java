@@ -69,7 +69,7 @@ public class MissionActivity extends BaseActivity {
 
         JSONArray prims = m.optJSONArray("primitives");
         if (prims != null) {
-            JSONObject ko = Store.primitivesKo(this);
+            JSONObject ko = Store.lang(this).equals("ko") ? Store.primitivesKo(this) : new JSONObject();   // 다른 언어는 동작 이름 그대로 (reach, grasp…)
             StringBuilder seq = new StringBuilder();
             for (int i = 0; i < prims.length(); i++) {
                 if (i > 0) seq.append(" → ");
@@ -96,7 +96,7 @@ public class MissionActivity extends BaseActivity {
         for (int i = 0; i < sits.length(); i++) {
             String s = sits.getString(i);
             boolean d = done.contains(s);
-            LinearLayout r = Ui.row(this, -1, 0, 0, s, d ? getString(R.string.recorded_done) : null,
+            LinearLayout r = Ui.row(this, -1, 0, 0, Store.situationLabel(this, m, i), d ? getString(R.string.recorded_done) : null,
                     Ui.chip(this, getString(d ? R.string.again : R.string.record_chip), d ? Ui.SUB : Ui.PRIMARY_DARK, d ? Ui.FIELD : Ui.PRIMARY_SOFT),
                     v -> startActivity(new Intent(this, RecordActivity.class).putExtra("mission", id).putExtra("situation", s)));
             TextView num = Ui.text(this, d ? "✓" : String.valueOf(i + 1), 14, d ? Ui.OK : Ui.SUB, true);

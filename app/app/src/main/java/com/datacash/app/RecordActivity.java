@@ -74,7 +74,7 @@ public class RecordActivity extends BaseActivity implements TextureView.SurfaceT
     private boolean recording, busy, front;
     private long startNs;
     private final List<Long> marks = new ArrayList<>();
-    private String missionId, situation, title, steps = "";
+    private String missionId, situation, situationShown, title, steps = "";
 
     private LinearLayout top, controls, zoomBar;
     private TextView status, countdown, timerBtn, markBtn;
@@ -108,6 +108,9 @@ public class RecordActivity extends BaseActivity implements TextureView.SurfaceT
         try {
             JSONObject m = Store.mission(this, missionId);
             title = m.getString("title");
+            situationShown = situation;
+            JSONArray ss = m.optJSONArray("situations");
+            for (int i = 0; ss != null && i < ss.length(); i++) if (ss.optString(i).equals(situation)) situationShown = Store.situationLabel(this, m, i);
             JSONArray prims = m.optJSONArray("primitives");
             JSONObject ko = Store.primitivesKo(this);
             StringBuilder b = new StringBuilder();
@@ -171,7 +174,7 @@ public class RecordActivity extends BaseActivity implements TextureView.SurfaceT
         TextView seq = Ui.text(this, steps.isEmpty() ? getString(R.string.steps_two) : getString(R.string.steps_two) + " · " + steps, 13, Ui.ACCENT, true);
         seq.setPadding(0, Ui.dp(this, 8), 0, 0);
         top.addView(seq);
-        status = Ui.text(this, getString(R.string.situation_line, situation), 13, 0xDDFFFFFF, false);
+        status = Ui.text(this, getString(R.string.situation_line, situationShown != null ? situationShown : situation), 13, 0xDDFFFFFF, false);
         status.setPadding(0, Ui.dp(this, 6), 0, 0);
         top.addView(status);
         root.addView(top);
@@ -439,7 +442,7 @@ public class RecordActivity extends BaseActivity implements TextureView.SurfaceT
         if (!recording) return;
         long s = (Clock.now() - startNs) / 1_000_000_000L;
         boolean quiet = s >= 4 && audio != null && audio.peak < 30;     // 마이크가 막혔거나 다른 앱이 쓰는 중
-        status.setText(getString(R.string.rec_status, (int) (s / 60), (int) (s % 60), situation)
+        status.setText(getString(R.string.rec_status, (int) (s / 60), (int) (s % 60), situationShown != null ? situationShown : situation)
                 + (quiet ? "\n" + getString(R.string.quiet_warn) : ""));
         ui.postDelayed(this::tick, 500);
     }

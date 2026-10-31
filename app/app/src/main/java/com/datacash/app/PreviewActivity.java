@@ -29,7 +29,7 @@ public class PreviewActivity extends BaseActivity {
         LinearLayout body = Ui.page(this, getString(R.string.preview_title), true);
         JSONObject st = Uploader.localState(dir);
         LinearLayout c = Ui.card(this);
-        c.addView(Ui.text(this, st.optString("title", getString(R.string.recording)), 17, Ui.INK, true));
+        c.addView(Ui.text(this, Store.titleOf(this, st, getString(R.string.recording)), 17, Ui.INK, true));
         TextView sum = Ui.text(this, getString(R.string.preview_sum), 13, Ui.SUB, false);
         sum.setPadding(0, Ui.dp(this, 6), 0, 0);
         c.addView(sum);

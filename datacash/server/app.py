@@ -95,6 +95,9 @@ def localize_mission(m: dict, lang: Optional[str]) -> dict:
             out[k] = tr[k]
         elif lang == "en" and k == "title" and m.get("title_en"):
             out[k] = m["title_en"]
+    sl = tr.get("situations") or (m.get("i18n") or {}).get("en", {}).get("situations")
+    if sl and len(sl) == len(m.get("situations") or []):   # 보이는 이름만 (상황 자체는 한국어 그대로 — 앱의 완료 표시·녹화 메타의 열쇠)
+        out["situation_labels"] = sl
     return out
 
 

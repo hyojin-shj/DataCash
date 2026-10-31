@@ -103,7 +103,7 @@ public class HistoryActivity extends BaseActivity {
                 : s.equals("saved") ? getString(R.string.before_upload) : Uploader.stateLabel(this, s);
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
-        box.addView(Ui.row(this, Icon.FILM, Ui.SUB, Ui.FIELD, st.optString("title", getString(R.string.recording)), sub, Ui.chip(this, chip, fg, bg), null));
+        box.addView(Ui.row(this, Icon.FILM, Ui.SUB, Ui.FIELD, Store.titleOf(this, st, getString(R.string.recording)), sub, Ui.chip(this, chip, fg, bg), null));
         LinearLayout acts = new LinearLayout(this);
         acts.setOrientation(LinearLayout.VERTICAL);
         acts.setPadding(Ui.dp(this, 70), 0, Ui.dp(this, 8), Ui.dp(this, 12));

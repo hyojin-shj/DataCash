@@ -63,7 +63,21 @@
         "en": {
           "title": "Pull a tissue",
           "guide": "Pull tissues out one at a time · 30 s–1 min · 5 times · hand and box in view",
-          "purpose": "Pull force on a thin, tearable object"
+          "purpose": "Pull force on a thin, tearable object",
+          "situations": [
+            "New box (tight)",
+            "Almost empty box",
+            "Wet wipes (open lid)",
+            "Two come out together",
+            "With right hand",
+            "With left hand",
+            "Chest POV (neck mount)",
+            "Side angle",
+            "Slow and clear",
+            "Normal speed",
+            "Miss then redo (tap miss)",
+            "Different item/place"
+          ]
         },
         "ja": {
           "title": "ティッシュを引き出す",
@@ -117,7 +131,21 @@
         "en": {
           "title": "Pick and place a cup",
           "guide": "Pick up a cup and put it elsewhere · 30 s–1 min · 5 times",
-          "purpose": "Basic pick, move, place and set-down contact"
+          "purpose": "Basic pick, move, place and set-down contact",
+          "situations": [
+            "Empty cup",
+            "Half cup of water",
+            "Hold by handle",
+            "Onto shelf",
+            "With right hand",
+            "With left hand",
+            "Chest POV (neck mount)",
+            "Side angle",
+            "Slow and clear",
+            "Normal speed",
+            "Miss then redo (tap miss)",
+            "Different item/place"
+          ]
         },
         "ja": {
           "title": "コップをつかんで移す",
@@ -170,7 +198,21 @@
         "en": {
           "title": "Pull a cup from a stack",
           "guide": "Pull the top cup off a stack · 30 s–1 min · 5 times",
-          "purpose": "Pulling against friction, other hand holding"
+          "purpose": "Pulling against friction, other hand holding",
+          "situations": [
+            "Paper cup stack",
+            "Plastic cups",
+            "With one hand",
+            "Two hands (hold below)",
+            "With right hand",
+            "With left hand",
+            "Chest POV (neck mount)",
+            "Side angle",
+            "Slow and clear",
+            "Normal speed",
+            "Miss then redo (tap miss)",
+            "Different item/place"
+          ]
         },
         "ja": {
           "title": "重ねたコップを抜く",
@@ -223,7 +265,21 @@
         "en": {
           "title": "Tear open a pouch",
           "guide": "Tear open a snack or sauce pouch · 30 s–1 min · 3 times",
-          "purpose": "Two-handed tearing: force and sound"
+          "purpose": "Two-handed tearing: force and sound",
+          "situations": [
+            "Pouch with notch",
+            "Snack bag",
+            "Open zip bag",
+            "When hard to tear",
+            "With right hand",
+            "With left hand",
+            "Chest POV (neck mount)",
+            "Side angle",
+            "Slow and clear",
+            "Normal speed",
+            "Miss then redo (tap miss)",
+            "Different item/place"
+          ]
         },
         "ja": {
           "title": "パウチ・袋を開ける",
@@ -280,7 +336,21 @@
         "en": {
           "title": "Use a spray bottle",
           "guide": "Hold a spray bottle and pull the trigger · 30 s–1 min · 5 times",
-          "purpose": "Finger press while holding a tool"
+          "purpose": "Finger press while holding a tool",
+          "situations": [
+            "Onto plants",
+            "Onto glass",
+            "Single sprays",
+            "Continuous spray",
+            "With right hand",
+            "With left hand",
+            "Chest POV (neck mount)",
+            "Side angle",
+            "Slow and clear",
+            "Normal speed",
+            "Miss then redo (tap miss)",
+            "Different item/place"
+          ]
         },
         "ja": {
           "title": "霧吹きを使う",
@@ -340,7 +410,21 @@
         "en": {
           "title": "Squeeze a sauce bottle",
           "guide": "Squeeze sauce or toothpaste out · 30 s–1 min · 3 times",
-          "purpose": "Grip control to squeeze just enough"
+          "purpose": "Grip control to squeeze just enough",
+          "situations": [
+            "Almost full bottle",
+            "Almost empty bottle",
+            "Toothpaste",
+            "A little / a lot",
+            "With right hand",
+            "With left hand",
+            "Chest POV (neck mount)",
+            "Side angle",
+            "Slow and clear",
+            "Normal speed",
+            "Miss then redo (tap miss)",
+            "Different item/place"
+          ]
         },
         "ja": {
           "title": "ソース・チューブを絞る",
@@ -400,7 +484,21 @@
         "en": {
           "title": "Twist a bottle cap",
           "guide": "Twist a bottle or jar cap open and shut · 30 s–1 min · 3 times",
-          "purpose": "One hand holds, the other twists"
+          "purpose": "One hand holds, the other twists",
+          "situations": [
+            "PET bottle",
+            "Jam jar (tight)",
+            "Pill bottle",
+            "Open one-handed",
+            "With right hand",
+            "With left hand",
+            "Chest POV (neck mount)",
+            "Side angle",
+            "Slow and clear",
+            "Normal speed",
+            "Miss then redo (tap miss)",
+            "Different item/place"
+          ]
         },
         "ja": {
           "title": "ボトルのふたを開け閉めする",
@@ -458,7 +556,21 @@
         "en": {
           "title": "Wipe glasses or a plate",
           "guide": "Wipe a lens or plate with a cloth · 30 s–1 min",
-          "purpose": "Hold and rub along a surface"
+          "purpose": "Hold and rub along a surface",
+          "situations": [
+            "Glasses",
+            "Plate",
+            "Phone screen",
+            "Wet / dry cloth",
+            "With right hand",
+            "With left hand",
+            "Chest POV (neck mount)",
+            "Side angle",
+            "Slow and clear",
+            "Normal speed",
+            "Miss then redo (tap miss)",
+            "Different item/place"
+          ]
         },
         "ja": {
           "title": "メガネ・皿をふく",
@@ -516,7 +628,21 @@
         "en": {
           "title": "Pick grapes",
           "guide": "Pick 5 grapes off the bunch into a bowl · 30 s–1 min",
-          "purpose": "Gentle grip that doesn't crush"
+          "purpose": "Gentle grip that doesn't crush",
+          "situations": [
+            "Grapes",
+            "Cherry tomatoes",
+            "Blueberries",
+            "With chopsticks",
+            "With right hand",
+            "With left hand",
+            "Chest POV (neck mount)",
+            "Side angle",
+            "Slow and clear",
+            "Normal speed",
+            "Miss then redo (tap miss)",
+            "Different item/place"
+          ]
         },
         "ja": {
           "title": "ぶどう・小さな果物をもぐ",
@@ -570,7 +696,21 @@
         "en": {
           "title": "Lift and carry a box",
           "guide": "Lift a box, carry a few steps, set it down · 30 s–1 min · 3 times",
-          "purpose": "Posture, grip and effort (heart rate) lifting"
+          "purpose": "Posture, grip and effort (heart rate) lifting",
+          "situations": [
+            "Empty box",
+            "Heavy box (books)",
+            "Floor to table",
+            "Table to floor",
+            "With right hand",
+            "With left hand",
+            "Chest POV (neck mount)",
+            "Side angle",
+            "Slow and clear",
+            "Normal speed",
+            "Miss then redo (tap miss)",
+            "Different item/place"
+          ]
         },
         "ja": {
           "title": "箱を持ち上げて運ぶ",
@@ -626,7 +766,21 @@
         "en": {
           "title": "Hand an object over",
           "guide": "Hand an object to someone or take one · 30 s–1 min · 5 times (their face is masked)",
-          "purpose": "The moment an object changes hands"
+          "purpose": "The moment an object changes hands",
+          "situations": [
+            "Give to someone",
+            "Receive from someone",
+            "Cup",
+            "Book / phone",
+            "With right hand",
+            "With left hand",
+            "Chest POV (neck mount)",
+            "Side angle",
+            "Slow and clear",
+            "Normal speed",
+            "Miss then redo (tap miss)",
+            "Different item/place"
+          ]
         },
         "ja": {
           "title": "物を手渡す",
@@ -681,7 +835,21 @@
         "en": {
           "title": "Stack or snap blocks",
           "guide": "Stack or snap 5 LEGO pieces · 30 s–1 min",
-          "purpose": "Precise placing and snapping ('click')"
+          "purpose": "Precise placing and snapping ('click')",
+          "situations": [
+            "Snap Lego",
+            "Stack wood blocks",
+            "Small blocks",
+            "Take apart",
+            "With right hand",
+            "With left hand",
+            "Chest POV (neck mount)",
+            "Side angle",
+            "Slow and clear",
+            "Normal speed",
+            "Miss then redo (tap miss)",
+            "Different item/place"
+          ]
         },
         "ja": {
           "title": "ブロックを積む・はめる",
@@ -746,7 +914,22 @@
         "en": {
           "title": "Pack items into a box",
           "guide": "Put 3–4 items in a box, fold the flaps · 30 s–1 min · 5 times · box and hands in view",
-          "purpose": "Packing robots — fit mixed items in a box"
+          "purpose": "Packing robots — fit mixed items in a box",
+          "situations": [
+            "Small box",
+            "Large box",
+            "Fragile item (cup)",
+            "Soft item (clothes)",
+            "With right hand",
+            "With left hand",
+            "Front tripod (centered)",
+            "Tripod side",
+            "Top-down (tripod high)",
+            "Slow and clear",
+            "Normal speed",
+            "Miss then redo (tap miss)",
+            "Different item"
+          ]
         },
         "ja": {
           "title": "箱に物を詰める",
@@ -806,7 +989,21 @@
         "en": {
           "title": "Seal a box with tape",
           "guide": "Tape across a closed box and cut it · 30 s–1 min · 3–5 times · tape end in view",
-          "purpose": "Shipping — pull, stick, rub and cut tape"
+          "purpose": "Shipping — pull, stick, rub and cut tape",
+          "situations": [
+            "Packing tape (cutter)",
+            "Hand-tear tape",
+            "With both hands",
+            "With right hand",
+            "With left hand",
+            "Front tripod (centered)",
+            "Tripod side",
+            "Top-down (tripod high)",
+            "Slow and clear",
+            "Normal speed",
+            "Miss then redo (tap miss)",
+            "Different item"
+          ]
         },
         "ja": {
           "title": "箱をテープで封をする",
@@ -866,7 +1063,22 @@
         "en": {
           "title": "Restock and face a shelf",
           "guide": "Move items from a basket to a shelf, line them up · 30 s–1 min · 5 times",
-          "purpose": "Shelf robots — place and push into line"
+          "purpose": "Shelf robots — place and push into line",
+          "situations": [
+            "Bottles / cans",
+            "Small box",
+            "Shelf height (waist)",
+            "Shelf height (eye)",
+            "With right hand",
+            "With left hand",
+            "Front tripod (centered)",
+            "Tripod side",
+            "Top-down (tripod high)",
+            "Slow and clear",
+            "Normal speed",
+            "Miss then redo (tap miss)",
+            "Different item"
+          ]
         },
         "ja": {
           "title": "棚に商品を補充して並べる",
@@ -925,7 +1137,22 @@
         "en": {
           "title": "Pick items from a bin",
           "guide": "Take specific items one by one from a mixed bin · 30 s–1 min · 10 times",
-          "purpose": "Warehouse picking — one item from a pile"
+          "purpose": "Warehouse picking — one item from a pile",
+          "situations": [
+            "Sparse items",
+            "Crowded bin",
+            "Small items (pens)",
+            "Heavy item",
+            "With right hand",
+            "With left hand",
+            "Front tripod (centered)",
+            "Tripod side",
+            "Top-down (tripod high)",
+            "Slow and clear",
+            "Normal speed",
+            "Miss then redo (tap miss)",
+            "Different item"
+          ]
         },
         "ja": {
           "title": "容器から物を 1 つずつ取り出す（ピッキング）",
@@ -983,7 +1210,22 @@
         "en": {
           "title": "Fold a towel or T-shirt",
           "guide": "Fold a towel or T-shirt and stack it · 1 min · 3–5 times · whole cloth in view",
-          "purpose": "Laundry robots — fold and smooth cloth"
+          "purpose": "Laundry robots — fold and smooth cloth",
+          "situations": [
+            "Towel",
+            "T-shirt",
+            "Fold in half twice",
+            "Tri-fold",
+            "With right hand",
+            "With left hand",
+            "Front tripod (centered)",
+            "Tripod side",
+            "Top-down (tripod high)",
+            "Slow and clear",
+            "Normal speed",
+            "Miss then redo (tap miss)",
+            "Different item"
+          ]
         },
         "ja": {
           "title": "タオル・Tシャツをたたむ",
@@ -1041,7 +1283,22 @@
         "en": {
           "title": "Hang clothes on a hanger",
           "guide": "Put a T-shirt on a hanger and hang it · 1 min · 3–5 times",
-          "purpose": "Two hands: open cloth, slip in a hanger"
+          "purpose": "Two hands: open cloth, slip in a hanger",
+          "situations": [
+            "T-shirt",
+            "Shirt / hoodie",
+            "Hang up",
+            "Take off hanger",
+            "With right hand",
+            "With left hand",
+            "Front tripod (centered)",
+            "Tripod side",
+            "Top-down (tripod high)",
+            "Slow and clear",
+            "Normal speed",
+            "Miss then redo (tap miss)",
+            "Different item"
+          ]
         },
         "ja": {
           "title": "ハンガーに服を掛ける",
@@ -1107,7 +1364,23 @@
         "en": {
           "title": "Pour water into a cup",
           "guide": "Pour water into a cup until half full · 30 s–1 min · 5 times · spout and cup in view",
-          "purpose": "Serving robots — pour without spilling"
+          "purpose": "Serving robots — pour without spilling",
+          "situations": [
+            "PET bottle",
+            "Kettle",
+            "Clear cup",
+            "Mug",
+            "Full / half",
+            "With right hand",
+            "With left hand",
+            "Front tripod (centered)",
+            "Tripod side",
+            "Top-down (tripod high)",
+            "Slow and clear",
+            "Normal speed",
+            "Miss then redo (tap miss)",
+            "Different item"
+          ]
         },
         "ja": {
           "title": "コップに水を注ぐ",
@@ -1166,7 +1439,22 @@
         "en": {
           "title": "Plug and unplug a cable",
           "guide": "Plug a cable into a charger and pull it out · 30 s–1 min · 5–10 times",
-          "purpose": "Assembly — align and insert a small plug"
+          "purpose": "Assembly — align and insert a small plug",
+          "situations": [
+            "USB-C",
+            "USB-A (align)",
+            "Power plug",
+            "Power strip",
+            "With right hand",
+            "With left hand",
+            "Front tripod (centered)",
+            "Tripod side",
+            "Top-down (tripod high)",
+            "Slow and clear",
+            "Normal speed",
+            "Miss then redo (tap miss)",
+            "Different item"
+          ]
         },
         "ja": {
           "title": "充電ケーブルを抜き差しする",
@@ -1227,7 +1515,22 @@
         "en": {
           "title": "Drive a screw with a screwdriver",
           "guide": "Tighten a screw with a screwdriver, then loosen it · 1 min · 3–5 times",
-          "purpose": "Assembly — turning force and direction"
+          "purpose": "Assembly — turning force and direction",
+          "situations": [
+            "Phillips driver",
+            "Flathead driver",
+            "Hand-turn (bolt/nut)",
+            "Tighten / loosen",
+            "With right hand",
+            "With left hand",
+            "Front tripod (centered)",
+            "Tripod side",
+            "Top-down (tripod high)",
+            "Slow and clear",
+            "Normal speed",
+            "Miss then redo (tap miss)",
+            "Different item"
+          ]
         },
         "ja": {
           "title": "ドライバーでねじを締めて緩める",
@@ -1291,7 +1594,22 @@
         "en": {
           "title": "Open a drawer, take out, close",
           "guide": "Open a drawer, take an item out, push it shut · 30 s–1 min · 5 times",
-          "purpose": "Service robots — pull, push, take out"
+          "purpose": "Service robots — pull, push, take out",
+          "situations": [
+            "Drawer with handle",
+            "Handle-less drawer",
+            "Cabinet (open/close)",
+            "Fridge door",
+            "With right hand",
+            "With left hand",
+            "Front tripod (centered)",
+            "Tripod side",
+            "Top-down (tripod high)",
+            "Slow and clear",
+            "Normal speed",
+            "Miss then redo (tap miss)",
+            "Different item"
+          ]
         },
         "ja": {
           "title": "引き出しを開けて取り出し閉める",

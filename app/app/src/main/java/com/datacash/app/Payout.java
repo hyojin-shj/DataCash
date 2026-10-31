@@ -54,7 +54,7 @@ final class Payout {
             if (py.optString("status").equals("sent") && !celebrated.contains(id)) {
                 sent.add(id);
                 won += py.optInt("amount");
-                title = st.optString("title", a.getString(R.string.mission));
+                title = Store.titleOf(a, st, a.getString(R.string.mission));
                 label = py.optString("label");
             } else if (py.optString("status").equals("waiting_account") && !told.contains(id)) {
                 waiting.add(id);

@@ -184,7 +184,7 @@
     <string name="reward_added">+₩%1$,d earned</string>
     <string name="result_detail">Accepted %1$.1f min · tier %2$s · sync %3$s</string>
     <string name="skipped_steps">Skipped steps: %1$s</string>
-    <string name="preview_title">Virtual face preview</string>
+    <string name="preview_title">Face preview</string>
     <string name="preview_sum">This is the video that\'s sold: masked areas are gray, faces are synthetic.</string>
     <string name="preview_stats">Virtual face in %2$d of %1$d frames · small faces %3$d · pixelated (recognizable) %4$d · max re-ID %5$.2f (passes below 0.30)</string>
     <string name="preview_pending">Still processing · you can view it once review is done</string>
@@ -273,7 +273,7 @@
     <string name="before_upload">Not uploaded</string>
     <string name="uploading_toast">Uploading</string>
     <string name="view_result">View result ›</string>
-    <string name="preview_link">Virtual face preview ›</string>
+    <string name="preview_link">Face preview ›</string>
     <string name="appeal_link">Appeal ›</string>
     <string-array name="bank_values" translatable="false">
         <item>KB국민</item>

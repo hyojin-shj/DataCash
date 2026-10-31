@@ -87,6 +87,44 @@ final class Store {
         return k != null && k.length() > 0 ? k : new JSONObject(asset(c, "missions.json")).getJSONObject("primitives_ko");
     }
 
+    /** 녹화 제목을 지금 앱 언어로: 녹화할 때 저장한 제목은 그때 언어라, 미션 id 로 카탈로그(서버 · 없으면 앱에 든 것)에서 다시 찾는다. */
+    static String titleOf(Context c, JSONObject st, String fallback) {
+        String id = st.optString("mission_id", st.optString("mission", ""));
+        if (id.equals("grip_calibration")) return c.getString(R.string.menu_calib);
+        String lang = lang(c);
+        try {
+            for (JSONObject cat : new JSONObject[]{catalog(c), new JSONObject(asset(c, "missions.json"))}) {
+                JSONArray ms = cat.getJSONArray("missions");
+                for (int i = 0; i < ms.length(); i++) {
+                    JSONObject m = ms.getJSONObject(i);
+                    if (!m.optString("id").equals(id)) continue;
+                    JSONObject tr = m.optJSONObject("i18n") == null ? null : m.optJSONObject("i18n").optJSONObject(lang.equals("zh-CN") ? "zh-CN" : lang);
+                    if (tr != null && tr.has("title")) return tr.optString("title");
+                    String t = m.optString("title");
+                    if (lang.equals("ko") || !t.matches(".*[\\uac00-\\ud7a3].*")) return t;
+                    if (m.has("title_en")) return m.optString("title_en");
+                }
+            }
+        } catch (Exception ignored) {}
+        return st.optString("title", fallback);
+    }
+
+    /** 상황 i 의 보이는 이름: 서버가 준 situation_labels, 없으면 앱에 든 i18n.en (한국어 화면은 원문). 상황 원문은 완료 표시·녹화 메타의 열쇠라 그대로 둔다. */
+    static String situationLabel(Context c, JSONObject m, int i) {
+        String s = m.optJSONArray("situations").optString(i);
+        if (lang(c).equals("ko")) return s;
+        JSONArray l = m.optJSONArray("situation_labels");
+        if (l == null) {
+            try {
+                JSONArray ms = new JSONObject(asset(c, "missions.json")).getJSONArray("missions");
+                for (int k = 0; k < ms.length(); k++)
+                    if (ms.getJSONObject(k).optString("id").equals(m.optString("id")))
+                        l = ms.getJSONObject(k).getJSONObject("i18n").getJSONObject("en").optJSONArray("situations");
+            } catch (Exception ignored) {}
+        }
+        return l != null && l.length() > i ? l.optString(i, s) : s;
+    }
+
     private static File cacheFile(Context c) { return new File(c.getFilesDir(), "missions_cache.json"); }
 
     static JSONObject catalog(Context c) throws Exception {

@@ -28,7 +28,7 @@ public class ResultActivity extends BaseActivity {
         LinearLayout body = Ui.page(this, getString(R.string.result_title), true);
         LinearLayout c = Ui.card(this);
         JSONObject local = Uploader.localState(dir);
-        c.addView(Ui.text(this, local.optString("title", dir.getName()), 18, Ui.INK, true));
+        c.addView(Ui.text(this, Store.titleOf(this, local, dir.getName()), 18, Ui.INK, true));
         c.addView(Ui.text(this, dir.getName(), 12, Ui.SUB, false));
         state = Ui.text(this, Uploader.stateLabel(this, local.optString("state", "saved")), 22, Ui.PRIMARY_DARK, true);
         state.setPadding(0, Ui.dp(this, 14), 0, Ui.dp(this, 6));
