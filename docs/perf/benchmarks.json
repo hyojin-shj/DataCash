@@ -143,7 +143,8 @@
   0.197,
   0.418,
   0.328,
-  0.541
+  0.541,
+  0.641
  ],
  "cited": [
   {
@@ -218,7 +219,7 @@
   },
   "reid_median": 0.0224,
   "agreement_first5": 0.778,
-  "agreement_last5": 0.704,
-  "agreement_all": 0.65
+  "agreement_last5": 0.722,
+  "agreement_all": 0.653
  }
 }

@@ -377,7 +377,7 @@ function renderPerf() {
   const kp = [
     [tx("라벨 장면 정확도", "Label frame accuracy"), ep.base && ep.ensemble ? `${pct(ep.base.frame_acc)} → ${pct(ep.ensemble.frame_acc)}` : "-", tx("사람 정답 · EPIC 새 8구간", "vs human truth · EPIC held-out")],
     [tx("경계 오차", "Boundary error"), ep.base ? `${ep.base.boundary_ms_median} → ${(ep["chunk20_slow+pick"] || {}).boundary_ms_median} ms` : "-", tx("중앙값", "median")],
-    ["Muse Glimmer 30B", g.length ? `${pct(g[1])} → ${pct(g[3])}` : "-", tx("학습 전 → v80 (사람 정답 학습)", "base → v80 fine-tuned on human labels")],
+    ["Muse Glimmer 30B", g.length ? `${pct(g[1])} → ${pct(g[g.length - 1])}` : "-", g.length > 4 ? tx("학습 전 → v82 + 순서 디코딩 (사람 정답 학습)", "base → v82 + order decoding (human labels)") : tx("학습 전 → v80 (사람 정답 학습)", "base → v80 fine-tuned on human labels")],
     [tx("두 모델 일치 (최근 5편)", "Spark 1.3 ↔ Open (last 5)"), pct(S.agreement_last5), tx(`처음 5편 ${pct(S.agreement_first5)} · 전체 ${pct(S.agreement_all)}`, `first 5 ${pct(S.agreement_first5)} · all ${pct(S.agreement_all)}`)],
   ];
   set("perf-kpis", kp.map(([k, b, e]) => `<div class="card kpi"><span>${k}</span><b>${b}</b><em>${e}</em></div>`).join(""));
@@ -398,7 +398,8 @@ function renderPerf() {
   set("perf-m-glim", tx("같은 평가 122단계 (사람 정답, 학습에 안 쓴 녹화 8편). Fireworks LoRA r16.", "Same 122 steps (human labels, 8 held-out recordings). Fireworks LoRA r16."));
   const GT = P.glimmer.trainings || [];
   set("perf-glim", (g.length ? hbars([[tx("가장 많은 동작만", "majority class"), +(100 * g[0]).toFixed(1), "#E5E5EA"], [tx("학습 전", "base (no training)"), +(100 * g[1]).toFixed(1), "#8E8E93"],
-      [tx("v79 · Spark 라벨로", "v79 · trained on Spark labels"), +(100 * g[2]).toFixed(1), "#FFAF5F"], [tx("v80 · 사람 정답으로", "v80 · trained on human labels"), +(100 * g[3]).toFixed(1), "#FF5F5F"]], 70, "%") : "")
+      [tx("v79 · Spark 라벨로", "v79 · trained on Spark labels"), +(100 * g[2]).toFixed(1), "#FFAF5F"], [tx("v80 · 사람 정답으로", "v80 · trained on human labels"), +(100 * g[3]).toFixed(1), g.length > 4 ? "#34C778" : "#FF5F5F"]]
+      .concat(g.length > 4 ? [[tx("v82 · + 미션별 순서 디코딩", "v82 · + per-mission order decoding"), +(100 * g[4]).toFixed(1), "#FF5F5F"]] : []), 75, "%") : "")
     + `<table style="margin-top:8px;font-size:12px"><tr><th>${tx("학습", "Run")}</th><th>${tx("데이터", "Data")}</th><th>epoch</th><th>${tx("상태", "State")}</th><th>${tx("끝", "Finished")}</th></tr>
       ${GT.slice().reverse().map(t => { const d = (P.glimmer.datasets || []).find(x => x.version === t.dataset) || {};
         return `<tr><td>${esc(String(t.output_model || "").split("/").pop())}</td><td>v${t.dataset} · ${d.train_steps ?? "-"} ${tx("단계", "steps")}</td><td>${t.epochs}</td>

@@ -85,6 +85,17 @@
   .chat textarea { flex: 1; resize: vertical; }
   .mis { border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; margin-top: 10px; }
   .mis .prims { margin-top: 6px; }
+  /* 미션 카드: Muse Spark 답이 온 뒤에 생기고, 새로 생긴 카드는 잠깐 강조 */
+  .mcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; margin-top: 10px; }
+  .mcards .mis { margin-top: 0; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,.05); }
+  .mcards .mis .num { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--primary-soft); color: var(--primary-dark); font-size: 12px; font-weight: 800; margin-right: 6px; }
+  .mcards .mis.new { animation: mpop .55s cubic-bezier(.2,.9,.3,1.3) both, mglow 2.6s ease-out both; }
+  @keyframes mpop { from { opacity: 0; transform: translateY(14px) scale(.96); } to { opacity: 1; transform: none; } }
+  @keyframes mglow { 0%, 45% { border-color: var(--primary); box-shadow: 0 0 0 4px var(--primary-soft); } 100% { border-color: var(--line); } }
+  .skel { height: 92px; border-radius: 14px; background: linear-gradient(90deg, var(--bg) 25%, #fff 50%, var(--bg) 75%); background-size: 300% 100%; animation: shimmer 1.2s linear infinite; border: 1px solid var(--line); }
+  @keyframes shimmer { from { background-position: 100% 0; } to { background-position: -200% 0; } }
+  .spin { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--primary-soft); border-top-color: var(--primary); border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -2px; margin-right: 8px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
   .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
   .tags span { font-size: 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 99px; padding: 3px 10px; }
   @media (max-width: 960px) { .ask { grid-template-columns: 1fr; } }
@@ -791,21 +802,27 @@ const post = (u, body) => fetch(u, {method: "POST", headers: {"Content-Type": "a
 $("#askBtn").onclick = async () => {
   const tx = $("#askText").value.trim(); if (!tx) return;
   $("#askText").value = ""; CHAT.push({role: "user", content: tx}); bubble(tx, true);
-  const my = ++SEQ;
-  const wait = bubble(t("chat.matching"), false);
-  try {                                  // ① 바로 (모델 없이)
+  const my = ++SEQ, t0 = Date.now();
+  const wait = bubble("", false);
+  // 기다리는 동안: 말풍선에 돌아가는 표시 + 흐른 초, 미션 자리에 빈 카드 (멈춘 화면처럼 보이지 않게)
+  const tick = () => { wait.innerHTML = `<span class="spin"></span>${esc(t("chat.designing"))} ${Math.round((Date.now() - t0) / 1000)}s`; };
+  tick(); const timer = setInterval(tick, 500);
+  $("#planBox").innerHTML = `<h3 style="margin-top:0"><span class="spin"></span>${esc(t("chat.designing"))}</h3><div class="mcards"><div class="skel"></div><div class="skel"></div><div class="skel"></div><div class="skel"></div></div>`;
+  let draft = null;
+  const done = () => clearInterval(timer);
+  try {                                  // ① 바로 (모델 없이) — Muse Spark 가 실패할 때만 보여 줄 초안
     const r = await post("/api/market/request/instant", {messages: CHAT, lang: LANG});
-    if (r.ok) { const j = await r.json(); if (my === SEQ) { PLAN = j.plan; CHOICE = j.choice; showPlan(); }
-      wait.textContent = (j.plan.missions.length ? t("chat.draft") : t("chat.designing")); }
+    if (r.ok) draft = await r.json();
   } catch (e) {}
-  try {                                  // ② Muse Spark (약 10초)
+  try {                                  // ② Muse Spark (약 10초) — 답이 오면 미션 카드가 생긴다
     const r = await post("/api/market/request/chat", {messages: CHAT, lang: LANG});
-    const j = await r.json();
-    if (!r.ok) { wait.textContent = j.detail || t("chat.retry"); return; }
+    const j = await r.json(); done();
+    if (!r.ok) { wait.textContent = j.detail || t("chat.retry"); if (draft && my === SEQ) { PLAN = draft.plan; CHOICE = draft.choice; showPlan(); } return; }
     const q = (j.plan.questions || []).length ? "\n\n" + j.plan.questions.map(x => "· " + x).join("\n") : "";
     wait.textContent = j.reply + q; CHAT.push({role: "assistant", content: j.reply + q});
-    if (my === SEQ) { PLAN = j.plan; CHOICE = j.choice; showPlan(); }
-  } catch (e) { wait.textContent = PLAN ? t("chat.lostDraft") : t("chat.lost"); }
+    if (my === SEQ) { PLAN = j.plan; CHOICE = j.choice; showPlan(true); }
+  } catch (e) { done(); wait.textContent = draft ? t("chat.lostDraft") : t("chat.lost");
+    if (draft && my === SEQ) { PLAN = draft.plan; CHOICE = draft.choice; showPlan(); } }
 };
 $("#askText").onkeydown = e => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); $("#askBtn").click(); } };
 const AGES = ["19~29세", "30대", "40대", "50대", "60대 이상"];   // API 값 (보낼 때는 그대로)
@@ -817,7 +834,7 @@ function planMission(m) {
   if (c) return {...m, title: c.title, guide: c.guide};
   return {...m, title: hasHangul(m.title) && m.title_en ? m.title_en : m.title};
 }
-function showPlan() {
+function showPlan(fresh) {
   const p = PLAN, c = CHOICE; if (!p || !c) return;
   if (!PICK || !c.options[PICK]) PICK = c.recommended;
   const ages = p.eligibility.age_bands.length === AGES.length ? t("age.any") : p.eligibility.age_bands.map(ageLabel).join(" · ");
@@ -840,10 +857,10 @@ function showPlan() {
     ${p.domain || p.robot_use ? `<div class="note">${esc(p.domain)} · ${esc(p.robot_use)}</div>` : ""}
     <div class="tags"><span>${esc(ages)}</span><span>${esc(t("gen." + p.eligibility.gender) === "gen." + p.eligibility.gender ? "" : t("gen." + p.eligibility.gender))}</span>${sens.map(x => `<span>${esc(x)}</span>`).join("")}
       ${c.rarity !== "normal" ? `<span style="background:var(--accent-soft)">${esc(t("rare." + c.rarity))}${c.rare_reason ? " · " + esc(c.rare_reason.replace(/60대 이상|19~29세|30대|40대|50대/g, ageLabel)) : ""} ×${c.rarity_mult}</span>` : ""}</div>
-    ${ms.map(m => `<div class="mis"><b>${esc(m.title)}</b>${m.existing || m.id ? ` <span class="note">${esc(t("stockMission"))}</span>` : ""}<div class="note">${esc(m.guide)}</div>
+    <div class="mcards">${ms.map((m, i) => `<div class="mis${fresh ? " new" : ""}" style="animation-delay:${fresh ? i * 0.18 : 0}s"><span class="num">${i + 1}</span><b>${esc(m.title)}</b>${m.existing || m.id ? ` <span class="note">${esc(t("stockMission"))}</span>` : ""}<div class="note">${esc(m.guide)}</div>
       ${m.primitives.length ? `<div class="prims">${m.primitives.map(esc).join(" → ")}</div>` : ""}
-      ${(m.situations || []).length && (LANG === "ko" || !m.situations.some(hasHangul)) ? `<div class="tags">${m.situations.slice(0, 6).map(x => `<span>${esc(x)}</span>`).join("")}</div>` : ""}</div>`).join("")
-      || `<div class="note">${esc(t("noMatch"))}</div>`}
+      ${(m.situations || []).length && (LANG === "ko" || !m.situations.some(hasHangul)) ? `<div class="tags">${m.situations.slice(0, 4).map(x => `<span>${esc(x)}</span>`).join("")}</div>` : ""}</div>`).join("")
+      || `<div class="note">${esc(t("noMatch"))}</div>`}</div>
     <h3 style="margin:16px 0 6px">${esc(t("how"))}</h3>
     ${c.budget_krw ? `<div class="note">${esc(t("budget", {b: won(c.budget_krw)}))}</div>` : ""}
     <div class="note" style="margin-bottom:6px">${c.why && ("why." + c.why) in I18N.ko ? esc(t("why." + c.why)) : ""}</div>

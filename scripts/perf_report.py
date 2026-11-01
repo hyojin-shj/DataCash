@@ -44,7 +44,7 @@ T = {"en": {"acc": "Frame accuracy (%)", "bnd": "Boundary error, median (ms)",
             "conf": "Where labels go wrong (0.1 s frames, row = human truth)", "first": "First: 60 s in one call",
             "now": "Now: 5-run fusion", "pred": "Muse Spark label", "truth": "Human truth",
             "g": "Muse Glimmer 30B fine-tuning — same 122 human-labelled steps",
-            "gacc": "Step accuracy (%)", "gl": ["Majority\nclass", "Glimmer\nbefore", "v79\n(Spark labels)", "v80\n(human labels)"],
+            "gacc": "Step accuracy (%)", "gl": ["Majority\nclass", "Glimmer\nbefore", "v79\n(Spark labels)", "v80\n(human labels)", "v82 + order\ndecoding"],
             "agree": "Spark 1.3 ↔ Spark Open agreement per clip", "clip": "Clip (processing order)", "last5": "last-5 mean",
             "time": "Processing time per clip (s)", "reid": "Frames still 'same person' after face swap (%)",
             "mon": "Live service monitoring (operator page shows the same)", "warn": "alert"},
@@ -53,7 +53,7 @@ T = {"en": {"acc": "Frame accuracy (%)", "bnd": "Boundary error, median (ms)",
             "conf": "어디서 틀리나 (0.1초 장면, 행 = 사람 정답)", "first": "처음: 60초 한 번에",
             "now": "지금: 다섯 벌 합치기", "pred": "Muse Spark 라벨", "truth": "사람 정답",
             "g": "Muse Glimmer 30B 학습 — 같은 평가 122단계 (사람 정답)",
-            "gacc": "단계 정확도 (%)", "gl": ["가장 많은\n동작만", "학습 전", "v79\n(Spark 라벨)", "v80\n(사람 정답)"],
+            "gacc": "단계 정확도 (%)", "gl": ["가장 많은\n동작만", "학습 전", "v79\n(Spark 라벨)", "v80\n(사람 정답)", "v82 + 순서\n디코딩"],
             "agree": "녹화마다 Spark 1.3 ↔ Spark Open 일치율", "clip": "녹화 (처리 순서)", "last5": "최근 5편 평균",
             "time": "녹화 하나 처리 시간 (초)", "reid": "치환 뒤에도 '같은 사람'인 얼굴 장면 (%)",
             "mon": "서비스 모니터링 (운영자 화면과 같은 값)", "warn": "경고"}}
@@ -107,7 +107,8 @@ def glimmer() -> list:
     reg = json.loads((ROOT / "data/evolve/registry.json").read_text())
     pre = [e for e in reg["evals"] if e.get("dataset") == 80 and e.get("steps") == 122]
     base, before = (pre[-1]["baseline_accuracy"], pre[-1]["accuracy"]) if pre else (0.197, 0.418)
-    return [base, before, 0.328, 0.541]
+    # v82e3 + 미션별 순서 디코딩: 순서 무게 다섯 개 평균 64.1% (범위 60.7–67.2%, docs/label_eval.md 'v81–v83')
+    return [base, before, 0.328, 0.541, 0.641]
 
 
 def plot_all(b: dict, live: dict, lang: str) -> None:
@@ -154,11 +155,11 @@ def plot_all(b: dict, live: dict, lang: str) -> None:
 
     # ③ Glimmer
     g = b["glimmer"]
-    fig, ax = plt.subplots(figsize=(7.5, 4.2))
-    ax.bar(range(4), [100 * x for x in g], color=[LINE, MUTED, WARN, ACC], width=.6)
+    fig, ax = plt.subplots(figsize=(8.5, 4.2))
+    ax.bar(range(len(g)), [100 * x for x in g], color=[LINE, MUTED, WARN, OK, ACC][:len(g)], width=.6)
     for i, x in enumerate(g):
         ax.text(i, 100 * x + 1.5, f"{100 * x:.1f}%", ha="center", fontweight="bold")
-    ax.set_xticks(range(4), t["gl"]); ax.set_ylim(0, 70); ax.set_ylabel(t["gacc"]); ax.set_title(t["g"], loc="left")
+    ax.set_xticks(range(len(g)), t["gl"][:len(g)]); ax.set_ylim(0, 75); ax.set_ylabel(t["gacc"]); ax.set_title(t["g"], loc="left")
     fig.tight_layout(); fig.savefig(OUT / f"glimmer.{lang}.png"); plt.close(fig)
 
     # ④ 서비스 모니터링 세 줄

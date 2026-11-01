@@ -43,7 +43,7 @@ Meta Global AI Developer Hackathon（Indie Developer · Push the Frontier）参�
 |---|---|---|
 | 步骤标签逐帧准确率（Muse Spark 1.3） | **35.6% → 54.3%** | EPIC-KITCHENS-100 留出 8 段，271 个人工步骤 |
 | 步骤边界误差（中位数） | **430 → 182 ms** | 同上 |
-| Muse Glimmer 30B（LoRA，Fireworks） | **41.8% → 54.1%**（v80，用人工标注训练） | 8 条留出录制的 122 个人工步骤 |
+| Muse Glimmer 30B（LoRA，Fireworks） | **41.8% → 54.1% → 64.1%**（v80 用人工标注训练；v82 + 按任务的顺序解码，范围 60.7–67.2%） | 8 条留出录制的 122 个人工步骤 |
 | 手表 ↔ 视频同步误差 | **24.7 → 3.7 ms**（目标 < 10 ms） | 37 条录制 |
 | 每条录制换脸时间 | **636 → 84 s**（7.5×） | `docs/privacy_eval.md` |
 | SAM 3.1 成本，4 条录制 | **$2.92 → $0.27**（−91%） | 4 条真实录制 |

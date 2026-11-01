@@ -43,7 +43,7 @@ Cada número se mide contra **etiquetas humanas** o una referencia física y se 
 |---|---|---|
 | Precisión por fotograma de etiquetas (Muse Spark 1.3) | **35,6% → 54,3%** | EPIC-KITCHENS-100, 8 clips reservados, 271 pasos humanos |
 | Error de límite (mediana) | **430 → 182 ms** | igual |
-| Muse Glimmer 30B (LoRA, Fireworks) | **41,8% → 54,1%** (v80, entrenado con etiquetas humanas) | 122 pasos humanos, 8 grabaciones reservadas |
+| Muse Glimmer 30B (LoRA, Fireworks) | **41,8% → 54,1% → 64,1%** (v80, entrenado con etiquetas humanas; v82 + decodificación del orden por misión, rango 60,7–67,2%) | 122 pasos humanos, 8 grabaciones reservadas |
 | Sincronización reloj ↔ vídeo | **24,7 → 3,7 ms** (objetivo < 10 ms) | 37 grabaciones |
 | Cambio de cara por grabación | **636 → 84 s** (7,5×) | `docs/privacy_eval.md` |
 | Coste SAM 3.1, 4 grabaciones | **$2,92 → $0,27** (−91%) | 4 grabaciones reales |
