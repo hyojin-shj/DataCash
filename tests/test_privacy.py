@@ -163,3 +163,18 @@ def test_open_run_filter_drops_short_profile_swaps():
     assert [fr for fr, _ in out][:8] == [f"o{k}" for k in range(8)]          # 짧은 2장면은 되돌림
     assert all(fr.startswith("s") for fr, _ in out[8:8 + OPEN_MIN_RUN + 1])   # 긴 것은 그대로
     assert len(out) == len(kinds) and rep.kept_why == {"short": 2} and rep.swapped == OPEN_MIN_RUN + 1
+
+
+def test_donor_key_least_similar_within_gender_age_and_group():
+    from datacash.privacy.faceswap import DONOR_GROUP, DONOR_INFO, REID_MAX, donor_key
+
+    # 20대 동아시아 여성 참여자: 같은 성별·나이대·무리 안에서 덜 닮은 사람이 먼저,
+    # 더 덜 닮아도 다른 무리·40대·남성·같은 사람만큼 닮은 사진은 뒤
+    young = [n for n, (g, a) in DONOR_INFO.items() if g == "female" and a and a <= 30]
+    ea = [n for n in young if DONOR_GROUP[n] == "east_asian"]
+    other = [n for n in young if DONOR_GROUP[n] != "east_asian"]
+    older = [n for n, (g, a) in DONOR_INFO.items() if g == "female" and a == 40]
+    male = [n for n, (g, a) in DONOR_INFO.items() if g == "male"]
+    sims = {ea[0]: 0.30, ea[1]: 0.10, other[0]: 0.02, older[0]: 0.0, male[0]: -0.1, ea[2]: REID_MAX + 0.1}
+    order = sorted(sims, key=lambda n: donor_key(n, sims[n], "female", "19~29세", "east_asian"))
+    assert order == [ea[1], ea[0], other[0], older[0], male[0], ea[2]]

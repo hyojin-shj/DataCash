@@ -190,7 +190,7 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
             fam = {oid: people.donor_for(dev, pid) for oid, pid in getattr(r, "consented_who", {}).items()} if people is not None else {}
             if donors:
                 first = mine
-                if first is None:                      # 본인이 고르지 않았으면: 닮은 순서대로 시험해 너무 닮게 나오지 않는 사람
+                if first is None:                      # 본인이 고르지 않았으면: 같은 성별·나이대에서 덜 닮은 순서대로 시험해 표정을 줄일 일이 적은 사람
                     from .privacy.faceswap import pick_donor
 
                     first, tried = pick_donor(video, donors, log=log)

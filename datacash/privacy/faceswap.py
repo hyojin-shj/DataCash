@@ -631,6 +631,11 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
             if oid not in family_order:
                 family_order.append(oid)
             targets.append((f"family:{oid}", box))
+        def near_seen(key, c, size):
+            """확인한 참여자 얼굴(seen) 곁인가 — NEAR_FRAMES 장면 안, 얼굴 폭 NEAR_DIST 배 안."""
+            nr = seen.get(key)
+            return nr is not None and i - nr[2] <= NEAR_FRAMES and float(np.hypot(*(c - nr[0]))) < NEAR_DIST * max(nr[1], size)
+
         res, any_face, used = fb, False, set()
         alt = None             # 알아보지 못하는 참여자 옆모습을 바꿨을 때, 바꾸기 전 장면 (짧게 끝나면 이것으로 되돌린다)
         for key, box in targets:
@@ -647,6 +652,13 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
                 found = find_small_faces(fo, fl, reid, box)
                 if found:
                     lmk, small = found[0], True
+                    sc = lmk.mean(0)
+                    if not near_seen(key, sc, float(np.ptp(lmk[:, 0]))):
+                        # 참여자 얼굴 곁이 아닌 작은 얼굴은 알아볼 때만 — 컵을 쥔 주먹에 점 478개가 찾아져 얼굴이 붙었다 (컵 녹화 604·608·612장면)
+                        es_ = reid.embed(fo, sc)
+                        if es_ is not None and ref_emb and max(reid.sim(es_, r) for r in ref_emb) < REID_MAX:
+                            rep.keep("far")
+                            continue
                 else:                                      # 옆얼굴·먼 얼굴: YuNet 5점으로 자른다 (모자이크로 끊기지 않게)
                     yfs = yunet_faces(fo, reid, box)
                     if not yfs:
@@ -666,9 +678,7 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
                         # (물병 상자 녹화 580·600장면: 눈 비율 0.05~0.15) → 원래대로 둔다. 귀·머리카락·턱선만 보인다.
                         known = eyes >= 0.22 and sim_p >= REID_MAX
                         # 각도 사진이 있으면 알아보지 못하는 옆모습도 바꾼다 (원래 얼굴로 두면 치환이 끊겨 보인다) — 거의 완전한 옆모습만 원래대로
-                        near = seen.get(key)
-                        near = near is not None and i - near[2] <= NEAR_FRAMES and \
-                            float(np.hypot(*(yc - near[0]))) < NEAR_DIST * max(near[1], float(yf[2]))
+                        near = near_seen(key, yc, float(yf[2]))
                         if not known and not (OPEN_PROFILES and lp.views and eyes >= OPEN_PROFILE_EYES and near):
                             if near or eyes < OPEN_PROFILE_EYES:
                                 rep.keep("side")
@@ -828,17 +838,18 @@ def swap_video(original, base, out_path, donor_img, participant_boxes: Optional[
 
 
 
-def _donor_info() -> dict:
-    """가상 인물 이름 → (성별, 나이) — Muse Image 로 만들 때 정한 값 (donors/donors.json, scripts/make_donors.py)."""
+def _donor_meta() -> dict:
+    """가상 인물 이름 → {gender, age, group} — Muse Image 로 만들 때 정한 값 (donors/donors.json, scripts/make_donors.py)."""
     import json
 
     p = Path(__file__).parents[1] / "donors" / "donors.json"
-    d = json.loads(p.read_text()) if p.exists() else {}
-    return {k: (v.get("gender"), v.get("age")) for k, v in d.items()}
+    return json.loads(p.read_text()) if p.exists() else {}
 
 
-DONOR_INFO = _donor_info()
+DONOR_INFO = {k: (v.get("gender"), v.get("age")) for k, v in _donor_meta().items()}
+DONOR_GROUP = {k: v.get("group") for k, v in _donor_meta().items()}
 AGE_SPAN = 25             # 나이를 알면 이만큼 안쪽만 후보 (20대 참여자에게 60대 얼굴이 붙지 않게)
+AGE_NEAR = 12             # 이만큼 안쪽(같은 나이대)이 있으면 그 사람들 먼저 — 20대 참여자에게 40대보다 20대 얼굴
 
 
 def _age_num(band: Optional[str]) -> Optional[int]:
@@ -848,15 +859,17 @@ def _age_num(band: Optional[str]) -> Optional[int]:
     return 20 if band.startswith("19") else int(digits[:2]) if digits else None
 
 
-OVER_LIMIT = 0.5          # 시험 장면 가운데 같은 사람 기준을 넘는 비율이 이보다 크면 다음으로 닮은 사람
-TRIAL_FRAMES = 20
-TRIAL_DONORS = 6         # 닮은 순서로 이만큼 시험해, 표정을 줄여야 하는 장면이 가장 적은 사람을 고른다
+OVER_LIMIT = 0.5          # 시험 장면 가운데 표정을 다 빼도 같은 사람 기준을 넘는 비율이 이보다 큰 사람은 뺀다
+TRIAL_FRAMES = 30
+TRIAL_DONORS = 6         # 순서(rank_donors) 앞쪽에서 이만큼, 첫째와 성별·무리가 같은 사람만 시험한다
 
 
 def trial_rates(original_video, donor: Path, frames: int = TRIAL_FRAMES, lp: Optional["LivePortraitSwap"] = None,
-                fl: Optional["FaceLandmarks"] = None, reid: Optional["Reid"] = None) -> Optional[tuple]:
+                fl: Optional["FaceLandmarks"] = None, reid: Optional["Reid"] = None, refs: Optional[list] = None) -> Optional[tuple]:
     """영상 곳곳 몇 장면을 이 가상 인물로 실제처럼(표정 그대로 → 반 → 고개만) 바꿔 본다 →
-    (표정 그대로는 같은 사람 기준을 넘어 표정을 줄여야 하는 장면 비율, 셋 다 넘는 장면 비율)."""
+    (표정을 줄여야 하는 장면 비율, 셋 다 넘는 장면 비율, 표정 그대로 바꾼 얼굴의 평균 닮음).
+    닮음은 그 장면의 원래 얼굴과 refs(영상 곳곳 참여자 얼굴) 가운데 가장 닮은 값 — 더 엄격한 재식별.
+    점 478개를 못 찾는 작은 얼굴도 시험한다 (상자 녹화는 치환의 절반이 작은 얼굴)."""
     fl, reid, lp = fl or FaceLandmarks(), reid or Reid(), lp or LivePortraitSwap()
     img = cv2.imread(str(donor))
     dl = fl(img) if img is not None else []
@@ -864,12 +877,17 @@ def trial_rates(original_video, donor: Path, frames: int = TRIAL_FRAMES, lp: Opt
         return None
     cap = cv2.VideoCapture(str(original_video))
     n = int(cap.get(7))
-    over = damp = seen = 0
+    over = damp = 0
+    sims = []
     st = None
     for i in np.linspace(0, max(0, n - 10), frames).astype(int):
         cap.set(cv2.CAP_PROP_POS_FRAMES, int(i))
         ok, f = cap.read()
-        found = fl(f) if ok else []
+        if not ok:
+            continue
+        found, small = fl(f), False
+        if not found:
+            found, small = find_small_faces(f, fl, reid), True
         if not found:
             continue
         lmk = max(found, key=lambda a: np.ptp(a[:, 0]) * np.ptp(a[:, 1]))
@@ -885,59 +903,71 @@ def trial_rates(original_video, donor: Path, frames: int = TRIAL_FRAMES, lp: Opt
             lp.use(st)
         best, first = None, None
         for es in (1.0, 0.5, 0.0):
-            g = lp.drive(crop, es)
+            g = lp.drive(crop, es, anchor=not small)
             gl = fl(g)
             e1 = reid.embed(lp.paste(f, g, M, gl[0] if gl else None, target=lmk), c)   # 실제처럼 눈코입을 맞춰 붙인 얼굴로 (맞추면 더 닮는다)
-            sv = reid.sim(e0, e1) if e1 is not None else 0.0
+            sv = max(reid.sim(e1, r) for r in [e0] + (refs or [])) if e1 is not None else 0.0
             best = sv if best is None else min(best, sv)
             first = sv if first is None else first
             if st is None:
                 st = lp.state()
             if sv < REID_MAX:
                 break
-        seen += 1
+        sims.append(first)
         over += best >= REID_MAX
         damp += first >= REID_MAX
     cap.release()
-    return (damp / seen, over / seen) if seen else None
+    return (damp / len(sims), over / len(sims), float(np.mean(sims))) if sims else None
 
 
 def pick_donor(original_video, ranked: List[Path], log=print) -> tuple:
-    """닮은 순서(rank_donors) 앞쪽 TRIAL_DONORS 명을 시험해, 표정을 줄여야 하는 장면이 가장 적은 사람 (같으면 더 닮은 사람).
-    가장 닮은 사람을 바로 쓰면 바꾼 얼굴이 원래 사람과 닮아 표정을 줄인 장면이 32% 였다 (녹화 26편) — 표정이 굳어 부자연스럽다.
-    표정을 다 빼도 기준을 넘는 장면이 OVER_LIMIT 넘는 사람은 뺀다 (가장 닮은 사람이 어떤 영상에서는 거의 본인처럼 나왔다 — 점심 녹화 티슈 ②, 87%).
-    (고른 사람, {이름: 표정을 줄여야 하는 장면 비율})"""
+    """순서(rank_donors) 앞쪽 TRIAL_DONORS 명 가운데 첫째와 성별·무리가 같은 사람을 모두 시험해,
+    바꾼 얼굴이 참여자와 평균으로 가장 덜 닮은 사람 (표정을 다 빼도 넘는 장면이 OVER_LIMIT 넘는 사람은 뺀다).
+    사진이 덜 닮았다고 바꾼 얼굴도 덜 닮지는 않는다 — 상자 녹화에서 사진이 가장 덜 닮은 사람이 알아봄 26.8%,
+    이 시험으로 고른 사람은 그 절반 아래 (시험 점수 순서가 실제 알아봄 순서와 같았다, docs/privacy_eval.md).
+    (고른 사람, {이름: 평균 닮음})"""
     fl, reid, lp = FaceLandmarks(), Reid(), LivePortraitSwap()
+    refs = participant_refs(original_video, reid)
+    g0, r0 = DONOR_INFO.get(ranked[0].stem, (None, None))[0], DONOR_GROUP.get(ranked[0].stem)
+    pool = [d for d in ranked[:TRIAL_DONORS] if DONOR_INFO.get(d.stem, (None, None))[0] == g0 and DONOR_GROUP.get(d.stem) == r0]
     tried, over = {}, {}
-    for d in ranked[:TRIAL_DONORS]:
-        r = trial_rates(original_video, d, lp=lp, fl=fl, reid=reid)
-        tried[d.stem] = None if r is None else round(r[0], 2)
+    for d in pool or ranked[:1]:
+        r = trial_rates(original_video, d, lp=lp, fl=fl, reid=reid, refs=refs)
+        tried[d.stem] = None if r is None else round(r[2], 3)
         over[d.stem] = None if r is None else r[1]
-        log(f"가상 인물 시험 {d.stem}: 표정 줄임 {tried[d.stem]} · 표정 빼도 넘음 {None if r is None else round(r[1], 2)}")
-        if r is not None and r[0] == 0:                    # 표정을 줄일 장면이 없으면 더 볼 것 없다 (닮은 순서라 이 사람이 가장 자연스럽다)
-            return d, tried
-    ok = [d for d in ranked[:TRIAL_DONORS] if tried.get(d.stem) is not None]
+        log(f"가상 인물 시험 {d.stem}: 평균 닮음 {tried[d.stem]} · 표정 줄임 {None if r is None else round(r[0], 2)} · "
+            f"표정 빼도 넘음 {None if r is None else round(r[1], 2)}")
+    ok = [d for d in pool if tried.get(d.stem) is not None]
     fine = [d for d in ok if over[d.stem] <= OVER_LIMIT] or ok
     return (min(fine, key=lambda d: tried[d.stem]) if fine else ranked[0]), tried
 
 
-def rank_donors(original_video, donors_dir=None, gender: Optional[str] = None, age_band: Optional[str] = None) -> List[Path]:
-    """가상 인물 순서 (첫째는 참여자, 다음은 동의한 가족에게).
-    같은 성별 · 나이 차 AGE_SPAN 안에서 사진이 가장 닮은 사람부터 — 닮을수록 치환이 자연스럽다 (점심 녹화 의견:
-    '닮아도 어차피 내가 아니다'). 단 같은 사람 기준(REID_MAX)을 넘게 닮은 사진은 빼고, 치환 중 장면마다 재식별 검사가 지킨다."""
-    donors = sorted(Path(donors_dir or Path(__file__).parents[1] / "donors").glob("*.png"))
-    if not donors:
-        return []
-    reid = Reid()
+def participant_refs(original_video, reid: "Reid", frames: int = 20) -> list:
+    """영상 곳곳 장면의 참여자 얼굴 재식별 특징 (가장 큰 얼굴)."""
     cap = cv2.VideoCapture(str(original_video))
     n = int(cap.get(7))
     embs = []
-    for i in np.linspace(0, max(0, n - 10), 8).astype(int):
+    for i in np.linspace(0, max(0, n - 10), frames).astype(int):
         cap.set(cv2.CAP_PROP_POS_FRAMES, int(i))
         ok, f = cap.read()
         e = reid.embed(f) if ok else None
         if e is not None:
             embs.append(e)
+    cap.release()
+    return embs
+
+
+def rank_donors(original_video, donors_dir=None, gender: Optional[str] = None, age_band: Optional[str] = None) -> List[Path]:
+    """가상 인물 순서 (첫째는 참여자, 다음은 동의한 가족에게).
+    같은 성별 · 가장 가까운 나이대(AGE_NEAR 안, 없으면 AGE_SPAN 안) · 같은 인종 무리에서 사진이 가장 덜 닮은 사람부터.
+    예전에는 가장 닮은 사람부터였다 (닮을수록 자연스럽다) — 그런데 참여자 정면 20장과 재 보니 치환 영상의 3~31% 가
+    참여자로 보였다 (11-01, docs/privacy_eval.md). 성별·나이대·무리가 같으면 얼굴 크기·피부색이 맞아 덜 닮아도 어색하지 않다
+    (무리 없이 덜 닮은 사람만 고르면 동아시아 참여자에게 흑인·백인 얼굴이 붙었다)."""
+    donors = sorted(Path(donors_dir or Path(__file__).parents[1] / "donors").glob("*.png"))
+    if not donors:
+        return []
+    reid = Reid()
+    embs = participant_refs(original_video, reid, 8)
     if not embs:
         return donors
 
@@ -946,13 +976,18 @@ def rank_donors(original_video, donors_dir=None, gender: Optional[str] = None, a
         return 1.0 if e is None else max(reid.sim(e, x) for x in embs)
 
     sims = {d: worst(d) for d in donors}
+    # 참여자 인종 무리는 메타에 없다 → 사진이 가장 닮은 가상 인물의 무리로 어림한다 (피부색이 다르면 목·귀와 얼굴 색이 달라 어색하다)
+    group = DONOR_GROUP.get(max(donors, key=lambda d: sims[d]).stem)
+    return sorted(donors, key=lambda d: donor_key(d.stem, sims[d], gender, age_band, group))
+
+
+def donor_key(name: str, sim: float, gender: Optional[str], age_band: Optional[str], group: Optional[str] = None) -> tuple:
+    """rank_donors 정렬 열쇠: 같은 사람만큼 닮음 → 성별 → 나이대 → 인종 무리 → 덜 닮은 순."""
+    g, a = DONOR_INFO.get(name, (None, None))
     age = _age_num(age_band)
-
-    def fit(d):
-        g, a = DONOR_INFO.get(d.stem, (None, None))
-        return (0 if sims[d] < REID_MAX else 1,                        # 같은 사람만큼 닮은 사진은 맨 뒤
-                0 if gender in (None, "") or g == gender else 1,
-                0 if not age or not a or abs(a - age) <= AGE_SPAN else 1,
-                -sims[d] if sims[d] < REID_MAX else sims[d])           # 그 안에서 가장 닮은 사람
-
-    return sorted(donors, key=fit)
+    gap = abs(a - age) if age and a else 0
+    return (0 if sim < REID_MAX else 1,                                # 같은 사람만큼 닮은 사진은 맨 뒤
+            0 if gender in (None, "", "any") or g == gender else 1,
+            0 if gap <= AGE_NEAR else 1 if gap <= AGE_SPAN else 2,
+            0 if not group or DONOR_GROUP.get(name) == group else 1,
+            sim)                                                       # 그 안에서 가장 덜 닮은 사람

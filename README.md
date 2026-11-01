@@ -81,9 +81,12 @@ Full numbers and the approaches we tried and dropped: [`docs/privacy_eval.md`](d
 | 11-01 night | Frames where a fist was detected as a face are filtered by distance to the contributor's face | Honest flip count (cup recording 87 → 55) |
 | 11-01 night | Tried and dropped: self-trained face-swap model, putting hair over the face, swapping unrecognizable profiles too | Blurry blob · original eyes leaked · 40% looked off |
 | 11-01 night | Stricter re-identification (against 20 frontal photos of the contributor) | 3–31% of swapped frames still match the contributor (other people's photos: 2.7%) — tied to picking the most similar synthetic person; options in the doc |
+| 11-01 | Pick the synthetic person differently: same gender · age band · group (inferred from the most similar photo), then trial-swap each candidate and take the one whose swapped face is least like the contributor (+24 East Asian synthetic people, 20s–50s, $6) | Recognized frames 3.3 / 11.1 / 17.3 / 30.9% → 2.9 / 9.3 / 10.4 / 6.4%. Least similar *photo* alone was worse (26.8%); ignoring group pasted Black/white faces on East Asian contributors |
+| 11-01 | Small faces found on a fist holding a cup were swapped (a face appeared on the hand) → small faces away from a confirmed face are swapped only if recognized | Cup recording 221 → 167 swapped frames: the 54 removed were the fist |
 
 ![Angle photos of four synthetic people (front + 8)](docs/faceswap_views.jpg)
 ![Profiles and bowed heads from one frontal photo vs the same frames from the closest-angle photo](docs/faceswap_angle_source.en.png)
+![Before: most similar photo / After: least similar in trial swaps within gender · age · group, and the recognized-frame rate](docs/faceswap_donor_pick.en.png)
 
 ### 2. Five senses, synced automatically
 No clapping required: phone↔watch clock round-trips, an 18–20 kHz acoustic beacon, and watch vibration pulses. On 37 real phone + watch recordings, the acoustic beacon aligns 24 (pair residual 0.1–1.9 ms); the rest fall back to the server-relayed clock, which runs 24.7 ms (±3.5) off the beacon, so that bias is measured per device pair and subtracted (leave-one-out max 9.2 ms). Measurements in `docs/sync_eval.md`, code in `datacash/sync/`.
