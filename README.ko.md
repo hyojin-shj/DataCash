@@ -1,8 +1,8 @@
 [English](README.md) · **한국어** · [Español](README.es.md) · [中文](README.zh-CN.md) · [日本語](README.ja.md)
 
-<a href="https://youtu.be/gw3gqoHlFvA"><img src="docs/demo_video.jpg" width="49%" alt="DataCash 영상 (2:35)"></a> <a href="https://youtu.be/DEu_gY3T2vE"><img src="docs/demo_3min.ko.jpg" width="49%" alt="DataCash 3분 데모"></a>
+<a href="https://youtu.be/gw3gqoHlFvA"><img src="docs/demo_video.jpg" width="49%" alt="DataCash 영상 (2:35)"></a> <a href="https://youtu.be/vClUIqrZjBY"><img src="docs/demo_3min.ko.jpg" width="49%" alt="DataCash 3분 데모"></a>
 
-[소개 영상 (2:35)](https://youtu.be/gw3gqoHlFvA) · 3분 데모: [English](https://youtu.be/o1sGUME0GHw) · [한국어](https://youtu.be/DEu_gY3T2vE)
+[소개 영상 (2:35)](https://youtu.be/gw3gqoHlFvA) · 3분 데모: [English](https://youtu.be/o1sGUME0GHw) · [한국어](https://youtu.be/vClUIqrZjBY)
 
 # DataCash (데이터캐시)
 

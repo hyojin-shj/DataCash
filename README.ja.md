@@ -2,7 +2,7 @@
 
 <a href="https://youtu.be/gw3gqoHlFvA"><img src="docs/demo_video.jpg" width="49%" alt="DataCash 動画 (2:35)"></a> <a href="https://youtu.be/o1sGUME0GHw"><img src="docs/demo_3min.en.jpg" width="49%" alt="DataCash 3 分デモ"></a>
 
-[紹介動画 (2:35)](https://youtu.be/gw3gqoHlFvA) · 3 分デモ: [English](https://youtu.be/o1sGUME0GHw) · [한국어](https://youtu.be/DEu_gY3T2vE)
+[紹介動画 (2:35)](https://youtu.be/gw3gqoHlFvA) · 3 分デモ: [English](https://youtu.be/o1sGUME0GHw) · [한국어](https://youtu.be/vClUIqrZjBY)
 
 # DataCash
 
