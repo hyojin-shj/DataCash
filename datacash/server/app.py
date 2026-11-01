@@ -246,6 +246,11 @@ class Store:
         p = self.root / "sessions" / sid / "meta.json"
         return ((json.loads(p.read_text()).get("devices") or {}).get("phone") or {}).get("id") if p.exists() else None
 
+    def sample_ok(self, sid: str) -> bool:
+        """웹에 예시로 보여도 되는 녹화인가. <root>/samples.json (녹화 이름 목록)이 있으면 그것만, 없으면 판매 중인 녹화 전부."""
+        p = self.root / "samples.json"
+        return sid in json.loads(p.read_text()) if p.exists() else True
+
     # ---- 카탈로그 (처리된 녹화의 인증서에서) ----
     def accepted(self) -> List[dict]:
         rows = []
@@ -286,7 +291,8 @@ class Store:
                         "sponsor": m.get("sponsor", ""),
                         "recordings": len(mine), "hours": hours, "episodes": sum(r["episodes"] for r in mine),
                         "verified_steps": sum(r["verified_steps"] for r in mine), "steps": sum(r["steps"] for r in mine),
-                        "samples": [r["sid"] for r in sorted(mine, key=lambda r: (-pricing.LEVELS.index(r["level"]), -r["steps"], r["synthetic"]))][:4],
+                        "samples": [r["sid"] for r in sorted(mine, key=lambda r: (-pricing.LEVELS.index(r["level"]), -r["steps"], r["synthetic"]))
+                                    if self.sample_ok(r["sid"])][:4],
                         "synthetic_only": bool(mine) and all(r["synthetic"] for r in mine)})
         extra = sorted({r["mission"] for r in rows} - {m["id"] for m in ms})
         for mid in extra:
@@ -294,7 +300,7 @@ class Store:
             out.append({"id": mid, "title": mid, "title_en": mid, "guide": "", "purpose": "", "objects": [], "primitives": [],
                         "recordings": len(mine), "hours": {lv: round(sum(r["minutes"] for r in mine) / 60, 3) for lv in pricing.LEVELS},
                         "episodes": sum(r["episodes"] for r in mine), "verified_steps": sum(r["verified_steps"] for r in mine),
-                        "steps": sum(r["steps"] for r in mine), "samples": [r["sid"] for r in mine][:4],
+                        "steps": sum(r["steps"] for r in mine), "samples": [r["sid"] for r in mine if self.sample_ok(r["sid"])][:4],
                         "synthetic_only": all(r["synthetic"] for r in mine)})
         return {"brand": config.BRAND, "levels": [{"id": lv, "name": pricing.LEVEL_KO[lv], "desc": pricing.LEVEL_DESC[lv],
                                                    "per_hour": pricing.PER_HOUR[lv], "reward_per_hour": pricing.REWARD_PER_HOUR[lv],
@@ -769,7 +775,7 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
 
     def _ds(sid: str) -> Path:
         p = root / "out" / sid / "lerobot"
-        if not SID.match(sid) or not p.exists():
+        if not SID.match(sid) or not p.exists() or not st.sample_ok(sid):
             raise HTTPException(404, "없는 녹화")
         return p
 
@@ -844,7 +850,7 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
     @app.get("/api/market/certificate/{sid}", response_class=PlainTextResponse)
     def cert(sid: str):
         p = root / "out" / sid / "certificate.md"
-        if not SID.match(sid) or not p.exists():
+        if not SID.match(sid) or not p.exists() or not st.sample_ok(sid):
             raise HTTPException(404)
         return p.read_text()
 
