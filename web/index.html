@@ -113,6 +113,22 @@
   .steps li { padding: 6px 0; border-bottom: 1px solid var(--line); display: flex; gap: 8px; }
   .steps li b { min-width: 74px; color: var(--sub); font-weight: 600; }
   pre.cert { white-space: pre-wrap; font-size: 12.5px; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 18px; max-height: 520px; overflow: auto; }
+  dialog.lr { width: min(980px, calc(100vw - 32px)); max-height: calc(100vh - 48px); border: 1px solid var(--line); border-radius: 18px; padding: 0; color: var(--ink); }
+  dialog.lr::backdrop { background: rgba(0,0,0,.35); }
+  .lr .hd { position: sticky; top: 0; background: #fff; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px 22px; border-bottom: 1px solid var(--line); }
+  .lr .hd h3 { margin: 0; font-size: 18px; }
+  .lr .bd { padding: 18px 22px 24px; }
+  .lr .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+  .lr .chips span { font-size: 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 99px; padding: 3px 10px; }
+  .lr h4 { margin: 18px 0 8px; font-size: 14px; }
+  .lr .mono, .lr pre { font: 12px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .lr pre { background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; overflow: auto; margin: 0; }
+  .lr .top { display: grid; grid-template-columns: 1fr 150px; gap: 18px; }
+  .lr .top img { width: 150px; border-radius: 12px; border: 1px solid var(--line); }
+  .lr table { font-size: 12.5px; }
+  .lr td, .lr th { padding: 7px 8px; }
+  .lr td.v { color: var(--sub); word-break: break-word; }
+  @media (max-width: 640px) { .lr .top { grid-template-columns: 1fr; } }
   footer { padding: 36px 0 60px; color: var(--sub); font-size: 13px; border-top: 1px solid var(--line); }
   @media (max-width: 960px) { header.hero .wrap, .viewer, .quote { grid-template-columns: 1fr; } .grid4, .levels { grid-template-columns: 1fr 1fr; } }
   .prims { font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--accent-ink); margin-top: 4px; }
@@ -182,6 +198,7 @@
   <div class="row" style="margin-bottom:14px">
     <select id="sampleSel"></select><span class="note" id="sampleNote"></span>
     <button class="btn small ghost" id="certBtn" data-i18n="sample.cert">품질 인증서</button>
+    <button class="btn small ghost" id="lrBtn" data-i18n="sample.lerobot">LeRobot v3.0 보기</button>
   </div>
   <div class="viewer">
     <div><img id="frame" alt="가린 장면" data-i18n-alt="sample.frameAlt"><input type="range" id="scrub" min="0" max="0" value="0">
@@ -194,6 +211,8 @@
       <div class="note" id="syncNote" style="margin-top:8px"></div></div>
   </div>
   <pre class="cert" id="cert" hidden></pre>
+  <dialog class="lr" id="lrDlg"><div class="hd"><h3 id="lrTitle"></h3><button class="btn small ghost" id="lrClose" data-i18n="lr.close">닫기</button></div>
+    <div class="bd" id="lrBody"></div></dialog>
 </div></section>
 
 <section id="catalog"><div class="wrap">
@@ -270,7 +289,7 @@ ko: {
   "s4.tag": "움직임", "s4.h3": "손목·폰 움직임 · 몸 자세", "s4.p": "워치·폰 IMU(가속도·자이로)를 ms 단위로 한 시간축에 맞추고, 손·전신 관절의 3D 움직임과 함께 담습니다.",
   "s4.l1": "들기·옮기기·비틀기의 힘쓰는 순간을 손목 충격·흔들림으로", "s5.tag": "생체", "s5.h3": "심박 · 피부온도", "s5.p": "손목 IMU, 심박·HRR·피부온도 변화 (생체 동의한 녹화만). 판정·조언 없이 원값과 본인 응답만.", "s5.l1": "사람이 얼마나 힘들었나 → 사람을 이해하며 같이 일하는 로봇",
   "sample.h2": "예시 데이터 — 5감 타임라인", "sample.lead": "한 에피소드의 장면과, 같은 시간축의 쥐는 세기·심박·소리·단계 라벨입니다. 타임라인을 누르면 그 장면으로 갑니다.",
-  "sample.cert": "품질 인증서", "sample.frameAlt": "가린 장면", "sample.none": "예시 없음",
+  "sample.cert": "품질 인증서", "sample.lerobot": "LeRobot v3.0 보기", "lr.title": "LeRobot v3.0 묶음 — {sid}", "lr.close": "닫기", "lr.files": "파일", "lr.frame": "장면 {i}", "lr.features": "특징 — 장면 {i}의 실제 값", "lr.value": "값 (앞 6개)", "lr.more": "외 {n}개", "lr.video": "영상 (mp4 에서 그 장면)", "lr.eps": "에피소드 {e} · 장면 {f}", "lr.load": "파이썬으로 불러오기", "lr.loadNote": "한 장면 = 영상 한 장 + 같은 시각의 모든 센서 값", "sample.frameAlt": "가린 장면", "sample.none": "예시 없음",
   "lg.grip": "쥐는 세기 (하·중·상, 0~100)", "lg.hr": "심박 (bpm)", "lg.sound": "소리 세기", "lg.contact": "접촉 단계", "lg.marks": "▲ 확인된 접촉음 · ◆ '실수했어요'",
   "cat.h2": "카탈로그", "cat.lead": "처리된 녹화의 품질 인증서에서 바로 계산한 숫자입니다 (지어낸 숫자 없음).",
   "cat.mission": "미션", "cat.use": "쓰임", "cat.rec": "녹화", "cat.verified": "검증된 단계", "cat.synth": "합성 시험",
@@ -336,7 +355,7 @@ en: {
   "s4.tag": "Motion", "s4.h3": "Motion · pose", "s4.p": "Watch and phone IMU on one ms-precise timeline, with 3D hand and body joints.",
   "s4.l1": "Lift, carry, twist", "s5.tag": "Physiology", "s5.h3": "Heart rate · temp", "s5.p": "Wrist IMU, heart rate, HRR, skin temp (bio-consent only). No diagnosis.", "s5.l1": "Effort → safer cobots",
   "sample.h2": "Sample data — 5-sense timeline", "sample.lead": "One episode: scenes with grip, heart rate, sound and step labels on one timeline. Click to jump.",
-  "sample.cert": "Quality certificate", "sample.frameAlt": "Masked scene", "sample.none": "No samples",
+  "sample.cert": "Quality certificate", "sample.lerobot": "View LeRobot v3.0", "lr.title": "LeRobot v3.0 package — {sid}", "lr.close": "Close", "lr.files": "Files", "lr.frame": "Frame {i}", "lr.features": "Features — real values at frame {i}", "lr.value": "Value (first 6)", "lr.more": "+{n} more", "lr.video": "video (that frame from the mp4)", "lr.eps": "{e} episode · {f} frames", "lr.load": "Load in Python", "lr.loadNote": "one frame = one image + every sensor value at the same time", "sample.frameAlt": "Masked scene", "sample.none": "No samples",
   "lg.grip": "Grip (low · mid · high, 0–100)", "lg.hr": "Heart rate (bpm)", "lg.sound": "Sound level", "lg.contact": "Contact phase", "lg.marks": "▲ contact sound · ◆ 'mistake'",
   "cat.h2": "Catalog", "cat.lead": "Computed from the quality certificates of processed recordings — no made-up numbers.",
   "cat.mission": "Mission", "cat.use": "Use", "cat.rec": "Recordings", "cat.verified": "Verified", "cat.synth": "Synthetic test",
@@ -411,7 +430,7 @@ ja: {
   "s4.tag": "動き", "s4.h3": "手首・スマホの動き · 体の姿勢", "s4.p": "ウォッチとスマホの IMU（加速度・ジャイロ）をミリ秒単位で一つの時間軸に合わせ、手と全身の関節の 3D の動きと一緒に収めます。",
   "s4.l1": "持ち上げ・運び・ひねりの力を入れる瞬間を、手首の衝撃と揺れで", "s5.tag": "生体", "s5.h3": "心拍 · 皮膚温度", "s5.p": "手首 IMU、心拍・HRR・皮膚温度の変化（生体情報に同意した録画のみ）。判定や助言はせず、生の値と本人の回答だけ。", "s5.l1": "その人がどれだけきつかったか → 人を理解して一緒に働くロボットへ",
   "sample.h2": "サンプルデータ —— 5感タイムライン", "sample.lead": "1 エピソードの場面と、同じ時間軸の握る力・心拍・音・ステップのラベルです。タイムラインをクリックするとその場面に移動します。",
-  "sample.cert": "品質証明書", "sample.frameAlt": "隠した場面", "sample.none": "サンプルなし",
+  "sample.cert": "品質証明書", "sample.lerobot": "LeRobot v3.0 を見る", "lr.title": "LeRobot v3.0 パッケージ — {sid}", "lr.close": "閉じる", "lr.files": "ファイル", "lr.frame": "フレーム {i}", "lr.features": "特徴 — フレーム {i} の実際の値", "lr.value": "値（先頭 6 個）", "lr.more": "ほか {n} 個", "lr.video": "映像（mp4 のそのフレーム）", "lr.eps": "エピソード {e}・フレーム {f}", "lr.load": "Python で読み込む", "lr.loadNote": "1 フレーム = 画像 1 枚 + 同じ時刻のすべてのセンサー値", "sample.frameAlt": "隠した場面", "sample.none": "サンプルなし",
   "lg.grip": "握る力（低・中・高、0〜100）", "lg.hr": "心拍（bpm）", "lg.sound": "音の大きさ", "lg.contact": "接触の段階", "lg.marks": "▲ 確認された接触音 · ◆「失敗しました」",
   "cat.h2": "カタログ", "cat.lead": "処理済み録画の品質証明書からそのまま計算した数字です（作った数字はありません）。",
   "cat.mission": "ミッション", "cat.use": "用途", "cat.rec": "録画", "cat.verified": "検証済みステップ", "cat.synth": "合成テスト",
@@ -486,7 +505,7 @@ ja: {
   "s4.tag": "动作", "s4.h3": "手腕·手机动作 · 身体姿态", "s4.p": "将手表和手机的 IMU（加速度·陀螺仪）以毫秒精度对齐到同一时间轴，并与手部和全身关节的 3D 动作一起记录。",
   "s4.l1": "通过手腕冲击和晃动捕捉抬起·搬运·拧转时用力的瞬间", "s5.tag": "生理", "s5.h3": "心率 · 皮肤温度", "s5.p": "手腕 IMU、心率·HRR·皮肤温度变化（仅限同意提供生物信息的录制）。不做判断或建议，只提供原始数值和本人回答。", "s5.l1": "这个人有多吃力 → 理解人并与人协作的机器人",
   "sample.h2": "示例数据 —— 五感时间轴", "sample.lead": "一个片段的画面，以及同一时间轴上的握力·心率·声音·步骤标签。点击时间轴即可跳到对应画面。",
-  "sample.cert": "质量证书", "sample.frameAlt": "遮盖后的画面", "sample.none": "暂无示例",
+  "sample.cert": "质量证书", "sample.lerobot": "查看 LeRobot v3.0", "lr.title": "LeRobot v3.0 数据包 — {sid}", "lr.close": "关闭", "lr.files": "文件", "lr.frame": "第 {i} 帧", "lr.features": "特征 —— 第 {i} 帧的实际值", "lr.value": "值（前 6 个）", "lr.more": "另 {n} 个", "lr.video": "视频（mp4 中的该帧）", "lr.eps": "{e} 个片段 · {f} 帧", "lr.load": "用 Python 读取", "lr.loadNote": "一帧 = 一张图像 + 同一时刻的所有传感器值", "sample.frameAlt": "遮盖后的画面", "sample.none": "暂无示例",
   "lg.grip": "握力（低·中·高，0–100）", "lg.hr": "心率（bpm）", "lg.sound": "声音强度", "lg.contact": "接触阶段", "lg.marks": "▲ 已确认的接触音 · ◆ “我失误了”",
   "cat.h2": "目录", "cat.lead": "直接根据已处理录制的质量证书计算的数字（没有编造的数字）。",
   "cat.mission": "任务", "cat.use": "用途", "cat.rec": "录制", "cat.verified": "已验证步骤", "cat.synth": "合成测试",
@@ -561,7 +580,7 @@ es: {
   "s4.tag": "Movimiento", "s4.h3": "Movimiento de muñeca y teléfono · postura", "s4.p": "IMU del reloj y del teléfono (acelerómetro, giroscopio) alineada en una misma línea de tiempo con precisión de ms, junto con el movimiento 3D de las articulaciones de manos y cuerpo.",
   "s4.l1": "Los momentos de esfuerzo al levantar, cargar y girar, vistos como impactos y vibraciones de la muñeca", "s5.tag": "Fisiología", "s5.h3": "Frecuencia cardíaca · temperatura de la piel", "s5.p": "IMU de muñeca, frecuencia cardíaca, HRR y cambio de temperatura de la piel (solo grabaciones con consentimiento biométrico). Solo valores en bruto y las respuestas del propio participante, sin juicios ni consejos.", "s5.l1": "Cuánto le costó a la persona → robots que entienden a las personas y trabajan con ellas",
   "sample.h2": "Datos de ejemplo — línea de tiempo de 5 sentidos", "sample.lead": "Escenas de un episodio, con fuerza de agarre, frecuencia cardíaca, sonido y etiquetas de pasos en la misma línea de tiempo. Haz clic en la línea de tiempo para ir a esa escena.",
-  "sample.cert": "Certificado de calidad", "sample.frameAlt": "Escena ocultada", "sample.none": "Sin ejemplos",
+  "sample.cert": "Certificado de calidad", "sample.lerobot": "Ver LeRobot v3.0", "lr.title": "Paquete LeRobot v3.0 — {sid}", "lr.close": "Cerrar", "lr.files": "Archivos", "lr.frame": "Fotograma {i}", "lr.features": "Características — valores reales del fotograma {i}", "lr.value": "Valor (primeros 6)", "lr.more": "+{n} más", "lr.video": "vídeo (ese fotograma del mp4)", "lr.eps": "{e} episodio · {f} fotogramas", "lr.load": "Cargar en Python", "lr.loadNote": "un fotograma = una imagen + todos los sensores en el mismo instante", "sample.frameAlt": "Escena ocultada", "sample.none": "Sin ejemplos",
   "lg.grip": "Fuerza de agarre (bajo · medio · alto, 0–100)", "lg.hr": "Frecuencia cardíaca (lpm)", "lg.sound": "Nivel de sonido", "lg.contact": "Fase de contacto", "lg.marks": "▲ sonido de contacto confirmado · ◆ «Me equivoqué»",
   "cat.h2": "Catálogo", "cat.lead": "Cifras calculadas directamente de los certificados de calidad de las grabaciones procesadas (nada inventado).",
   "cat.mission": "Misión", "cat.use": "Uso", "cat.rec": "Grabaciones", "cat.verified": "Pasos verificados", "cat.synth": "Prueba sintética",
@@ -712,6 +731,36 @@ function renderSample() {
 function setFrame(i) { $("#frame").src = `/api/market/sample/${encodeURIComponent(SID)}/frame/${i}`; draw(i); }
 $("#scrub").oninput = e => setFrame(+e.target.value);
 $("#sampleSel").onchange = e => loadSample(e.target.value);
+$("#lrBtn").onclick = async () => {
+  if (!SID) return;
+  const d = await (await fetch(`/api/market/sample/${encodeURIComponent(SID)}/lerobot`)).json();
+  const kb = b => b < 1e6 ? numv(Math.round(b / 1024)) + " KB" : num(b / 1e6, 1) + " MB";
+  const val = f => {
+    if (f.value == null) return f.dtype === "video" ? esc(t("lr.video")) : "";
+    if (!Array.isArray(f.value)) return esc(f.value);
+    const n = f.names || [], show = f.value.slice(0, 6).map((v, j) => n[j] ? `${esc(n[j])}=${v}` : v).join(", ");
+    return esc(show) + (f.value.length > 6 ? " " + esc(t("lr.more", {n: f.value.length - 6})) : "");
+  };
+  $("#lrTitle").textContent = t("lr.title", {sid: SID});
+  $("#lrBody").innerHTML = `<div class="chips"><span>codebase_version ${esc(d.codebase_version)}</span><span>robot_type ${esc(d.robot_type)}</span>
+    <span>${esc(numv(d.fps))} fps</span><span>${esc(t("lr.eps", {e: d.total_episodes, f: numv(d.total_frames)}))}</span>${d.tasks.map(x => `<span>task: ${esc(x)}</span>`).join("")}</div>
+    <div class="top"><div><h4 style="margin-top:0">${esc(t("lr.files"))}</h4>
+      <pre>${d.files.map(f => `${esc(f.path.padEnd(52))} ${kb(f.bytes)}`).join("\n")}</pre></div>
+      <div><h4 style="margin-top:0">${esc(t("lr.frame", {i: d.frame}))}</h4><img src="/api/market/sample/${encodeURIComponent(SID)}/frame/${d.frame}" alt=""></div></div>
+    <h4>${esc(t("lr.features", {i: d.frame}))}</h4>
+    <table><thead><tr><th>key</th><th>dtype · shape</th><th>${esc(t("lr.value"))}</th></tr></thead><tbody>
+      ${d.features.map(f => `<tr><td class="mono">${esc(f.key)}</td><td class="mono">${esc(f.dtype)} [${f.shape.join(", ")}]</td><td class="v mono">${val(f)}</td></tr>`).join("")}</tbody></table>
+    <h4>${esc(t("lr.load"))}</h4>
+    <pre>pip install "lerobot[dataset]"
+
+from lerobot.datasets.lerobot_dataset import LeRobotDataset
+ds = LeRobotDataset("datacash/${esc(SID)}", root="./lerobot")
+x = ds[${d.frame}]        # ${esc(t("lr.loadNote"))}
+x["observation.hands"].shape, x["observation.touch"], x["observation.images.ego"].shape</pre>`;
+  $("#lrDlg").showModal();
+};
+$("#lrClose").onclick = () => $("#lrDlg").close();
+$("#lrDlg").onclick = e => { if (e.target === $("#lrDlg")) $("#lrDlg").close(); };
 $("#certBtn").onclick = async () => { const c = $("#cert"); if (!c.hidden) { c.hidden = true; return; }
   c.textContent = await (await fetch(`/api/market/certificate/${encodeURIComponent(SID)}`)).text(); c.hidden = false; };
 

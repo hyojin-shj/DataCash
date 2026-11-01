@@ -800,6 +800,35 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
                 "steps": info.get("steps"), "sync": info.get("sync"), "outcome": info.get("outcome"),
                 "touch": info.get("touch"), "scene": info.get("scene"), "frames": int(sel.sum())}
 
+    @app.get("/api/market/sample/{sid}/lerobot")
+    def lerobot_view(sid: str):
+        """LeRobot v3.0 묶음 안을 들여다보기: 파일 목록 · 특징(이름·모양) · 가운데 장면 한 줄의 값 · 작업 이름."""
+        import pyarrow.parquet as pq
+
+        ds = _ds(sid)
+        info = json.loads((ds / "meta" / "info.json").read_text())
+        files = [{"path": str(p.relative_to(ds)), "bytes": p.stat().st_size} for p in sorted(ds.rglob("*")) if p.is_file()]
+        t = pq.read_table(ds / "data" / "chunk-000" / "file-000.parquet")
+        # 보여 줄 장면: 값이 가장 많이 찬 줄 (손이 안 보이거나 안 쥔 장면은 0 투성이라 설명이 안 된다)
+        filled = sum((np.array(t.column(k).to_pylist(), np.float64) != 0).sum(1)
+                     for k in ("observation.hands", "observation.touch", "observation.physio", "observation.objects") if k in t.column_names)
+        i = int(np.argmax(filled)) if np.ndim(filled) else t.num_rows // 2
+        row = {k: v[0] for k, v in t.slice(i, 1).to_pydict().items()}
+        feats = []
+        for k, f in info["features"].items():
+            names = f.get("names") or []
+            v = row.get(k)
+            if isinstance(v, list):
+                v = [round(float(x), 3) for x in v]
+            elif isinstance(v, float):
+                v = round(v, 3)
+            feats.append({"key": k, "dtype": f["dtype"], "shape": f["shape"],
+                          "names": names if f["dtype"] != "video" else [], "value": v})
+        tasks = pq.read_table(ds / "meta" / "tasks.parquet").column("task").to_pylist()
+        return {"codebase_version": info.get("codebase_version"), "robot_type": info.get("robot_type"), "fps": info.get("fps"),
+                "total_episodes": info.get("total_episodes"), "total_frames": info.get("total_frames"), "tasks": tasks,
+                "frame": i, "files": files, "features": feats}
+
     @app.get("/api/market/sample/{sid}/frame/{i}")
     def frame(sid: str, i: int):
         ds = _ds(sid)
