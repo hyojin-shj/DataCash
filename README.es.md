@@ -79,10 +79,13 @@ Números completos y lo que probamos y descartamos: [`docs/privacy_eval.md`](doc
 | 11-01 noche | Reidentificación más estricta (contra 20 fotos frontales del participante) | 3–31 % de los fotogramas sustituidos aún coinciden (fotos de otras personas: 2,7 %) — ligado a elegir la persona sintética más parecida; opciones en el documento |
 | 11-01 | Nueva elección de la persona sintética: mismo género · edad · grupo (deducido de la foto más parecida); se prueba cada candidata sustituyendo fotogramas y se elige la que queda menos parecida al participante (+24 personas sintéticas de Asia oriental, 20–50 años, 6 $) | Fotogramas reconocidos 3,3 / 11,1 / 17,3 / 30,9 % → 2,9 / 9,3 / 10,4 / 6,4 %. Solo la *foto* menos parecida fue peor (26,8 %); ignorar el grupo ponía caras negras/blancas a participantes de Asia oriental |
 | 11-01 | Se sustituían caras pequeñas detectadas en un puño que sujeta una taza (aparecía una cara en la mano) → las caras pequeñas lejos de una cara confirmada solo se sustituyen si se reconocen | Grabación de la taza 221 → 167 fotogramas sustituidos: los 54 eliminados eran el puño |
+| 11-01 | 8 mujeres sintéticas más de Asia oriental de 20 años con rasgos muy distintos (y 4 hombres, 3 $) + fotogramas de prueba 30 → 90 (con 30, un fotograma invertía el orden). Sin más difuminado | Fotogramas reconocidos 2,9 / 9,3 / 10,4 / 6,4 % → 2,4 / 6,4 / 1,7 / 5,0 %; casi la mitad menos de expresión atenuada (figura) |
 
 ![Fotos en ángulo de cuatro personas sintéticas (frente + 8)](docs/faceswap_views.jpg)
 ![Perfiles y cabeza inclinada desde una foto frontal vs los mismos fotogramas desde la foto de ángulo más cercano](docs/faceswap_angle_source.es.png)
 ![Antes: la foto más parecida / Después: la menos parecida en pruebas con mismo género · edad · grupo, y la tasa de reconocimiento](docs/faceswap_donor_pick.es.png)
+
+![Nuevas personas sintéticas y fotogramas reconocidos antes/después](docs/faceswap_more_donors.es.png)
 
 ### 2. Cinco sentidos, sincronizados automáticamente
 Sin aplaudir: ida y vuelta del reloj teléfono↔reloj, una baliza acústica de 18–20 kHz y pulsos de vibración del reloj. En 37 grabaciones reales con teléfono + reloj, la baliza acústica alinea 24 (residuo por par 0,1–1,9 ms); el resto usa el reloj vía servidor, que se desvía 24,7 ms (±3,5) de la baliza, así que ese sesgo se mide por par de dispositivos y se resta (máx. 9,2 ms dejando una fuera). Mediciones en `docs/sync_eval.md`, código en `datacash/sync/`.

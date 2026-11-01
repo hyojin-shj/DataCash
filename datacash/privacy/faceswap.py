@@ -860,8 +860,8 @@ def _age_num(band: Optional[str]) -> Optional[int]:
 
 
 OVER_LIMIT = 0.5          # 시험 장면 가운데 표정을 다 빼도 같은 사람 기준을 넘는 비율이 이보다 큰 사람은 뺀다
-TRIAL_FRAMES = 30
-TRIAL_DONORS = 6         # 순서(rank_donors) 앞쪽에서 이만큼, 첫째와 성별·무리가 같은 사람만 시험한다
+TRIAL_FRAMES = 90         # 30 이면 상자 녹화는 얼굴 있는 장면이 16장뿐이라 한 장면에 순서가 뒤집혔다 (사람당 약 16초)
+TRIAL_DONORS = 16        # 순서(rank_donors) 앞쪽에서 이만큼, 첫째와 성별·무리가 같은 사람만 시험한다 (20대 동아시아 여성 후보 14명이 다 들어가게)
 
 
 def trial_rates(original_video, donor: Path, frames: int = TRIAL_FRAMES, lp: Optional["LivePortraitSwap"] = None,

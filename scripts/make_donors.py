@@ -35,6 +35,21 @@ EA_LOOKS = {"female": ["round face, straight black hair past the shoulders", "ov
                        "long face, wavy dark brown hair tied back"],
             "male": ["round face, short black hair", "angular face with a strong jaw, buzz cut", "oval face, side-parted medium length hair"]}
 
+# 참여자가 거의 20대라 20대 동아시아 가상 인물을 이목구비가 서로 다르게 더 (11-01) — 후보가 다섯뿐이라 상자 녹화 둘은
+# 가장 덜 닮은 사람도 바꾼 얼굴이 9~10% 장면에서 참여자로 보였다. 이목구비(눈·눈썹·코·입·얼굴형)를 크게 달리해 고를 여지를 넓힌다.
+EA_YOUNG = {"female": ["monolid narrow eyes, thick straight eyebrows, wide nose, full lips, square jaw, short black hair",
+                       "large double-lidded eyes, thin arched eyebrows, small pointed nose, small mouth, heart-shaped face, long straight hair",
+                       "round face with full cheeks, small eyes, low nose bridge, freckles on the nose, shoulder-length hair",
+                       "long narrow face, prominent cheekbones, hooded eyes, high nose bridge, thin lips, hair in a bun",
+                       "wide face, wide-set eyes, flat brows, broad nose, wide mouth, pixie cut",
+                       "slim face, upturned almond eyes, thick eyebrows, straight nose, plump lips, mole under the left eye, long wavy hair",
+                       "soft round jaw, droopy eyes, short eyebrows, button nose, wide smile lines, dyed light brown hair",
+                       "angular face, deep-set eyes, strong brow ridge, aquiline nose, thin wide mouth, very short undercut hair"],
+            "male": ["monolid narrow eyes, thick eyebrows, wide nose, square jaw, short hair",
+                     "large double-lidded eyes, thin face, high nose bridge, small mouth, curtain-parted hair",
+                     "round full face, small eyes, low nose bridge, light stubble, buzz cut",
+                     "long face, hooded eyes, prominent cheekbones, thin lips, medium wavy hair"]}
+
 
 def plan():
     k = 6
@@ -48,6 +63,11 @@ def plan():
             for look in EA_LOOKS[sex]:
                 yield f"donor{k}", sex, age, "east_asian", BASE.format(who=f"East Asian {word}, {look}", age=adesc)
                 k += 1
+    for sex, word in (("female", "woman"), ("male", "man")):
+        for i, look in enumerate(EA_YOUNG[sex]):
+            age = (23, 26, 28)[i % 3]
+            yield f"donor{k}", sex, age, "east_asian", BASE.format(who=f"East Asian {word}, {look}", age=f"{age} years old")
+            k += 1
 
 
 def main():

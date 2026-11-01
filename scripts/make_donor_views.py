@@ -68,7 +68,7 @@ def make(name: str, client) -> int:
 
 def main():
     names = sys.argv[1:] or sorted(p.stem for p in DONORS.glob("donor*.png"))
-    c = MetaClient().client
+    c = MetaClient(timeout=180).client   # 연결이 끊긴 요청에 몇 시간 멈춰 있던 적이 있다
     for n in names:
         print(n, make(n, c), "장")
 
