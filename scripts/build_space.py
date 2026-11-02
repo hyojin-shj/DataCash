@@ -80,7 +80,7 @@ def build() -> Path:
             if v:
                 shutil.copy(v, o / v.name)
         st = SRC / "status" / f"{sid}.json"
-        if st.exists():
+        if sid in samples and st.exists():     # 운영자 화면 녹화 목록엔 영상이 있는 예시만 (카탈로그는 인증서로 세서 그대로)
             (srv / "status").mkdir(exist_ok=True)
             shutil.copy(st, srv / "status" / st.name)
         n += 1
