@@ -12,7 +12,7 @@
 휴머노이드·피지컬 AI 회사는 개인정보가 지워진 **5감 데이터 — 시각·청각·촉각(쥐는 세기)·움직임·생체(심박)** — 를 한 시간축에 맞춘
 **LeRobot v3.0** 형식 그대로 삽니다.
 
-Meta Global AI Developer Hackathon (Indie Developer · Push the Frontier) 출품작.
+Meta Global AI Developer Hackathon (Indie Developer\)
 
 ![DataCash](docs/1026_datacash_brand.png)
 
