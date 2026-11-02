@@ -112,9 +112,9 @@ public class RecordActivity extends BaseActivity implements TextureView.SurfaceT
             JSONArray ss = m.optJSONArray("situations");
             for (int i = 0; ss != null && i < ss.length(); i++) if (ss.optString(i).equals(situation)) situationShown = Store.situationLabel(this, m, i);
             JSONArray prims = m.optJSONArray("primitives");
-            JSONObject ko = Store.primitivesKo(this);
+            JSONObject ko = Store.lang(this).equals("ko") ? Store.primitivesKo(this) : new JSONObject();   // 다른 언어는 동작 이름 그대로 (reach, grasp…)
             StringBuilder b = new StringBuilder();
-            for (int i = 0; prims != null && i < prims.length(); i++) b.append(i > 0 ? " → " : "").append(ko.optString(prims.getString(i)));
+            for (int i = 0; prims != null && i < prims.length(); i++) b.append(i > 0 ? " → " : "").append(ko.optString(prims.getString(i), prims.getString(i)));
             steps = b.toString();
         } catch (Exception e) {
             title = missionId;

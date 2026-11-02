@@ -87,7 +87,7 @@
         <item>一趟济州岛旅行</item>
     </string-array>
     <string name="earned_like">已经赚到%1$s的钱啦！</string>
-    <string name="earned_first">完成第一个任务，先赚个冰淇淋！</string>
+    <string name="earned_first">从第一个任务开始吧！</string>
     <string name="earned_next">再做 %1$d 个任务就能换%2$s！</string>
     <string name="earned_title">已获得的数据报酬</string>
     <string name="today_badge" formatted="false">今日奖励任务 · 报酬 +50%</string>
@@ -342,6 +342,7 @@
         <item>请把头稍微转向右边</item>
     </string-array>
     <string name="face_enroll_title">登记 %1$s 的面部</string>
+    <string name="face_enroll_self">登记你的面部</string>
     <string name="photo_deleted">照片在生成面部特征值后会立即删除</string>
     <string name="take_photo">拍摄</string>
     <string name="face_visible">检测到人脸</string>
@@ -351,6 +352,8 @@
     <string name="uploading_ellipsis">上传中…</string>
     <string name="face_registered_toast">面部已登记</string>
     <string name="retake">请重新拍摄</string>
+    <string name="face_no_face">有照片没有找到面部</string>
+    <string name="face_too_small">面部拍得太小了</string>
     <string name="retake_three">请从正面开始重新拍摄三张</string>
     <string name="upload_failed_reason">上传失败 · %1$s</string>
     <string name="tap_to_retry">点按拍摄按钮即可重新上传</string>

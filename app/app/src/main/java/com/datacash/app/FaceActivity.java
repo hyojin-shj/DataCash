@@ -60,7 +60,7 @@ public class FaceActivity extends BaseActivity implements TextureView.SurfaceTex
         top.setOrientation(LinearLayout.VERTICAL);
         top.setBackground(Ui.round(0x99000000, Ui.dp(this, 18)));
         top.setPadding(Ui.dp(this, 16), Ui.dp(this, 14), Ui.dp(this, 16), Ui.dp(this, 14));
-        top.addView(Ui.text(this, getString(R.string.face_enroll_title, name == null ? "" : name), 17, Color.WHITE, true));
+        top.addView(Ui.text(this, name == null || name.equals(getString(R.string.me_name)) ? getString(R.string.face_enroll_self) : getString(R.string.face_enroll_title, name), 17, Color.WHITE, true));
         step = Ui.text(this, "", 13, Ui.ACCENT, true);
         step.setPadding(0, Ui.dp(this, 8), 0, 0);
         top.addView(step);
@@ -217,7 +217,7 @@ public class FaceActivity extends BaseActivity implements TextureView.SurfaceTex
                         finish();
                     } else {
                         paint();
-                        prompt.setText(r.optString("face_error", getString(R.string.retake)));
+                        prompt.setText(errorText(r.optString("face_error_code")));
                         msg.setText(R.string.retake_three);
                         startLoop();
                     }
@@ -239,5 +239,10 @@ public class FaceActivity extends BaseActivity implements TextureView.SurfaceTex
         faceWorker.shutdownNow();
         if (camera != null) camera.close();
         super.onDestroy();
+    }
+
+    /** 서버 얼굴 등록 오류 코드 → 이 앱 언어 문구 (서버의 face_error 는 한국어). */
+    static int errorText(String code) {
+        return "no_face".equals(code) ? R.string.face_no_face : "too_small".equals(code) ? R.string.face_too_small : R.string.retake;
     }
 }

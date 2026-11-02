@@ -87,7 +87,7 @@
         <item>제주도 여행</item>
     </string-array>
     <string name="earned_like">%1$s 값을 벌었어요!</string>
-    <string name="earned_first">첫 미션이면 아이스크림 하나부터!</string>
+    <string name="earned_first">첫 미션부터 시작해 보세요!</string>
     <string name="earned_next">미션 %1$d개 더 하면 %2$s!</string>
     <string name="earned_title">모은 데이터 보상</string>
     <string name="today_badge" formatted="false">오늘의 보너스 미션 · 보상 +50%</string>
@@ -342,6 +342,7 @@
         <item>고개를 오른쪽으로 살짝 돌려 주세요</item>
     </string-array>
     <string name="face_enroll_title">%1$s 님 얼굴 등록</string>
+    <string name="face_enroll_self">내 얼굴 등록</string>
     <string name="photo_deleted">사진은 얼굴 특징값을 만든 뒤 바로 지워져요</string>
     <string name="take_photo">찍기</string>
     <string name="face_visible">얼굴이 보여요</string>
@@ -351,6 +352,8 @@
     <string name="uploading_ellipsis">올리는 중…</string>
     <string name="face_registered_toast">얼굴을 등록했어요</string>
     <string name="retake">다시 찍어 주세요</string>
+    <string name="face_no_face">얼굴을 찾지 못한 사진이 있어요</string>
+    <string name="face_too_small">얼굴이 너무 작게 나왔어요</string>
     <string name="retake_three">정면부터 다시 세 장을 찍어 주세요</string>
     <string name="upload_failed_reason">올리지 못했어요 · %1$s</string>
     <string name="tap_to_retry">찍기 버튼을 누르면 다시 올려요</string>

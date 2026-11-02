@@ -87,7 +87,7 @@
         <item>un viaje a Jeju</item>
     </string-array>
     <string name="earned_like">¡Ya ganaste para %1$s!</string>
-    <string name="earned_first">¡Con tu primera misión ya tienes para un helado!</string>
+    <string name="earned_first">¡Empieza con tu primera misión!</string>
     <string name="earned_next">¡%1$d misiones más y tienes para %2$s!</string>
     <string name="earned_title">Recompensas acumuladas</string>
     <string name="today_badge" formatted="false">Misión extra de hoy · +50% de recompensa</string>
@@ -342,6 +342,7 @@
         <item>Gira la cabeza un poco a la derecha</item>
     </string-array>
     <string name="face_enroll_title">Registrar el rostro de %1$s</string>
+    <string name="face_enroll_self">Registrar tu rostro</string>
     <string name="photo_deleted">Las fotos se borran justo después de crear los datos faciales</string>
     <string name="take_photo">Tomar foto</string>
     <string name="face_visible">Rostro detectado</string>
@@ -351,6 +352,8 @@
     <string name="uploading_ellipsis">Subiendo…</string>
     <string name="face_registered_toast">Rostro registrado</string>
     <string name="retake">Vuelve a tomarla</string>
+    <string name="face_no_face">En alguna foto no se encontró la cara</string>
+    <string name="face_too_small">La cara salió demasiado pequeña</string>
     <string name="retake_three">Toma las tres fotos de nuevo, empezando de frente</string>
     <string name="upload_failed_reason">No se pudo subir · %1$s</string>
     <string name="tap_to_retry">Toca el botón de captura para volver a subir</string>

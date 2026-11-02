@@ -25,6 +25,14 @@
   nav .links { display: flex; gap: 22px; margin-left: auto; font-size: 14px; font-weight: 600; }
   nav .links a { color: var(--ink); }
   nav select.lang { flex-shrink: 0; padding: 6px 8px; font-size: 13px; border-radius: 8px; cursor: pointer; }
+  @media (max-width: 760px) {   /* 폰: 메뉴는 옆으로 밀어 보기 (페이지가 넓어지지 않게) */
+    .wrap { padding: 0 16px; }
+    nav .wrap { gap: 12px; }
+    .brand small { display: none; }
+    nav .links { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; gap: 16px; scrollbar-width: none; }
+    #sampleSel { max-width: 100%; }
+    .levels { grid-template-columns: 1fr !important; }
+  }
   .btn { display: inline-flex; align-items: center; gap: 6px; border: 0; cursor: pointer; border-radius: 12px; padding: 12px 20px;
          font-weight: 700; font-size: 15px; background: var(--primary); color: #fff; }
   .btn:hover { background: var(--primary-dark); }
@@ -146,7 +154,7 @@
     <h1 data-i18n-html="hero.h1">집에 이미 있는 폰과 워치로 모은<br>로봇이 배울 5감 데이터</h1>
     <p data-i18n="hero.p">실제 집에서 사람이 한 일을 촉각·시각·청각·몸 감각까지 한 시간축에 담았습니다. 동의하지 않은 사람·화면·서류는 SAM 3.1 로 정확히 가리고,
       라벨은 Muse Spark 가 붙인 뒤 센서로 다시 확인합니다. LeRobot v3.0 그대로 받아 바로 학습하세요.</p>
-    <div class="row"><a class="btn" href="#ask" data-i18n="hero.btnAsk">필요한 데이터 말로 의뢰하기</a><a class="btn ghost" href="#buy" data-i18n="hero.btnQuote">견적 받기</a><a class="btn ghost" href="#sample" data-i18n="hero.btnSample">예시 데이터 보기</a></div>
+    <div class="row"><a class="btn" href="#ask" data-i18n="hero.btnAsk">필요한 데이터 말로 의뢰하기</a><a class="btn ghost" href="#buy" data-i18n="hero.btnQuote">견적 받기</a><a class="btn ghost" href="#sample" data-i18n="hero.btnSample">예시 데이터 보기</a><a class="btn ghost" href="/app.apk" data-i18n="hero.btnApp">참여자 앱 받기 (안드로이드)</a></div>
   </div>
   <div class="kpis">
     <div class="kpi"><b id="k-rec">-</b><span data-i18n="kpi.rec">처리된 녹화</span></div>
@@ -218,7 +226,7 @@
 <section id="catalog"><div class="wrap">
   <h2 data-i18n="cat.h2">카탈로그</h2>
   <p class="lead" data-i18n="cat.lead">처리된 녹화의 품질 인증서에서 바로 계산한 숫자입니다 (지어낸 숫자 없음).</p>
-  <div class="card" style="padding:6px 16px"><table>
+  <div class="card" style="padding:6px 16px;overflow-x:auto"><table>
     <thead><tr><th data-i18n="cat.mission">미션</th><th data-i18n="cat.use">쓰임</th><th data-i18n="cat.rec">녹화</th><th data-i18n="lv.basic">기본</th><th data-i18n="lv.premium">고품질</th><th data-i18n="lv.bio">생체</th><th data-i18n="cat.verified">검증된 단계</th></tr></thead>
     <tbody id="catBody"></tbody></table></div>
 </div></section>
@@ -272,7 +280,7 @@ ko: {
   "nav.ask": "말로 의뢰", "nav.senses": "5감 데이터", "nav.sample": "예시 보기", "nav.catalog": "카탈로그", "nav.buy": "견적·구매", "nav.admin": "운영자",
   "hero.h1": "집에 이미 있는 폰과 워치로 모은<br>로봇이 배울 5감 데이터",
   "hero.p": "실제 집에서 사람이 한 일을 촉각·시각·청각·몸 감각까지 한 시간축에 담았습니다. 동의하지 않은 사람·화면·서류는 SAM 3.1 로 정확히 가리고, 라벨은 Muse Spark 가 붙인 뒤 센서로 다시 확인합니다. LeRobot v3.0 그대로 받아 바로 학습하세요.",
-  "hero.btnAsk": "필요한 데이터 말로 의뢰하기", "hero.btnQuote": "견적 받기", "hero.btnSample": "예시 데이터 보기",
+  "hero.btnAsk": "필요한 데이터 말로 의뢰하기", "hero.btnQuote": "견적 받기", "hero.btnSample": "예시 데이터 보기", "hero.btnApp": "참여자 앱 받기 (안드로이드)",
   "kpi.rec": "처리된 녹화", "kpi.hours": "받아들인 분량", "kpi.senses": "5감", "kpi.sensesSub": "촉각 · 시각 · 청각 · 움직임 · 생체", "kpi.sync": "워치↔폰 자동 동기화 (합성 검증)",
   "ask.h2": "필요한 데이터를 말로 의뢰하세요",
   "ask.lead": "어떤 로봇에게 무엇을 가르칠지, 누가 찍으면 좋을지, 예산과 꼭 필요한 센서를 적어 주세요. Muse Spark 가 미션을 거꾸로 설계하고, 조건에 맞는 사람에게만 미션이 열려 그대로 모입니다 — 분포를 따로 맞출 필요가 없어요.",
@@ -338,7 +346,7 @@ en: {
   "nav.ask": "Ask in words", "nav.senses": "5-sense data", "nav.sample": "Sample", "nav.catalog": "Catalog", "nav.buy": "Quote & buy", "nav.admin": "Operator",
   "hero.h1": "5-sense robot data<br>from phones and watches",
   "hero.p": "Real home activity — touch, vision, sound, motion — on one timeline. SAM 3.1 masks anyone who didn't consent, Muse Spark labels each step and the sensors double-check it. Delivered as LeRobot v3.0.",
-  "hero.btnAsk": "Ask for data in plain words", "hero.btnQuote": "Get a quote", "hero.btnSample": "See sample data",
+  "hero.btnAsk": "Ask for data in plain words", "hero.btnQuote": "Get a quote", "hero.btnSample": "See sample data", "hero.btnApp": "Get the contributor app (Android)",
   "kpi.rec": "Processed recordings", "kpi.hours": "Accepted volume", "kpi.senses": "5 senses", "kpi.sensesSub": "Touch, sight, sound, body", "kpi.sync": "Auto watch↔phone sync",
   "ask.h2": "Ask for data in plain words",
   "ask.lead": "Say which robot, what task, who should record, your budget and must-have sensors. Muse Spark designs the missions and only matching people see them — so the data arrives in the mix you asked for.",
@@ -413,7 +421,7 @@ ja: {
   "nav.ask": "ことばで依頼", "nav.senses": "5感データ", "nav.sample": "サンプル", "nav.catalog": "カタログ", "nav.buy": "見積もり・購入", "nav.admin": "運営者",
   "hero.h1": "家にあるスマホとウォッチで集めた、<br>ロボットが学ぶ 5感データ",
   "hero.p": "実際の家で人がした作業を、触覚・視覚・聴覚・身体感覚まで一つの時間軸に収めました。同意していない人・画面・書類は SAM 3.1 で正確に隠し、ラベルは Muse Spark が付けたあとセンサーで再確認します。LeRobot v3.0 のまま受け取って、すぐ学習に使えます。",
-  "hero.btnAsk": "必要なデータをことばで依頼", "hero.btnQuote": "見積もりを取る", "hero.btnSample": "サンプルデータを見る",
+  "hero.btnAsk": "必要なデータをことばで依頼", "hero.btnQuote": "見積もりを取る", "hero.btnSample": "サンプルデータを見る", "hero.btnApp": "参加者アプリ（Android）",
   "kpi.rec": "処理済みの録画", "kpi.hours": "受け入れた分量", "kpi.senses": "5感", "kpi.sensesSub": "触覚 · 視覚 · 聴覚 · 動き · 生体", "kpi.sync": "ウォッチ↔スマホ自動同期（合成データで検証）",
   "ask.h2": "必要なデータをことばで依頼してください",
   "ask.lead": "どのロボットに何を教えたいか、誰に撮ってほしいか、予算と必須のセンサーを書いてください。Muse Spark が依頼から逆算してミッションを設計し、条件に合う人だけにミッションが公開されてそのまま集まります —— 分布を別に合わせる必要はありません。",
@@ -488,7 +496,7 @@ ja: {
   "nav.ask": "用自然语言提需求", "nav.senses": "五感数据", "nav.sample": "示例", "nav.catalog": "目录", "nav.buy": "报价·购买", "nav.admin": "运营者",
   "hero.h1": "用家里现有的手机和手表收集的<br>机器人学习用五感数据",
   "hero.p": "把人在真实家庭中完成的动作，连同触觉·视觉·听觉·身体感觉，放在同一条时间轴上。未同意的人·屏幕·文件由 SAM 3.1 精确遮盖，标签由 Muse Spark 标注后再用传感器复核。以 LeRobot v3.0 格式直接下载，马上开始训练。",
-  "hero.btnAsk": "用自然语言提数据需求", "hero.btnQuote": "获取报价", "hero.btnSample": "查看示例数据",
+  "hero.btnAsk": "用自然语言提数据需求", "hero.btnQuote": "获取报价", "hero.btnSample": "查看示例数据", "hero.btnApp": "下载参与者应用（Android）",
   "kpi.rec": "已处理的录制", "kpi.hours": "已接收的时长", "kpi.senses": "五感", "kpi.sensesSub": "触觉 · 视觉 · 听觉 · 动作 · 生理", "kpi.sync": "手表↔手机自动同步（合成数据验证）",
   "ask.h2": "用自然语言告诉我们您需要的数据",
   "ask.lead": "请写下要教哪种机器人做什么、希望由谁来录制、预算以及必需的传感器。Muse Spark 会根据需求反向设计任务，任务只向符合条件的人开放并按此收集 —— 无需另外调整分布。",
@@ -563,7 +571,7 @@ es: {
   "nav.ask": "Pedir con palabras", "nav.senses": "Datos de 5 sentidos", "nav.sample": "Ejemplo", "nav.catalog": "Catálogo", "nav.buy": "Cotizar y comprar", "nav.admin": "Operador",
   "hero.h1": "Datos de 5 sentidos para que aprendan los robots,<br>grabados con el teléfono y el reloj que la gente ya tiene",
   "hero.p": "Lo que las personas hacen de verdad en casa — tacto, vista, oído y sensación corporal — en una misma línea de tiempo. Las personas, pantallas y documentos sin consentimiento se ocultan con precisión con SAM 3.1, y Muse Spark añade las etiquetas, que luego se vuelven a comprobar con los sensores. Descárgalo tal cual en LeRobot v3.0 y empieza a entrenar.",
-  "hero.btnAsk": "Pedir datos con tus palabras", "hero.btnQuote": "Obtener cotización", "hero.btnSample": "Ver datos de ejemplo",
+  "hero.btnAsk": "Pedir datos con tus palabras", "hero.btnQuote": "Obtener cotización", "hero.btnSample": "Ver datos de ejemplo", "hero.btnApp": "App para participantes (Android)",
   "kpi.rec": "Grabaciones procesadas", "kpi.hours": "Volumen aceptado", "kpi.senses": "5 sentidos", "kpi.sensesSub": "Tacto · vista · oído · movimiento · fisiología", "kpi.sync": "Sincronización automática reloj↔teléfono (verificada con datos sintéticos)",
   "ask.h2": "Pide los datos que necesitas con tus propias palabras",
   "ask.lead": "Cuéntanos qué quieres enseñar a qué robot, quién debería grabarlo, tu presupuesto y los sensores imprescindibles. Muse Spark diseña las misiones a partir de tu pedido y solo se abren a quienes cumplen las condiciones, así los datos llegan con la distribución que pediste — sin ajustes aparte.",
@@ -762,7 +770,7 @@ x["observation.hands"].shape, x["observation.touch"], x["observation.images.ego"
 $("#lrClose").onclick = () => $("#lrDlg").close();
 $("#lrDlg").onclick = e => { if (e.target === $("#lrDlg")) $("#lrDlg").close(); };
 $("#certBtn").onclick = async () => { const c = $("#cert"); if (!c.hidden) { c.hidden = true; return; }
-  c.textContent = await (await fetch(`/api/market/certificate/${encodeURIComponent(SID)}`)).text(); c.hidden = false; };
+  c.textContent = await (await fetch(`/api/market/certificate/${encodeURIComponent(SID)}?lang=${encodeURIComponent(LANG)}`)).text(); c.hidden = false; };
 
 function draw(cur = +$("#scrub").value) {
   if (!TL) return;
@@ -876,12 +884,13 @@ $("#askBtn").onclick = async () => {
 $("#askText").onkeydown = e => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); $("#askBtn").click(); } };
 const AGES = ["19~29세", "30대", "40대", "50대", "60대 이상"];   // API 값 (보낼 때는 그대로)
 const hasHangul = s => /[가-힣]/.test(String(s || ""));
-// 보관 미션은 카탈로그(지금 언어)에서 제목·안내를 가져오고, 새 미션은 한국어가 아니면 title_en 으로
+// 보관 미션은 카탈로그(지금 언어)에서 제목·안내를 가져오고, 새 미션은 한국어가 아니면 title_en·guide_en 으로
 function planMission(m) {
   if (LANG === "ko") return m;
   const c = m.id && CAT && CAT.missions.find(x => x.id === m.id);
   if (c) return {...m, title: c.title, guide: c.guide};
-  return {...m, title: hasHangul(m.title) && m.title_en ? m.title_en : m.title};
+  return {...m, title: hasHangul(m.title) && m.title_en ? m.title_en : m.title,
+          guide: hasHangul(m.guide) && m.guide_en ? m.guide_en : m.guide};
 }
 function showPlan(fresh) {
   const p = PLAN, c = CHOICE; if (!p || !c) return;

@@ -165,9 +165,9 @@ class People:
             else:
                 why.append(w)
         if photos and len(embs) >= min(2, len(photos)):
-            p.update(face="enrolled", embeddings=embs, face_at=now(), face_error="")
+            p.update(face="enrolled", embeddings=embs, face_at=now(), face_error="", face_error_code="")
         else:
-            p.update(face="failed", embeddings=[], face_error={"no_face": "얼굴을 찾지 못한 사진이 있어요",
+            p.update(face="failed", embeddings=[], face_error_code=why[0] if why else "retry", face_error={"no_face": "얼굴을 찾지 못한 사진이 있어요",
                                                                "too_small": "얼굴이 너무 작게 나왔어요"}.get(why[0] if why else "", "다시 찍어 주세요"))
         self.save(device, d)
         return self.public(p)

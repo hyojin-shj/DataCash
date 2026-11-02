@@ -158,7 +158,7 @@ public class PeopleActivity extends BaseActivity {
             if (bc != null && bc.optBoolean("agreed")) d.append("\n").append(getString(R.string.bio_consented_line));
             if (face.equals("enrolled")) d.append("\n").append(getString(R.string.virtual_person_line,
                     p.optString("donor").equals("auto") ? getString(R.string.donor_auto_desc) : donorLabel(p.optString("donor"))));
-            if (face.equals("failed")) d.append("\n").append(getString(R.string.enroll_failed_line, p.optString("face_error")));
+            if (face.equals("failed")) d.append("\n").append(getString(R.string.enroll_failed_line, getString(FaceActivity.errorText(p.optString("face_error_code")))));
             if (!face.equals("enrolled")) d.append("\n").append(getString(R.string.enroll_needed_line));
             TextView chip = face.equals("enrolled") ? Ui.chip(this, getString(R.string.face_enrolled), Ui.OK, Ui.OK_SOFT)
                     : face.equals("failed") ? Ui.chip(this, getString(R.string.enroll_failed), Ui.PRIMARY_DARK, Ui.PRIMARY_SOFT)

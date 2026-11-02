@@ -1,6 +1,7 @@
 """LeRobot v3 4감 내보내기: 채널·등급별 빼기·장면 수 일치·에피소드 정보·인증서."""
 
 import json
+import re
 
 import numpy as np
 import pyarrow.parquet as pq
@@ -39,6 +40,10 @@ def test_bio_dataset_has_all_senses(synth_session, synth_tracks, tmp_path):
     assert infos[0]["sync"]["chosen"] == "beacon"
     assert c["touch"]["grip_model"]["method"] == "gripsense" and c["touch"]["grip_model"]["accuracy_cv"] > 0.7
     assert (tmp_path / "bio" / "certificate.md").read_text().count("4감 동기화") == 1
+    from datacash.export.certificate import to_markdown
+
+    en = to_markdown(json.loads((tmp_path / "bio" / "certificate.json").read_text()), "en")   # 해외 구매 기업용 영어판
+    assert "Multi-sense sync" in en and "## Touch" in en and not re.search("[가-힣]", en.replace(c["mission"]["title"], ""))
     import cv2
 
     cap = cv2.VideoCapture(str(ds / "videos" / "observation.images.ego" / "chunk-000" / "file-000.mp4"))

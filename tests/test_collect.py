@@ -75,3 +75,12 @@ def test_missions_localized_by_lang(tmp_path):
     assert es["pull_tissue"]["title"] == "Sacar un pañuelo" and es["pull_tissue"]["title_en"] == "Pull a tissue"
     zh = {x["id"]: x for x in c.get("/api/market/catalog?lang=zh-CN").json()["missions"]}
     assert zh["lift_box"]["guide"].startswith("抬起箱子")
+
+
+def test_rejection_reason_in_app_language():
+    from datacash.server.app import localize_error
+
+    e = "동작 부분이 너무 짧아요 (1.2초 · 3초 이상 찍어 주세요) · 너무 어두워요 · 화면이 거의 까매요 (렌즈를 가리지 않았는지 봐 주세요)"
+    assert localize_error(e, "en") == "The action part is too short (1.2 s · record at least 3 s) · Too dark · the screen is almost black (check the lens isn't covered)"
+    assert localize_error(e, "ko") == e and localize_error(e, None) == e
+    assert localize_error("RuntimeError: x", "ja") == "RuntimeError: x"

@@ -87,7 +87,7 @@
         <item>済州島旅行</item>
     </string-array>
     <string name="earned_like">%1$s分を稼ぎました！</string>
-    <string name="earned_first">最初のミッションでまずアイス1個分！</string>
+    <string name="earned_first">まずは最初のミッションから！</string>
     <string name="earned_next">あと %1$d ミッションで%2$s！</string>
     <string name="earned_title">貯まったデータ報酬</string>
     <string name="today_badge" formatted="false">今日のボーナスミッション · 報酬 +50%</string>
@@ -342,6 +342,7 @@
         <item>顔を少し右に向けてください</item>
     </string-array>
     <string name="face_enroll_title">%1$s さんの顔を登録</string>
+    <string name="face_enroll_self">あなたの顔を登録</string>
     <string name="photo_deleted">写真は顔の特徴量を作ったあとすぐに削除されます</string>
     <string name="take_photo">撮影</string>
     <string name="face_visible">顔が見えています</string>
@@ -351,6 +352,8 @@
     <string name="uploading_ellipsis">アップロード中…</string>
     <string name="face_registered_toast">顔を登録しました</string>
     <string name="retake">もう一度撮ってください</string>
+    <string name="face_no_face">顔が見つからない写真がありました</string>
+    <string name="face_too_small">顔が小さすぎました</string>
     <string name="retake_three">正面からもう一度3枚撮ってください</string>
     <string name="upload_failed_reason">アップロードできませんでした · %1$s</string>
     <string name="tap_to_retry">撮影ボタンを押すともう一度アップロードします</string>

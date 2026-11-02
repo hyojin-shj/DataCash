@@ -94,7 +94,7 @@
         <item>a trip to Jeju Island</item>
     </string-array>
     <string name="earned_like">Enough for %1$s!</string>
-    <string name="earned_first">First mission = an ice cream!</string>
+    <string name="earned_first">Start with your first mission!</string>
     <string name="earned_next">%1$d more missions for %2$s!</string>
     <string name="earned_title">Data rewards earned</string>
     <string name="today_badge" formatted="false">Today\'s bonus mission · +50% reward</string>
@@ -380,6 +380,7 @@
         <item>Turn your head slightly to the right</item>
     </string-array>
     <string name="face_enroll_title">Register %1$s\'s face</string>
+    <string name="face_enroll_self">Register your face</string>
     <string name="photo_deleted">Photos deleted after face data is made</string>
     <string name="take_photo">Take photo</string>
     <string name="face_visible">Face detected</string>
@@ -389,6 +390,8 @@
     <string name="uploading_ellipsis">Uploading…</string>
     <string name="face_registered_toast">Face registered</string>
     <string name="retake">Please retake</string>
+    <string name="face_no_face">Some photos had no face</string>
+    <string name="face_too_small">Your face was too small</string>
     <string name="retake_three">Retake all three, front first</string>
     <string name="upload_failed_reason">Couldn\'t upload · %1$s</string>
     <string name="tap_to_retry">Tap the shutter to retry</string>

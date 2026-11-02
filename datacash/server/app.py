@@ -29,7 +29,7 @@
     GET  /api/market/catalog                 미션별 시간·등급·채널 (처리된 녹화의 인증서에서 계산, 지어낸 숫자 없음)
     GET  /api/market/sample/{sid}/timeline   예시 에피소드의 4감 타임라인 (촉각·심박·소리·단계)
     GET  /api/market/sample/{sid}/frame/{i}  예시 장면 (가린 영상에서만)
-    GET  /api/market/certificate/{sid}       품질 인증서 (마크다운)
+    GET  /api/market/certificate/{sid}       품질 인증서 (마크다운, ?lang= 한국어 외엔 영어판)
     POST /api/market/quote                   견적 {missions, level, hours, custom, refine}
     POST /api/market/orders                  주문 {org, email, missions, level, hours}
     GET  /api/market/orders/{oid}            주문 상태 (승인되면 일회용 내려받기 주소)
@@ -64,6 +64,7 @@ from pydantic import BaseModel, Field
 
 from .. import config, pricing
 from ..appeals import Appeals
+from ..export import certificate
 from ..payout import Payouts
 from ..requests import Requests, eligible
 from ..people import People, embed_jpeg
@@ -84,7 +85,7 @@ def norm_lang(lang: Optional[str]) -> str:
 
 
 def localize_mission(m: dict, lang: Optional[str]) -> dict:
-    """미션의 title·guide·purpose 를 lang 으로 바꾼 사본. 번역이 없으면 en → title_en, 그것도 없으면 한국어 원문."""
+    """미션의 title·guide·purpose 를 lang 으로 바꾼 사본. 번역이 없으면 *_en(영어), 그것도 없으면 한국어 원문."""
     lang = norm_lang(lang)
     if not lang or lang == "ko":
         return m
@@ -93,12 +94,51 @@ def localize_mission(m: dict, lang: Optional[str]) -> dict:
     for k in ("title", "guide", "purpose"):
         if tr.get(k):
             out[k] = tr[k]
-        elif lang == "en" and k == "title" and m.get("title_en"):
-            out[k] = m["title_en"]
+        elif m.get(f"{k}_en"):                      # 번역이 없는 미션(의뢰로 만든 것)은 한국어 대신 영어
+            out[k] = m[f"{k}_en"]
     sl = tr.get("situations") or (m.get("i18n") or {}).get("en", {}).get("situations")
     if sl and len(sl) == len(m.get("situations") or []):   # 보이는 이름만 (상황 자체는 한국어 그대로 — 앱의 완료 표시·녹화 메타의 열쇠)
         out["situation_labels"] = sl
     return out
+
+
+# 참여자에게 보이는 반려·오류 문구 (서버는 한국어로 남기고, 앱에는 X-DC-Lang 으로 바꿔 보낸다)
+ERRORS = [
+    (r"동작 부분이 너무 짧아요 \(([\d.]+)초 · (\d+)초 이상 찍어 주세요\)",
+     {"en": r"The action part is too short (\1 s · record at least \2 s)", "ja": r"動作部分が短すぎます（\1秒 · \2秒以上撮ってください）",
+      "zh-CN": r"动作部分太短（\1 秒 · 请至少拍 \2 秒）", "es": r"La parte de la acción es muy corta (\1 s · graba al menos \2 s)"}),
+    (r"손이 거의 안 보여요 \(동작 중 (\d+)% · 손이 화면에 나오게 찍어 주세요\)",
+     {"en": r"Hands are barely visible (\1% of the action · keep your hands in frame)", "ja": r"手がほとんど映っていません（動作中 \1% · 手が画面に入るように撮ってください）",
+      "zh-CN": r"几乎看不到手（动作中 \1% · 请让手出现在画面中）", "es": r"Apenas se ven las manos (\1% de la acción · mantén las manos en cuadro)"}),
+    (r"너무 어두워요 · 화면이 거의 까매요 \(렌즈를 가리지 않았는지 봐 주세요\)",
+     {"en": "Too dark · the screen is almost black (check the lens isn't covered)", "ja": "暗すぎます · 画面がほぼ真っ黒です（レンズをふさいでいないか確認してください）",
+      "zh-CN": "太暗了 · 画面几乎全黑（请确认镜头没有被挡住）", "es": "Demasiado oscuro · la imagen está casi negra (revisa que no tapes la lente)"}),
+    (r"미션 동작을 찾지 못했어요 · 미션 물건을 손으로 다루는 모습이 화면에 나오게 찍어 주세요",
+     {"en": "Couldn't find the mission action · show your hands handling the mission object", "ja": "ミッションの動作が見つかりませんでした · ミッションの物を手で扱う様子が映るように撮ってください",
+      "zh-CN": "没有找到任务动作 · 请拍到用手操作任务物品的样子", "es": "No encontramos la acción de la misión · muestra tus manos usando el objeto de la misión"}),
+    (r"워치 기록이 없음 \(워치 앱을 켜 두고 다시\)",
+     {"en": "No watch data (keep the watch app open and try again)", "ja": "ウォッチの記録がありません（ウォッチアプリを開いたままもう一度）",
+      "zh-CN": "没有手表记录（请保持手表应用打开后重试）", "es": "No hay datos del reloj (deja la app del reloj abierta e inténtalo de nuevo)"}),
+    (r"폰↔워치 시계를 맞추지 못함",
+     {"en": "Couldn't sync the phone and watch clocks", "ja": "スマホとウォッチの時計を合わせられませんでした",
+      "zh-CN": "无法同步手机与手表的时钟", "es": "No se pudieron sincronizar los relojes del móvil y el reloj"}),
+    (r"단계마다 쥔 구간이 부족해요 \(각 단계를 몇 초씩 이어서 쥐어 주세요\)",
+     {"en": "Not enough grip time per level (hold each level for a few seconds)", "ja": "段階ごとの握る時間が足りません（各段階を数秒ずつ握り続けてください）",
+      "zh-CN": "每个等级的握持时间不够（请每个等级连续握几秒）", "es": "Falta tiempo de agarre por nivel (mantén cada nivel unos segundos)"}),
+    (r"가린 영상이 없어 판매용 데이터셋을 만들지 않음",
+     {"en": "No masked video, so no dataset was made for sale", "ja": "マスク済み映像がないため販売用データセットを作りませんでした",
+      "zh-CN": "没有遮挡后的视频，因此未生成销售用数据集", "es": "No hay vídeo enmascarado, así que no se creó el conjunto de datos"}),
+]
+
+
+def localize_error(text: Optional[str], lang: Optional[str]) -> Optional[str]:
+    """반려·오류 문구를 앱 언어로. 모르는 문구(예외 메시지 등)는 그대로."""
+    lang = norm_lang(lang)
+    if not text or not lang or lang == "ko":
+        return text
+    for pat, tr in ERRORS:
+        text = re.sub(pat, tr.get(lang) or tr["en"], text)
+    return text
 
 
 FILES = {"meta.json", "video.mp4", "video_frames.csv", "audio.wav", "audio.json", "phone_imu.csv", "beacon.csv",
@@ -565,9 +605,12 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
         return st.set_status(sid, watch_done=True)
 
     @app.get("/api/sessions/{sid}/status")
-    def status(sid: str, x_dc_token: Optional[str] = Header(None)):
+    def status(sid: str, x_dc_token: Optional[str] = Header(None), x_dc_lang: Optional[str] = Header(None)):
         auth(x_dc_token)
-        return st.status(sid)
+        s = st.status(sid)
+        if s.get("error"):
+            s = {**s, "error": localize_error(s["error"], x_dc_lang)}
+        return s
 
     # ---- 얼굴 확인 · 동의 인원 · 이의 신청 (기기 id 단위) ----
     def device(d: Optional[str]) -> str:
@@ -848,11 +891,19 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
         return Response(buf.tobytes(), media_type="image/jpeg")
 
     @app.get("/api/market/certificate/{sid}", response_class=PlainTextResponse)
-    def cert(sid: str):
+    def cert(sid: str, lang: Optional[str] = None):
         p = root / "out" / sid / "certificate.md"
         if not SID.match(sid) or not p.exists() or not st.sample_ok(sid):
             raise HTTPException(404)
-        return p.read_text()
+        lang = norm_lang(lang)
+        j = p.with_suffix(".json")
+        if not lang or lang == "ko" or not j.exists():
+            return p.read_text()
+        c = json.loads(j.read_text())
+        m = next((x for x in st.all_missions() if x["id"] == (c.get("mission") or {}).get("id")), None)
+        if m:                                  # 미션 이름도 보는 언어로
+            c["mission"] = {**c["mission"], "title": localize_mission(m, lang)["title"]}
+        return certificate.to_markdown(c, lang)
 
     @app.post("/api/market/quote")
     def quote(q: QuoteIn):

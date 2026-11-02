@@ -28,12 +28,32 @@ final class Discover {
         if (reachable(Store.server(c))) return true;
         String found = find(c);
         if ((found == null || !reachable(found)) && reachable(BuildConfig.DEFAULT_SERVER)) found = BuildConfig.DEFAULT_SERVER;  // 집 밖: 터널 주소
+        if (found == null || !reachable(found)) found = pointer();   // 터널 주소가 바뀌었으면: 저장소의 server.txt 가 지금 주소
         if (found == null || !reachable(found)) {
             lastTry = System.currentTimeMillis();
             return false;
         }
         Store.setServer(c, found, Store.token(c));
         return true;
+    }
+
+    /** 공개 저장소의 server.txt 첫 줄 (터널을 다시 열면 이 파일만 고친다). 못 읽으면 null. */
+    static String pointer() {
+        if (BuildConfig.SERVER_POINTER.isEmpty()) return null;
+        try {
+            HttpURLConnection h = (HttpURLConnection) new URL(BuildConfig.SERVER_POINTER).openConnection();
+            h.setConnectTimeout(3000);
+            h.setReadTimeout(3000);
+            if (h.getResponseCode() != 200) return null;
+            java.io.BufferedReader r = new java.io.BufferedReader(new java.io.InputStreamReader(h.getInputStream()));
+            String s = r.readLine();
+            r.close();
+            h.disconnect();
+            s = s == null ? "" : s.trim();
+            return s.startsWith("https://") ? s.replaceAll("/+$", "") : null;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     static boolean reachable(String base) {

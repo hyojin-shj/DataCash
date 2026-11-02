@@ -42,13 +42,15 @@ SCHEMA = {
         "hours": {"type": "number", "description": "Requested accepted hours, 0 if not given"},
         "missions": {"type": "array", "items": {
             "type": "object", "additionalProperties": False,
-            "required": ["id", "title", "title_en", "guide", "purpose", "objects", "primitives", "situations"],
+            "required": ["id", "title", "title_en", "guide", "guide_en", "purpose", "purpose_en", "objects", "primitives", "situations"],
             "properties": {
                 "id": {"type": "string", "description": "id of an existing mission from the list if it fits, else empty string"},
                 "title": {"type": "string", "description": "Korean mission title a person at home can do, e.g. '상자 들어 선반에 올리기'"},
                 "title_en": {"type": "string"},
                 "guide": {"type": "string", "description": "Korean one-line how-to incl. duration and repetitions, e.g. '... · 30초~1분 · 5번 반복'"},
+                "guide_en": {"type": "string", "description": "the same guide in English"},
                 "purpose": {"type": "string", "description": "Korean: what the robot learns from it"},
+                "purpose_en": {"type": "string", "description": "the same purpose in English"},
                 "objects": {"type": "array", "items": {"type": "string"}, "description": "English nouns SAM 3.1 can find, max 3"},
                 "primitives": {"type": "array", "items": {"type": "string", "enum": PRIMITIVES}},
                 "situations": {"type": "array", "items": {"type": "string"}, "description": "4-6 short Korean conditions, change one thing at a time"}}}},
@@ -66,7 +68,7 @@ Participants are adults only; age bands: {ages}; gender any/female/male.
 Price per accepted hour = sum of chosen packs (custom collection x1.5, min 10 h, setup 500,000 KRW). If a budget is given,
 you may leave hours 0; the server fits hours to the budget. Never invent personal data.
 Existing missions we already collect (reuse their id when one fits, the buyer may then buy stored data): {existing}
-Write "reply" and "questions" in {lang}; titles/guides stay Korean (title_en in English). Be concise."""
+Write "reply" and "questions" in {lang}; titles/guides/purposes stay Korean (title_en, guide_en, purpose_en in English). Be concise."""
 
 
 def _now() -> str:
@@ -149,7 +151,8 @@ class Requests:
         missions = []
         for k, m in enumerate(plan["missions"]):
             missions.append({"id": f"req_{rid}_{k}", "title": m["title"], "title_en": m.get("title_en", m["title"]),
-                             "guide": m["guide"], "purpose": m["purpose"], "objects": m["objects"], "primitives": m["primitives"],
+                             "guide": m["guide"], "guide_en": m.get("guide_en", ""), "purpose": m["purpose"],
+                             "purpose_en": m.get("purpose_en", ""), "objects": m["objects"], "primitives": m["primitives"],
                              "situations": m["situations"], "sponsor": org.strip()[:60], "request": rid,
                              "eligibility": plan["eligibility"], "sensors": q["sensors"], "level": q["level"],
                              "target_hours": round(q["hours"] / max(1, len(plan["missions"])), 2)})
