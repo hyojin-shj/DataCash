@@ -1,153 +1,191 @@
 **English** · [한국어](README.ko.md) · [Español](README.es.md) · [中文](README.zh-CN.md) · [日本語](README.ja.md)
 
-<a href="https://youtu.be/gw3gqoHlFvA"><img src="docs/demo_video.jpg" width="49%" alt="DataCash video (2:35)"></a> <a href="https://youtu.be/o1sGUME0GHw"><img src="docs/demo_3min.en.jpg" width="49%" alt="DataCash 3-minute demo"></a>
+## DataCash Promotion Video
 
-[Video (2:35)](https://youtu.be/gw3gqoHlFvA) · 3-minute demo: [English](https://youtu.be/o1sGUME0GHw) · [한국어](https://youtu.be/vClUIqrZjBY)
+<p align="center">
+  <a href="https://youtu.be/gw3gqoHlFvA"><img src="docs/demo_video.jpg" width="80%" alt="DataCash promotion video (2:35)"></a>
+</p>
+
+## DataCash Technique Video
+
+<p align="center">
+  <a href="https://youtu.be/o1sGUME0GHw"><img src="docs/demo_3min.en.jpg" width="80%" alt="DataCash 3-minute technique demo"></a>
+</p>
+
+<p align="center">3-minute technique demo · <a href="https://youtu.be/o1sGUME0GHw">English</a> · <a href="https://youtu.be/vClUIqrZjBY">한국어</a></p>
+
+---
 
 # DataCash
 
-**Robot hand data from everyday people — using only the phone and watch they already own.**
+**A Physical AI data project**<br>
+**Collecting the human hand data robots learn from — using only the phone and watch people already have at home.**
 
-People record short robot-skill missions at home (pull a tissue, move a cup, twist a lid — 12 in total) with their phone and smartwatch, and get paid.
-Humanoid and physical-AI companies buy the result: privacy-scrubbed data from **five senses — vision, sound, touch (grip force), motion and physiology (heart rate)** — on one shared clock,
-delivered as a ready-to-train **LeRobot v3.0** dataset.
+People record basic robot-skill missions at home with their phone and watch, and get rewarded.<br>
+Humanoid and physical-AI companies can buy **five-sense data (vision, sound, touch, motion, physiology)**, aligned on one timeline, ready to use in **LeRobot v3.0** format.
 
-Built for the Meta Global AI Developer Hackathon (Indie Developer · Push the Frontier).
+Meta Global AI Developer Hackathon (Indie Developer)
 
-![DataCash](docs/1026_datacash_brand.png)
+<p align="center">
+  <img src="docs/1026_datacash_brand.png" width="90%" alt="DataCash">
+</p>
 
-## At a glance
+---
 
-| | |
-|---|---|
-| Contributors | Android app + watch app. Pick a mission → face check → record → 1–2 quick questions → *ding*, you're paid |
-| Buyers | **Ask in plain words** on the web ("box-lifting data for warehouse robots, ages 20–50, budget $3,000") → AI designs the missions and opens them worldwide |
-| Privacy | The contributor's face is replaced by **a person who doesn't exist**; bystanders, screens and documents are masked; originals are deleted after processing |
-| Touch | No glove — the **watch vibrates itself and measures how much the hand absorbs** to estimate grip force (GripSense, UIST 2012) |
+## Core technology
 
-## Where the Meta models are used
+### 1. Synthetic-person replacement
 
-| Model | Role | Code |
-|---|---|---|
-| **SAM 3.1** | Masks non-consenting people, children, screens, mirrors, picture frames and documents (video tracking); segments the handled object → `observation.objects` | `datacash/meta/sam.py`, `datacash/privacy/mask.py` |
-| **Muse Spark 1.3** | Masked video → steps, instructions, active hand, objects, mistakes (structured JSON); a buyer's plain-language request → mission design | `datacash/understand/`, `datacash/requests.py` |
-| **Muse Image** | 34 people who don't exist (7 regions × women/men × 20s–60s) used for face replacement, plus 24 angle photos of each (edits, `images.edit`) | `scripts/make_donors.py`, `scripts/make_donor_views.py`, `datacash/donors/` |
-| **Muse Voice Transcribe** | Finds spoken personal information in the recording and mutes it | `datacash/privacy/speech.py` |
-| **Muse Spark Open** (open weights, 816B) | Second opinion on every recording and reviewer for appeals (Baseten, falls back to Fireworks). Where the two models disagree it relabels the step; agreed + sensor-verified steps become gold examples that are added to Spark 1.3's next prompts — the labels get better with use, without changing weights | `datacash/understand/spark_open.py`, `datacash/evolve.py` ([docs/model_evolution.md](docs/model_evolution.md)) |
+- **Face replacement:** instead of blurring, the contributor's face is replaced with a synthetic person made with Muse Image (LivePortrait + MediaPipe).<br>
+  Candidates are chosen from the same gender and a similar age; we test-swap 20 frames, and if face recognition (SFace) calls more than half of them "the same person", we move on to the next person.
+- **Continuity:** frames where the swapped face still looks too similar are regenerated with a softer expression instead of being pixelated.
+- **Masking:** SAM 3.1 masks people who did not consent to data collection, children, screens, mirrors, picture frames and documents.
+- **Originals deleted:** in the service, raw video and audio are deleted as soon as processing ends.<br>
+  On the hackathon demo server only this call is switched off, to show the original-vs-replaced comparison.
 
-Every API call is logged with its cost in `data/api_ledger.jsonl`; if the budget is hit, only that step is skipped.
-
-## Measured performance
-
-Every number below is measured against **human ground truth** or a physical reference, and can be reproduced from stored results with no API calls: `python scripts/perf_report.py` (writes `docs/perf/`).
-The operator page has a **Performance** tab with the same charts plus live monitoring of every processed recording, with alerts when quality drops.
-
-| What | Before → now | Measured on |
-|---|---|---|
-| Step-label frame accuracy (Muse Spark 1.3) | **35.6% → 54.3%** | EPIC-KITCHENS-100, 8 held-out clips, 271 human-labelled steps |
-| Step boundary error (median) | **430 → 182 ms** | same |
-| Muse Glimmer 30B step accuracy (LoRA, Fireworks) | **41.8% → 54.1% → 64.1%** (v80 trained on our human labels; v82 + per-mission order decoding, range 60.7–67.2%; v79 trained on Spark labels: 32.8%) | 122 human-labelled steps from 8 held-out recordings |
-| Watch ↔ video sync error | **24.7 → 3.7 ms** (target < 10 ms) | 37 phone + watch recordings |
-| Face swap time per recording | **636 → 84 s** (7.5×) | `docs/privacy_eval.md` |
-| SAM 3.1 cost, 4 recordings | **$2.92 → $0.27** (−91%) | 4 real recordings |
-| Grip level low · mid · high | **83%** (chance 33%) | 3 calibration recordings, Galaxy Watch4 |
-
-![Step-label accuracy, one method at a time](docs/perf/label_accuracy.en.png)
-![Confusion matrix, first vs now](docs/perf/confusion.en.png)
-![Muse Glimmer fine-tuning](docs/perf/glimmer.en.png)
-![Live monitoring](docs/perf/monitoring.en.png)
-
-Live monitoring (same values as the operator page, `datacash/perf.py`): Spark 1.3 ↔ Spark Open agreement per recording with a last-5 mean (alert below 50%), processing time per recording (alert above 2× median), and frames that still look like the same person after face swap (SFace 0.363, alert above 5% — those recordings are flagged for review).
-
-## Key ideas
-
-### 1. Privacy that keeps the data valuable
-- **Face replacement, not blur:** the contributor's face is swapped for a Muse Image person (LivePortrait + MediaPipe). We pick the closest match of the same gender and similar age, test-swap 20 frames, and move to the next person if face recognition (SFace) would call more than half of them "the same person".
-- **Continuity:** when a swapped frame comes out too similar, we regenerate it with a softer expression instead of pixelating — the video never breaks.
-- **Masking:** SAM 3.1 hides only what wasn't consented: other people, children, screens, mirrors, picture frames, documents. Consenting family members stay visible, each with their own virtual face.
-- **Originals deleted:** in production, raw video and audio are deleted as soon as processing ends (`purge_originals`). On the hackathon demo server only that call is switched off, so we can show the original-vs-replaced comparison.
-
-#### How the face swap evolved
-Full numbers and the approaches we tried and dropped: [`docs/privacy_eval.md`](docs/privacy_eval.md) (Korean).
+#### How the face replacement evolved
 
 | Date | Change | Result |
 |---|---|---|
-| 10-27 | Swap to a synthetic person instead of blurring (LivePortrait), re-identification check on every frame | The face stays, the person changes |
-| 10-27 | Small, distant faces: find with YuNet, enlarge the area, then 478 face points | Public video, 192 frames: swapped 106 → 183, pixelated 86 → 4 |
+| 10-27 | Replace with a synthetic person instead of blurring (LivePortrait, 34 Muse Image synthetic people), re-identification check on every frame | The face stays, only the person changes · 3 of 387 frames pixelated |
 | 10-27 | Speed: split the slow Conv3d on Mac GPU into 7 2D convolutions + fp16 | One recording 636 → 84 s |
-| 10-27 | 34 synthetic people; if re-identified, regenerate with a softer expression instead of pixelating | 3 of 387 frames pixelated |
-| 10-29 | Profiles: keep as-is if unrecognizable, otherwise swap aligned to 5 points | 26 recordings: swapped 81.6% · blurred 0.5% |
-| 11-01 | Measure flips (swapped ↔ original ↔ blur); carry the face through missed frames and fade | 4 recordings: flips 181 → 149 |
-| 11-01 | Filter-style 3D mask → dropped as unnatural. Expression and gaze values are kept separately from the original | `observation.face`, 60 values |
-| 11-01 night | 24 angle photos of the same synthetic person (Muse Image edits) → the photo closest to the frame's angle is the source | Bowed heads and profiles are less distorted (figure below) |
-| 11-01 night | Frames where a fist was detected as a face are filtered by distance to the contributor's face | Honest flip count (cup recording 87 → 55) |
-| 11-01 night | Tried and dropped: self-trained face-swap model, putting hair over the face, swapping unrecognizable profiles too | Blurry blob · original eyes leaked · 40% looked off |
-| 11-01 night | Stricter re-identification (against 20 frontal photos of the contributor) | 3–31% of swapped frames still match the contributor (other people's photos: 2.7%) — tied to picking the most similar synthetic person; options in the doc |
-| 11-01 | Pick the synthetic person differently: same gender · age band · group (inferred from the most similar photo), then trial-swap each candidate and take the one whose swapped face is least like the contributor (+24 East Asian synthetic people, 20s–50s, $6) | Recognized frames 3.3 / 11.1 / 17.3 / 30.9% → 2.9 / 9.3 / 10.4 / 6.4%. Least similar *photo* alone was worse (26.8%); ignoring group pasted Black/white faces on East Asian contributors |
-| 11-01 | Small faces found on a fist holding a cup were swapped (a face appeared on the hand) → small faces away from a confirmed face are swapped only if recognized | Cup recording 221 → 167 swapped frames: the 54 removed were the fist |
-| 11-01 | 8 more synthetic East Asian women in their 20s with very different features (and 4 men, $3) + trial frames 30 → 90 (with 30, one frame flipped the ranking). No extra blur | Recognized frames 2.9 / 9.3 / 10.4 / 6.4% → 2.4 / 6.4 / 1.7 / 5.0%; frames needing expression damping nearly halved (figure below) |
+| 11-01 | Profiles: 24 angle photos of the same synthetic person (Muse Image edits) → the photo matching the frame's angle is used as the source | Bowed heads and profiles are less distorted |
+| 11-01 | Picking the synthetic person: within the same gender, age band and group, trial-swap each candidate on test frames and take the one least like the contributor (+36 East Asian synthetic people, $9) | Frames recognized under strict re-identification 3.3 / 11.1 / 17.3 / 30.9% → 2.4 / 6.4 / 1.7 / 5.0% |
 
-![Angle photos of four synthetic people (front + 8)](docs/faceswap_views.jpg)
-![Profiles and bowed heads from one frontal photo vs the same frames from the closest-angle photo](docs/faceswap_angle_source.en.png)
-![Before: most similar photo / After: least similar in trial swaps within gender · age · group, and the recognized-frame rate](docs/faceswap_donor_pick.en.png)
+<p align="center">
+  <img src="docs/faceswap_views.jpg" width="85%" alt="Angle photos of four synthetic people (front + 8)"><br>
+  <sub>Several angle photos of the same person, for each synthetic person</sub>
+</p>
 
-![New synthetic people and recognized frames before/after](docs/faceswap_more_donors.en.png)
+<p align="center">
+  <img src="docs/faceswap_angle_source.en.png" width="85%" alt="Profiles and bowed heads made from one frontal photo vs the same frames made from the closest-angle photo"><br>
+  <sub>Profile made from one frontal photo vs the same frame made from the closest-angle photo</sub>
+</p>
 
-### 2. Five senses, synced automatically
-No clapping required: phone↔watch clock round-trips, an 18–20 kHz acoustic beacon, and watch vibration pulses. On 37 real phone + watch recordings, the acoustic beacon aligns 24 (pair residual 0.1–1.9 ms); the rest fall back to the server-relayed clock, which runs 24.7 ms (±3.5) off the beacon, so that bias is measured per device pair and subtracted (leave-one-out max 9.2 ms). Measurements in `docs/sync_eval.md`, code in `datacash/sync/`.
+<p align="center">
+  <img src="docs/faceswap_donor_pick.en.png" width="85%" alt="Before: the person with the most similar photo / After: the least similar person in trial swaps within the same gender, age band and group, with the recognized-frame rate"><br>
+  <sub>Before and after the new synthetic-person selection: recognized-frame rate</sub>
+</p>
 
-![Watch-to-video time offset: 24.7 ms before correction, up to 16.7 ms with clap sync, 3.7 ms now (sale threshold 10 ms)](docs/sync_quality.en.png)
+<p align="center">
+  <img src="docs/faceswap_more_donors.en.png" width="85%" alt="New synthetic people and recognized frames before/after"><br>
+  <sub>Recognized frames before and after adding more synthetic people</sub>
+</p>
 
-### 3. Touch without a glove — GripSense on the wrist
-We moved Goel, Wobbrock & Patel's *GripSense* (UIST 2012) to the wrist. The watch buzzes briefly; the tighter you grip, the more the hand absorbs it — high-frequency gyro energy drops while 4–12 Hz finger tremor rises. A per-person decision tree, trained on self-rated levels (release · light · normal · tight, no scale needed), outputs grip level 0–3 (`datacash/touch/`). Measured on a Galaxy Watch4 (IMU capped at 100 Hz, 3 calibration recordings, train on round 1 → test on round 2 and back): a 25-tree forest with 2-second smoothing reaches 59% on 4 levels (chance 25%, tight 93%); while the video sees the hand touching an object, a 50-tree regression forest gives grip as a 0–100 score (shown as e.g. “mid (57)”) — cut into low · mid · high it is right 83% of the time, mean score error 15 points.
-Heart rate, beat-to-beat intervals and skin temperature come from the Samsung Health Sensor SDK (`docs/samsung_health_sdk.md`).
+### 2. Touch without a glove — the GripSense approach
 
-![Grip calibration once at the start → personal model → grip scored 0–100 in every recording; on the unseen round 97% light read as low, 56% normal as mid, 95% tight as high](docs/grip_quality.en.png)
+We moved Goel, Wobbrock & Patel's *GripSense* (UIST 2012) to the wrist and use it to measure touch.<br>
+When the watch buzzes briefly, the tighter the grip, the more the hand absorbs the vibration: high-frequency gyro energy drops, while the 4–12 Hz tremor of fingers holding on rises.
 
-### 4. Plain-language requests → missions
-A buyer types what they need; Muse Spark (structured output) designs the missions (actions, objects, conditions to vary), eligibility (age, gender) and sensor packs, and the server fits a quote to the budget. Once confirmed, the missions appear only for eligible contributors — the request *is* the collection distribution.
+<p align="center">
+  <img width="560" alt="How grip force is read from watch vibration" src="https://github.com/user-attachments/assets/cf02f9f1-a91b-472a-8073-cc072cd7790a" />
+</p>
 
-### 5. Processing costs that leave a margin
-- Unusable recordings (too short, hands not visible, too dark) are rejected **on-device before any API call** — $0
-- A local object detector scans first; SAM only gets what's needed (no "person" query for solo recordings, screens only when present, static objects at 1 fps)
-- On 4 real recordings: SAM cost **$2.92 → $0.27 (−91%)**, about $5–7 per hour of video (sold at ~$43/hour)
-- SAM mask decoding rewritten with Numba: 593 s → 8 s per recording, bit-identical to the official parser
+**Measured on a Galaxy Watch4** (IMU capped at 100 Hz, 3 personal calibration recordings, train on round 1 → test on round 2, and cross-validated the other way)
 
-## The dataset (LeRobot v3.0)
+- **Classification:** a random forest (25 trees) + 2-second smoothing reaches **59%** accuracy on 4 levels (release · light · normal · tight) (chance 25%, tight 93%)
+- **Regression:** while the video detects hand–object contact, a regression forest (50 trees) estimates grip force as a continuous 0–100 score (e.g. "mid (57)")<br>
+  → cut into low · mid · high it reaches **83%**, mean absolute error (MAE) 15 points
+- Heart rate, beat-to-beat intervals and skin temperature from the watch come from the Samsung Health Sensor SDK (`docs/samsung_health_sdk.md`).
 
-`observation.images.ego` (masked + face-replaced video) · `observation.hands` · `observation.body` · `observation.face` · `observation.imu.phone` · `observation.imu.wrist` ·
-`observation.audio` · **`observation.touch`** (contact, grip low · mid · high + 0–100 score) · `observation.touch.vibration` · **`observation.physio`** (heart rate, skin temperature; biometric consent only) ·
-`observation.objects` · `annotation.step` · `annotation.primitive` (reach · grasp · … · release) · `sync.error_ms` + a quality certificate.
+<p align="center">
+  <img src="docs/grip_quality.en.png" width="85%" alt="Grip calibration once at the start → personal model → grip scored 0–100 in every recording; on the unseen round 97% light read as low, 56% normal as mid, 95% tight as high">
+</p>
+
+### 3. Five-sense data sync
+
+Data across devices is synced with phone↔watch clock round-trips, an 18–20 kHz acoustic beacon (high-frequency tone) and watch vibration pulses.
+
+- Of 37 real phone + watch recordings, **24 were aligned with the acoustic beacon** (pair residual 0.1–1.9 ms).
+- The rest are aligned with the server-relayed clock; since that clock runs 24.7 ms (±3.5) off the beacon, the bias is measured per device pair and subtracted.
+- Result: watch ↔ video time error **24.7 → 3.7 ms** (sale threshold 10 ms)
+
+<p align="center">
+  <img src="docs/sync_quality.en.png" width="85%" alt="Watch-to-video time offset: 24.7 ms before correction, up to 16.7 ms with clap sync, 3.7 ms now (sale threshold 10 ms)">
+</p>
+
+### 4. Better Spark 1.3 labeling accuracy
+
+To raise labeling accuracy per segment and per action:
+
+1. The video is split into 20-second chunks at 0.5× speed and **labeled 5 times, then cross-checked** (the results are merged into one sequence)
+2. **Re-verified with the open-weights Spark Open 816B** (re-picks the boundary frames where the action changes)
+3. **Human label verification**
+4. **Per-mission labels generated by Spark itself**
+
+On 8 unseen EPIC-KITCHENS-100 clips (271 human-labeled steps), labeling accuracy went **36% → 54% (+18 pp)** and boundary error **430 → 182 ms**.
+
+> We also considered re-verification with Muse Wonderful, but it is not available in Korea, so we used an open-weights model.
+
+### 5. Cutting API cost with Glimmer
+
+So that labeling doesn't go to the Muse Spark API every time, we trained the open-weights Muse Glimmer 30B on our own data (Fireworks LoRA).<br>
+Spark drafts the labels, and Glimmer learns from the steps that humans have checked and corrected as ground truth.
+
+- Before training **41.8%** → trained on verified ground truth **54.1%** → with per-mission action-order decoding **64.1%**
+- As data accumulates, Glimmer can take over these decisions, reducing Spark API calls and raising the business margin.
+
+### 6. Cutting SAM object-detection cost
+
+- Unusable recordings (too short, hands not visible, too dark) are rejected on this Mac **before any API call**.
+- A local object detector on this Mac scans first, and SAM only gets the decisions that are needed.<br>
+  (no "person" query for solo recordings, screens only when visible, static objects at 1 frame per second)
+- On 4 real recordings: SAM cost **$2.92 → $0.27 (−91%)**, about $5–7 per hour of video (sold at ₩60,000/hour (~$43))
+- SAM mask decoding rewritten with Numba: processing time **593 s → 8 s**
+
+---
+
+## LeRobot data for sale (LeRobot v3.0)
+
+<p align="center">
+  <img width="720" alt="LeRobot v3.0 viewer on the buyer web" src="https://github.com/user-attachments/assets/8131397c-a152-4891-8100-d7066f90d2fa" />
+</p>
+
+| Item | Contents |
+|---|---|
+| Video | `observation.images.ego` (masked + face-replaced video) |
+| Pose | `observation.hands` · `observation.body` · `observation.face` |
+| Motion | `observation.imu.phone` · `observation.imu.wrist` |
+| Sound | `observation.audio` |
+| Touch | **`observation.touch`** (contact, grip low · mid · high + 0–100 score) · `observation.touch.vibration` |
+| Physiology | **`observation.physio`** (heart rate, skin temperature; biometric consent only) |
+| Objects & labels | `observation.objects` · `annotation.step` · `annotation.primitive` (reach · grasp · … · release) |
+| Sync | `sync.error_ms` + quality certificate |
+
 Loads with the real `lerobot` 0.6.1 (`scripts/validate_lerobot.py`).
 
-Buyers pick sensor packs per hour of data — video (required) ₩35,000 · pose ₩20,000 · audio ₩5,000 · wrist IMU ₩15,000 · touch ₩25,000 · biometrics ₩50,000 (`datacash/pricing.py`).
+Sensors are bought as packs (per hour, `datacash/pricing.py`).
+
+| Video (required) | Pose | Sound | Wrist IMU | Touch | Physiology |
+|---|---|---|---|---|---|
+| ₩35,000 | ₩20,000 | ₩5,000 | ₩15,000 | ₩25,000 | ₩50,000 |
+
+---
 
 ## Architecture
 
-**Overall flow** — a buyer asks in words, missions open, participants record with phone and watch, the server processes the upload, delivers the dataset and pays the reward.
+**Overall flow** — a company makes a request in plain words, missions open, participants record with phone and watch and upload, and the server processes the recordings, delivers the data and pays the rewards.
 
-![Architecture](docs/architecture.en.svg)
+<p align="center"><img src="docs/architecture.en.svg" width="95%" alt="Architecture"></p>
 
-**How one recording is processed** (`datacash/jobs.py`) — free local steps run first, so unusable recordings are rejected before any Meta model is called.
+**How one recording is processed** (`datacash/jobs.py`) — free steps run first, so unusable recordings are rejected before any Meta model is called.
 
-![Processing pipeline](docs/pipeline.en.svg)
+<p align="center"><img src="docs/pipeline.en.svg" width="95%" alt="Processing pipeline"></p>
 
-**Tech stack and deployment** — today there is no Docker or cloud: one Mac runs the server and all processing, and the phone and watch apps find it over mDNS on the same Wi-Fi and upload directly.
+**Tech stack and deployment** — today there is no Docker or cloud: one Mac runs both the server and all processing, and the app and watch find the server over mDNS on the same Wi-Fi and upload directly.
 
-![Tech stack](docs/tech_stack.en.svg)
+<p align="center"><img src="docs/tech_stack.en.svg" width="95%" alt="Tech stack"></p>
 
 ## Run it
 
 ```bash
 python3.12 -m venv .venv && .venv/bin/pip install -e ".[dev]" torch pyyaml rich
-echo "MODEL_API_KEY=..." > .env                       # never committed
+echo "MODEL_API_KEY=..." > .env                       # never committed to the repo
 # data/models: MediaPipe hand/pose/face landmarker .task, efficientdet_lite0.tflite, OpenCV yunet.onnx + sface.onnx
-.venv/bin/python -m pytest                            # verified on synthetic sessions with known ground truth
+.venv/bin/python -m pytest                            # verified on synthetic five-sense sessions with known ground truth
 DATACASH_TOKEN=... .venv/bin/python -m datacash.server.app --port 8800   # server + buyer web
 cd app && ./gradlew assembleDebug                     # Android app + watch app
 ```
-
-LivePortrait is not vendored — get [KwaiVGI/LivePortrait](https://github.com/KwaiVGI/LivePortrait) (MIT) and point `LP_ROOT` to it.
 
 ## Layout
 
@@ -156,26 +194,58 @@ LivePortrait is not vendored — get [KwaiVGI/LivePortrait](https://github.com/K
 | `app/` | Android app (consent, missions, face check, recording, mistake marks, questions, upload, rewards, appeals) + watch app |
 | `web/` | Buyer web (plain-language requests, five-sense timeline, quotes, orders, downloads) and operator console |
 | `datacash/privacy` | SAM masking · face replacement · speech privacy · pre-scan |
-| `datacash/sync` · `touch` · `labels` | Sensor sync · touch · hand and body pose |
+| `datacash/sync` · `touch` · `labels` | Five-sense sync · touch · hand and body pose |
 | `datacash/understand` | Muse Spark understanding · Spark Open second opinion · sensor-based verification |
 | `datacash/export` · `jobs.py` | LeRobot export · certificate · processing pipeline |
 | `datacash/server` | Collection server + buyer API |
 
-## Docs (in Korean)
+## Meta models used
 
-- Hackathon plan: [docs/1026_meta_hackathon.md](docs/1026_meta_hackathon.md) · Day 1 log: [docs/DAY1.md](docs/DAY1.md)
-- Masking & face-replacement evaluation: [docs/privacy_eval.md](docs/privacy_eval.md) · Meta model check: [docs/model_check.md](docs/model_check.md)
-- Watch SDK: [docs/samsung_health_sdk.md](docs/samsung_health_sdk.md) · Demo video script: [docs/demo_video_script.md](docs/demo_video_script.md)
+| Model | Role |
+|---|---|
+| **SAM 3.1** | Masks non-consenting people, children, screens, mirrors, picture frames and documents; recognizes handled objects and actions |
+| **Muse Spark 1.3** | Masked video → labels for steps, instructions, active hand, objects and mistakes<br>A company's plain-language request → mission design → per-mission label generation |
+| **Muse Image** | Generates 70 synthetic people who don't exist (for face replacement), with 24 angle photos of each |
+| **Muse Voice Transcribe** | Mutes the parts of a recording where personal information is spoken |
+| **Muse Spark Open** | The "higher model" for second-opinion review of recordings and for appeals.<br>Steps where the two models disagree are corrected; steps they agree on and that are sensor-verified become gold examples added to Spark 1.3's prompts for the next recordings. |
+| **Muse Glimmer 30B** | Learns video understanding from Spark 1.3 drafts and human-verified labels.<br>Performance improves as data accumulates, reducing dependence on the API. |
+
+## Measured performance
+
+| What | Before → now | Measured on |
+|---|---|---|
+| Step-label frame accuracy (Muse Spark 1.3) | **35.6% → 54.3%** | 8 new EPIC-KITCHENS-100 clips, 271 human-labeled steps |
+| Step boundary error (median) | **430 → 182 ms** | same |
+| Muse Glimmer 30B step accuracy (LoRA, Fireworks) | **41.8% → 54.1% → 64.1%**<br>(v80 trained on human ground truth · v82 + per-mission order decoding, range 60.7–67.2% · v79 trained on Spark labels: 32.8%) | 122 human-labeled steps from 8 recordings not used in training |
+| Watch ↔ video time error | **24.7 → 3.7 ms** (threshold 10 ms) | 37 phone + watch recordings |
+| Face replacement time per recording | **636 → 84 s** (7.5×) | `docs/privacy_eval.md` |
+| SAM 3.1 cost, 4 recordings | **$2.92 → $0.27** (−91%) | 4 real recordings |
+| Grip level low · mid · high | **83%** (chance 33%) | 3 calibration recordings, Galaxy Watch4 |
+
+<p align="center">
+  <img src="docs/perf/label_accuracy.en.png" width="85%" alt="Step-label accuracy"><br><br>
+  <img src="docs/perf/confusion.en.png" width="85%" alt="Confusion matrix"><br><br>
+  <img src="docs/perf/glimmer.en.png" width="85%" alt="Glimmer training"><br><br>
+  <img src="docs/perf/monitoring.en.png" width="85%" alt="Service monitoring">
+</p>
+
+**Service monitoring** (same values as the operator console, `datacash/perf.py`) — an alert fires when a threshold is crossed, and that recording is flagged for review.
+
+- Spark 1.3 ↔ Spark Open agreement per recording and the mean of the last 5 — alert below 50%
+- Processing time per recording — alert above 2× the median
+- Frames that still look like the same person after face replacement (SFace 0.363) — alert above 5%
+
+---
 
 ## Before vs. during the hackathon
 
 | | Contents |
 |---|---|
-| Before (until Oct 26) | Planning document and brand image only. No code |
-| During (from Oct 27 01:00 KST) | All code, app, web, Muse Image people and docs in this repository |
+| Before the hackathon (until 10-26) | Planning document and brand image only. No code |
+| During the hackathon (from 10-27 01:00 KST) | All code, app, web, Muse Image synthetic people and docs in this repository |
 
 ## Licenses and sources
 
-MediaPipe (Apache 2.0) · OpenCV YuNet & SFace (Apache 2.0) · LivePortrait (MIT) · LeRobot (Apache 2.0) · Numba (BSD).
-Test videos are from Wikimedia Commons (CC BY, CC BY-SA or public domain only; sources in `docs/privacy_eval.md`) and are not committed.
-The Samsung Health Sensor SDK is not committed, per its terms.
+MediaPipe (Apache 2.0) · OpenCV YuNet & SFace (Apache 2.0) · LivePortrait (MIT) · LeRobot (Apache 2.0) · Numba (BSD)<br>
+Test videos are from Wikimedia Commons (CC BY, CC BY-SA or public domain only; sources in `docs/privacy_eval.md`)<br>
+Samsung Health Sensor SDK
