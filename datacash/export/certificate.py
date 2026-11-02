@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -14,7 +15,9 @@ def _fmt(v, nd=2):
     return "-" if v is None else (f"{v:.{nd}f}" if isinstance(v, float) else str(v))
 
 
-def to_markdown(c: dict) -> str:
+def to_markdown(c: dict, lang: str = "ko") -> str:
+    if lang != "ko":
+        return to_markdown_en(c)
     L = [f"# DataCash 품질 인증서 — {c['session_id']}", "",
          f"- 발급: {c['issued_at']} · 미션: {c.get('mission', {}).get('title', '-')} · 등급: {c['level']}",
          f"- 데이터셋: LeRobot v3.0, 에피소드 {c['dataset']['episodes']}개, {c['dataset']['frames']}장면 ({c['dataset']['fps']}fps)",
@@ -62,6 +65,75 @@ def to_markdown(c: dict) -> str:
     cons = c.get("consent") or {}
     L += ["", "## 출처·동의", "", f"- 영상 동의: {cons.get('video')}, 생체 동의: {cons.get('bio')}, 연령대: {cons.get('age_band', '-')} (이름·얼굴 정보 없음)",
           f"- 기기: {json.dumps(c.get('devices'), ensure_ascii=False)}"]
+    return "\n".join(L) + "\n"
+
+
+def _note_en(note: str) -> str:
+    """동기화 방법 비고 ('비콘 16개 중 16개 짝') → 영어."""
+    m = re.match(r"(비콘|펄스) (\d+)개 중 (\d+)개 짝", note or "")
+    if not m:
+        return note or ""
+    return f"{m.group(3)} of {m.group(2)} {'beacons' if m.group(1) == '비콘' else 'pulses'} paired"
+
+
+def _age_en(v) -> str:
+    """'19~29세' → '19–29', '30대' → '30s'."""
+    v = str(v)
+    return re.sub(r"(\d+)대", r"\1s", v).replace("세", "").replace("~", "–")
+
+
+def to_markdown_en(c: dict) -> str:
+    """해외 구매 기업·심사용 영어판 (같은 certificate.json 에서)."""
+    yn = lambda v: "yes" if v else "no"
+    L = [f"# DataCash quality certificate — {c['session_id']}", "",
+         f"- Issued: {c['issued_at']} · Mission: {c.get('mission', {}).get('title', '-')} · Tier: {c['level']}",
+         f"- Dataset: LeRobot v3.0, {c['dataset']['episodes']} episode(s), {c['dataset']['frames']} frames ({c['dataset']['fps']} fps)",
+         f"- Channels: {', '.join(c['dataset']['features'])}", ""]
+    s = c["sync"]
+    L += ["## Multi-sense sync (automatic, no user action)", "",
+          f"Chosen method: **{s.get('chosen') or 'none (phone channels only)'}**", "",
+          "| Method | Pairs | Residual (ms) | Drift (ppm) | Note |", "|---|---|---|---|---|"]
+    for k, m in s.get("methods", {}).items():
+        L.append(f"| {k} | {m.get('n', '-')} | {_fmt(m.get('resid_ms'), 3)} | {_fmt(m.get('drift_ppm'))} | {_note_en(m.get('note', ''))} |")
+    L += ["", "| Sense | Estimated sync error (ms) | Meets sale threshold |", "|---|---|---|"]
+    for k, v in s.get("error_ms", {}).items():
+        L.append(f"| {k} | {_fmt(v)} | {yn(s.get('ok', {}).get(k))} |")
+    if s.get("checks"):
+        L += ["", "Cross-checks: " + ", ".join(f"{k} = {v}" for k, v in s["checks"].items())]
+    t = c.get("touch") or {}
+    g = t.get("grip_model")
+    L += ["", "## Touch (without a touch sensor)", "",
+          f"- Grip force: active watch vibration + GripSense-style features (UIST 2012), {t.get('pulses', 0)} pulses ({t.get('pulses_valid', 0)} valid), "
+          f"per-person model {'yes — cross-validated ' + _fmt(g.get('accuracy_cv'), 2) + ', ' + str(g.get('n_windows')) + ' windows' if g else 'none (GripSense features only)'}",
+          f"- Video contact events: {len(t.get('contact_events', []))} · confirmed contact sounds (sound + wrist impact): {len(t.get('confirmed_sounds', []))}",
+          "- Sold as 'contact events + watch-measured grip force low · mid · high (0–100 score)' — not tactile-sensor data. No fingertip pressure maps"]
+    h = c.get("human_state")
+    if h:
+        ph = {k: (_age_en(v) if k == "age_band" else v) for k, v in h.get("physio", {}).items()}
+        L += ["", "## Body state (biometric consent)", "", "- " + ", ".join(f"{k} {v}" for k, v in ph.items()),
+              f"- Self-report: {json.dumps(h.get('self_report'), ensure_ascii=False)}", "- No judgement or advice labels (raw values and self-report only)"]
+    st = c.get("steps") or []
+    if st:
+        L += ["", "## Step labels (Muse Spark, verified by sensors)", "", "| Span (s) | Instruction | Verified |", "|---|---|---|"]
+        for x in st:
+            ev = ", ".join(f"{k} {'O' if v else 'X'}" for k, v in (x.get("evidence") or {}).items())
+            L.append(f"| {x['start_s']:.1f}–{x['end_s']:.1f} | {x['instruction']} | {x.get('verified', '-')} ({ev}) |")
+    mk = c.get("mistakes")
+    if mk:
+        L += ["", "Mistake candidates (Muse Spark): " + "; ".join(f"{m['t_s']:.1f}s {m['description']}"
+                                                              + (" — matches participant's mark" if m.get("confirmed_by_participant") else "") for m in mk)]
+    o = c.get("outcome")
+    if o:
+        L += ["", "## Success / failure (self-reported)", "", f"- Outcome: {o.get('outcome')}, retries: {o.get('retries')}, "
+              f"'mistake' marks during recording: {len(o.get('self_marks_s', []))} {o.get('self_marks_s', [])}"]
+    p = c.get("privacy")
+    if p:
+        L += ["", "## Privacy processing", "", "- Raw video and audio stay on the server only while processing and are then deleted (what is sold is face-swapped, masked video and privacy-filtered audio)"
+              " — the hackathon demo server keeps them to show the raw ↔ swapped comparison",
+              "- " + json.dumps(p, ensure_ascii=False)]
+    cons = c.get("consent") or {}
+    L += ["", "## Source and consent", "", f"- Video consent: {cons.get('video')}, biometric consent: {cons.get('bio')}, age band: {_age_en(cons.get('age_band', '-'))} (no name or face data)",
+          f"- Devices: {json.dumps(c.get('devices'), ensure_ascii=False)}"]
     return "\n".join(L) + "\n"
 
 

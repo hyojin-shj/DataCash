@@ -26,3 +26,6 @@ app/wear/libs/*.aar
 app/wear/libs/*.jar
 app/*/build/
 app/.gradle/
+
+# 손-물체 접촉 감지 실험 (모델·venv, 1GB)
+train/handobj/
