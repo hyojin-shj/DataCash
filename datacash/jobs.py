@@ -179,30 +179,22 @@ def run_session(session_dir, out_dir, use_api: bool = True, level: Optional[str]
         except Exception as e:
             report["skipped"].append(f"privacy: {type(e).__name__}: {str(e)[:200]}")
     # 2-1. 참여자 얼굴 → 실존하지 않는 가상 인물 (LivePortrait + MediaPipe 자르기, 재식별 검사)
-    if masked is not None and not synthetic and os.environ.get("DATACASH_FACESWAP", "1") == "1":
+    if masked is not None and not synthetic and os.environ.get("DATACASH_FACESWAP", "1") != "0":
         try:
-            from .privacy.faceswap import rank_donors, swap_video
+            from .privacy import swap_job
 
             part = meta.get("participant") or {}
-            donors = rank_donors(video, gender=part.get("gender"), age_band=part.get("age_band"))
             dev = ((meta.get("devices") or {}).get("phone") or {}).get("id")
             mine = people.donor_for(dev, "owner") if people is not None else None      # 본인이 고른 가상 인물
             fam = {oid: people.donor_for(dev, pid) for oid, pid in getattr(r, "consented_who", {}).items()} if people is not None else {}
-            if donors:
-                first = mine
-                if first is None:                      # 본인이 고르지 않았으면: 같은 성별·나이대에서 덜 닮은 순서대로 시험해 표정을 줄일 일이 적은 사람
-                    from .privacy.faceswap import pick_donor
-
-                    first, tried = pick_donor(video, donors, log=log)
-                    report["donor_trial"] = tried
-                    donors = [first] + [d for d in donors if d != first]
-                sr = swap_video(video, masked, out / "masked_swap.mp4", first,
-                                participant_boxes=getattr(r, "participant_boxes", None), log=log,
-                                consented_boxes=getattr(r, "consented_boxes", None), extra_donors=donors[1:],
-                                family_donors={k: v for k, v in fam.items() if v})
-                masked = out / "masked_swap.mp4"
-                privacy = {**(privacy or {}), "face_swap": sr.to_dict()}
-                lap("face_swap")
+            sw = swap_job.run(video, masked, out / "masked_swap.mp4", log=log, gender=part.get("gender"), age_band=part.get("age_band"),
+                              mine=mine, family=fam, participant_boxes=getattr(r, "participant_boxes", None),
+                              consented_boxes=getattr(r, "consented_boxes", None))
+            masked = out / "masked_swap.mp4"
+            if "donor_trial" in sw:
+                report["donor_trial"] = sw.pop("donor_trial")
+            privacy = {**(privacy or {}), **sw}
+            lap("face_swap")
         except Exception as e:
             report["skipped"].append(f"face_swap: {type(e).__name__}: {str(e)[:200]}")
     if masked is None and not synthetic:

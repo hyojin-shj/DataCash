@@ -26,6 +26,7 @@
     POST /api/payout/account                 받을 계좌 표시 {label: "KB국민 ****1234"} → 기다리던 보상을 보냄 (시험 입금)
   구매 기업 (공개 읽기)
     GET  /                                   구매 기업용 웹
+    GET  /app.apk · /watch.apk               참여자 폰 앱 · 갤럭시 워치 앱
     GET  /api/market/catalog                 미션별 시간·등급·채널 (처리된 녹화의 인증서에서 계산, 지어낸 숫자 없음)
     GET  /api/market/sample/{sid}/timeline   예시 에피소드의 4감 타임라인 (촉각·심박·소리·단계)
     GET  /api/market/sample/{sid}/frame/{i}  예시 장면 (가린 영상에서만)
@@ -801,6 +802,13 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
             raise HTTPException(404, "앱 파일이 아직 없음")
         return FileResponse(p, media_type="application/vnd.android.package-archive", filename="DataCash.apk")
 
+    @app.get("/watch.apk")
+    def watch_apk():                         # 갤럭시 워치 앱 (data/server/dist/datacash-wear.apk)
+        p = root / "dist" / "datacash-wear.apk"
+        if not p.exists():
+            raise HTTPException(404, "워치 앱 파일이 아직 없음")
+        return FileResponse(p, media_type="application/vnd.android.package-archive", filename="DataCash-Watch.apk")
+
     @app.get("/admin", response_class=HTMLResponse)
     def admin_page():
         return (WEB / "admin.html").read_text()
@@ -989,8 +997,8 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
 
     def request_view(r: dict) -> dict:
         cat = {m["id"]: m for m in st.catalog()["missions"]}
-        return {"id": r["id"], "title": r["title"], "status": r["status"], "quote": r["quote"], "eligibility": r["plan"]["eligibility"],
-                "missions": [{"id": m["id"], "title": m["title"], "target_hours": m["target_hours"],
+        return {"id": r["id"], "title": r["title"], "title_en": r.get("title_en") or r["title"], "status": r["status"], "quote": r["quote"], "eligibility": r["plan"]["eligibility"],
+                "missions": [{"id": m["id"], "title": m["title"], "title_en": m.get("title_en") or m["title"], "target_hours": m["target_hours"],
                               "collected_hours": cat.get(m["id"], {}).get("hours", {}).get("basic", 0),
                               "recordings": cat.get(m["id"], {}).get("recordings", 0)} for m in r["missions"]]}
 
@@ -1031,7 +1039,7 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
         return {"id": oid, "status": "building"}
 
     @app.get("/api/admin/sessions")
-    def admin_sessions(token: str = Query("")):
+    def admin_sessions(token: str = Query(""), lang: Optional[str] = Query(None)):
         """녹화 목록: 상태 · 미션 · 보상 · 단계별 처리 시간 · 얼굴 치환(가상 인물·기준 넘은 장면) · 라벨을 붙인 모델."""
         admin_auth(token)
         rows = []
@@ -1044,7 +1052,7 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
                 fs = ((json.loads(cert.read_text()).get("privacy") or {}).get("face_swap") or {})
             rows.append({"sid": sid, "state": s.get("state"), "mission": s.get("mission"), "level": s.get("level"),
                          "minutes": s.get("minutes"), "reward": s.get("reward"), "appeal_extra": s.get("appeal_extra", 0),
-                         "error": s.get("error"), "updated": s.get("updated"), "seconds": s.get("seconds") or {},
+                         "error": localize_error(s.get("error"), lang), "updated": s.get("updated"), "seconds": s.get("seconds") or {},
                          "labels_by": s.get("labels_by") or ("muse-spark-1.3" if s.get("state") == "done" else None),
                          "donor": fs.get("donor"), "frames": fs.get("frames"), "swapped": fs.get("swapped"),
                          "over_reid": fs.get("over_reid"), "donor_trial": s.get("donor_trial"),
@@ -1065,7 +1073,7 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
 
     # ---- 사람 정답: 운영자가 녹화를 보며 단계를 직접 단다 (/label). 우리 녹화의 진짜 정확도 재기 · Glimmer 학습 정답 ----
     HUMAN = config.DATA / "evolve" / "human"
-    MTITLE = {m["id"]: m["title"] for m in json.loads((config.ROOT / "datacash" / "missions.json").read_text())["missions"]}
+    MTITLE = {m["id"]: m.get("title_en") or m["title"] for m in json.loads((config.ROOT / "datacash" / "missions.json").read_text())["missions"]}
 
     @app.get("/label", response_class=HTMLResponse)
     def label_page():
@@ -1097,10 +1105,9 @@ def create_app(root: Optional[Path] = None, token: Optional[str] = None, use_api
             raise HTTPException(404)
         c = json.loads(cert.read_text())
         h = HUMAN / f"{sid}.json"
-        names = json.loads((config.ROOT / "datacash" / "missions.json").read_text())["primitives_ko"]
         m = c.get("mission") or {}
         m = m if isinstance(m, dict) else {"id": m}
-        return {"sid": sid, "mission": " · ".join(x for x in (MTITLE.get(m.get("id"), m.get("title") or m.get("id")), m.get("situation")) if x), "actions": [[a, names.get(a, a)] for a in PRIMITIVES],
+        return {"sid": sid, "mission": " · ".join(x for x in (MTITLE.get(m.get("id"), m.get("title_en") or m.get("title") or m.get("id")), m.get("situation_en")) if x), "actions": [[a, a.replace("_", " ")] for a in PRIMITIVES],
                 "spark": [{k: s.get(k) for k in ("start_s", "end_s", "action", "objects")} for s in c.get("steps") or []],
                 "human": json.loads(h.read_text()) if h.exists() else None}
 

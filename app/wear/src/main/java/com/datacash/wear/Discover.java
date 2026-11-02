@@ -28,8 +28,9 @@ final class Discover {
     static synchronized boolean ensure(Context c) {
         if (System.currentTimeMillis() - lastTry < 10000) return false;     // 안 될 때 계속 확인·찾기 하지 않게
         SharedPreferences p = c.getSharedPreferences("datacash", Context.MODE_PRIVATE);
-        if (reachable(p.getString("server", ""))) return true;
+        if (reachable(p.getString("server", BuildConfig.DEFAULT_SERVER))) return true;
         String found = find(c);
+        if ((found == null || !reachable(found)) && reachable(BuildConfig.DEFAULT_SERVER)) found = BuildConfig.DEFAULT_SERVER;   // 집 밖: 클라우드 서버
         if (found == null || !reachable(found)) {
             lastTry = System.currentTimeMillis();
             return false;
@@ -41,8 +42,8 @@ final class Discover {
     static boolean reachable(String base) {
         try {
             HttpURLConnection h = (HttpURLConnection) new URL(base + "/api/time").openConnection();
-            h.setConnectTimeout(1500);
-            h.setReadTimeout(1500);
+            h.setConnectTimeout(4000);
+            h.setReadTimeout(4000);
             boolean ok = h.getResponseCode() < 500;
             h.disconnect();
             return ok;

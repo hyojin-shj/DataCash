@@ -59,8 +59,8 @@ final class Discover {
     static boolean reachable(String base) {
         try {
             HttpURLConnection h = (HttpURLConnection) new URL(base + "/api/time").openConnection();
-            h.setConnectTimeout(1500);
-            h.setReadTimeout(1500);
+            h.setConnectTimeout(4000);
+            h.setReadTimeout(4000);
             boolean ok = h.getResponseCode() < 500;
             h.disconnect();
             return ok;

@@ -32,6 +32,34 @@ Meta Global AI Developer Hackathon (Indie Developer)
 
 ---
 
+## How to run
+
+评审期间(11月5–8日)在线演示开放,无需搭建,服务器运行在云端。
+
+| | 链接 |
+|---|---|
+| **网页**(采购方页面:用自然语言提需求 · 示例 · 目录 · 报价) | https://simhyojin024-datacash.hf.space |
+| **运营者后台** | https://simhyojin024-datacash.hf.space/admin — 密码 **`admin`** |
+| **人工标注工具** | https://simhyojin024-datacash.hf.space/label — 同一密码 |
+| **手机 App**(Android APK) | https://simhyojin024-datacash.hf.space/app.apk |
+| **Galaxy Watch App**(Wear OS APK) | https://simhyojin024-datacash.hf.space/watch.apk |
+
+**手机(Galaxy):** 在手机上打开 APK 链接 → 允许浏览器"安装未知应用" → 打开 DataCash → 登记面部 → 选择任务并录制。请让手和物体都在画面里;几乎看不到手的片段会被自动驳回。审核结果、奖励和标注几分钟后回到 App。
+
+**Galaxy Watch:** Wear OS 不能通过浏览器安装 APK,需要用 Wi-Fi adb 安装一次。在手表上:设置 → 关于手表 → 软件信息 → 连续点击 *软件版本* 5 次 → 开发者选项 → 打开 **ADB 调试** 和 **无线调试** → *配对新设备*。然后在同一 Wi-Fi 的电脑上:
+
+```bash
+adb pair <watch-ip>:<pairing-port>     # 输入手表上显示的 6 位配对码
+adb connect <watch-ip>:<port>
+adb install DataCash-Watch.apk
+```
+
+在手表上打开 DataCash,它已连接到演示服务器。在手机上开始录制,手表会同时记录手腕动作和触觉。
+
+说明:服务器使用免费 CPU 实例,长时间闲置后首次访问可能需要约一分钟唤醒。上传的片段会保留到服务器重启为止。
+
+---
+
 ## 核心技术
 
 ### 1. 虚拟人物替换
@@ -176,15 +204,24 @@ Spark 生成标签草稿，人工确认和修改后的步骤作为真值，供 G
 
 <p align="center"><img src="docs/tech_stack.en.svg" width="95%" alt="技术栈"></p>
 
-## 运行
+## Run locally(在自己的电脑上 — 包括换脸)
+
+换脸需要 GPU,免费云服务器没有 GPU。想完整体验包括虚拟人物换脸在内的全部流程,请在自己的电脑上启动服务器:Apple Silicon Mac 或带 NVIDIA GPU 的 PC 都可以。在 MacBook 上,一段 30 秒的片段大约需要 6 分钟。需要 Python 3.12、git 和 **Meta Model API 密钥**。密钥用于 SAM 3.1 遮挡和 Muse Spark 标注;没有它,录像无法生成可出售的数据。`FIREWORKS_API_KEY` 为可选,填上后会加上 Spark Open 二次校验。
 
 ```bash
-python3.12 -m venv .venv && .venv/bin/pip install -e ".[dev]" torch pyyaml rich
-echo "MODEL_API_KEY=..." > .env                       # 不提交到仓库
-# data/models：MediaPipe hand/pose/face landmarker .task、efficientdet_lite0.tflite、OpenCV yunet.onnx·sface.onnx
-.venv/bin/python -m pytest                            # 用已知真值的合成五感会话验证
-DATACASH_TOKEN=... .venv/bin/python -m datacash.server.app --port 8800   # 服务器 + 购买企业网页
-cd app && ./gradlew assembleDebug                     # 安卓 App + 手表 App
+git clone https://github.com/hyojin-shj/DataCash.git && cd DataCash
+python3.12 -m venv .venv && .venv/bin/pip install -e . torch pyyaml rich huggingface_hub
+.venv/bin/python scripts/fetch_models.py      # 模型文件 + LivePortrait(约 700MB)
+echo "MODEL_API_KEY=你的-Meta-Model-API-密钥" > .env
+DATACASH_TOKEN=自定义令牌 .venv/bin/python -m datacash.server.app --port 8800
+```
+
+- **网页 / 运营者:** http://localhost:8800 、 http://localhost:8800/admin(密码 = 自定义令牌)
+- **手机:** 连到同一 Wi-Fi → DataCash → *连接智能设备* → *数据服务器*。输入 `http://<电脑IP>:8800` 和令牌 → *保存并检查连接*。Mac 上用 `ipconfig getifaddr en0` 查看 IP。
+- **手表:** 按 How to run 中的方法用 adb 安装后,把它指向你的服务器:
+
+```bash
+adb shell am start -n com.datacash.wear/.WatchActivity --es server http://<电脑IP>:8800 --es token 自定义令牌
 ```
 
 ## 目录

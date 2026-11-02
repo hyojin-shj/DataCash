@@ -32,6 +32,34 @@ Meta Global AI Developer Hackathon (Indie Developer)
 
 ---
 
+## How to run
+
+審査期間中(11月5〜8日)はすぐに試せるよう公開しています。サーバーの準備は不要で、クラウドで動いています。
+
+| | リンク |
+|---|---|
+| **Web**(購入企業ページ:ことばで依頼・サンプル・カタログ・見積もり) | https://simhyojin024-datacash.hf.space |
+| **運営者画面** | https://simhyojin024-datacash.hf.space/admin — パスワード **`admin`** |
+| **人手ラベル付けツール** | https://simhyojin024-datacash.hf.space/label — 同じパスワード |
+| **スマホアプリ**(Android APK) | https://simhyojin024-datacash.hf.space/app.apk |
+| **Galaxy Watch アプリ**(Wear OS APK) | https://simhyojin024-datacash.hf.space/watch.apk |
+
+**スマホ(Galaxy):** スマホで APK リンクを開く → ブラウザに「不明なアプリのインストール」を許可 → DataCash を開く → 顔を登録 → ミッションを選んで録画。手と物が画面に入るように撮ってください。手がほとんど映らないクリップは自動で却下されます。承認・報酬・ラベルは数分でアプリに戻ります。
+
+**Galaxy Watch:** Wear OS はブラウザから APK をインストールできないため、Wi-Fi 経由の adb で一度だけインストールします。ウォッチで 設定 → ウォッチ情報 → ソフトウェア情報 → *ソフトウェアバージョン* を5回タップ → 開発者向けオプション → **ADB デバッグ** と **ワイヤレスデバッグ** をオン → *新しいデバイスとペア設定*。同じ Wi-Fi のパソコンで:
+
+```bash
+adb pair <watch-ip>:<pairing-port>     # ウォッチに表示された6桁のコード
+adb connect <watch-ip>:<port>
+adb install DataCash-Watch.apk
+```
+
+ウォッチで DataCash を開けば、デモサーバーにすでにつながっています。スマホで録画を始めると、ウォッチが手首の動きと触覚を一緒に記録します。
+
+注意:無料 CPU サーバーのため、長く使われていないと最初のアクセスで起動に1分ほどかかることがあります。アップロードしたクリップはサーバーが再起動するまで残ります。
+
+---
+
 ## 主な技術
 
 ### 1. 仮想人物への置き換え
@@ -176,15 +204,24 @@ Spark がラベルの下書きを作り、人が確認・修正したステッ�
 
 <p align="center"><img src="docs/tech_stack.en.svg" width="95%" alt="技術スタック"></p>
 
-## 実行
+## Run locally(自分の PC で — 顔の置き換えまで)
+
+顔の置き換えには GPU が必要ですが、無料のクラウドサーバーには GPU がありません。仮想人物への顔置き換えまで全部試すなら、自分の PC でサーバーを起動してください。Apple Silicon の Mac か NVIDIA GPU 搭載の PC で動きます。MacBook では 30 秒のクリップ 1 本に約 6 分かかります。必要なのは Python 3.12、git、そして **Meta Model API キー** です。キーは SAM 3.1 のマスクと Muse Spark のラベルに使います。キーがないと、録画は販売用データになりません。`FIREWORKS_API_KEY` は任意で、入れると Spark Open の二次検証も行います。
 
 ```bash
-python3.12 -m venv .venv && .venv/bin/pip install -e ".[dev]" torch pyyaml rich
-echo "MODEL_API_KEY=..." > .env                       # リポジトリには入れない
-# data/models に MediaPipe hand/pose/face landmarker .task、efficientdet_lite0.tflite、OpenCV yunet.onnx·sface.onnx
-.venv/bin/python -m pytest                            # 正解がわかっている合成 5感セッションで検証
-DATACASH_TOKEN=... .venv/bin/python -m datacash.server.app --port 8800   # サーバー + 購入企業向け Web
-cd app && ./gradlew assembleDebug                     # Android アプリ + ウォッチアプリ
+git clone https://github.com/hyojin-shj/DataCash.git && cd DataCash
+python3.12 -m venv .venv && .venv/bin/pip install -e . torch pyyaml rich huggingface_hub
+.venv/bin/python scripts/fetch_models.py      # モデルファイル + LivePortrait(約 700MB)
+echo "MODEL_API_KEY=自分の-Meta-Model-API-キー" > .env
+DATACASH_TOKEN=決めたトークン .venv/bin/python -m datacash.server.app --port 8800
+```
+
+- **Web / 運営者:** http://localhost:8800 、 http://localhost:8800/admin(パスワード = 決めたトークン)
+- **スマホ:** 同じ Wi-Fi につなぐ → DataCash → *スマートデバイスの接続* → *データサーバー*。`http://<PCのIP>:8800` とトークンを入れて → *保存して接続を確認*。Mac では `ipconfig getifaddr en0` で IP がわかります。
+- **ウォッチ:** How to run の手順で adb インストールしたあと、自分のサーバーに向けます:
+
+```bash
+adb shell am start -n com.datacash.wear/.WatchActivity --es server http://<PCのIP>:8800 --es token 決めたトークン
 ```
 
 ## フォルダ

@@ -2,6 +2,11 @@ plugins {
     id 'com.android.application'
 }
 
+// 기본 서버·참여자 토큰 — 폰 앱과 같은 local.properties 의 dc.server · dc.appToken (adb 로 넣지 않아도 바로 붙게)
+def local = new Properties()
+def lf = rootProject.file('local.properties')
+if (lf.exists()) lf.withInputStream { local.load(it) }
+
 // 갤럭시 워치(Wear OS) 앱 — 손목 IMU · 능동 진동 펄스 · 심박 · 마이크 · 서버 시각. 외부 라이브러리 없이 (삼성 SDK 는 선택).
 android {
     namespace 'com.datacash.wear'
@@ -13,6 +18,12 @@ android {
         targetSdk 34
         versionCode 1
         versionName '0.1-hackathon'
+        buildConfigField 'String', 'DEFAULT_SERVER', '"' + local.getProperty('dc.server', 'http://192.168.0.10:8800') + '"'
+        buildConfigField 'String', 'DEFAULT_TOKEN', '"' + local.getProperty('dc.appToken', '') + '"'
+    }
+
+    buildFeatures {
+        buildConfig true
     }
 
     compileOptions {

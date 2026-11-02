@@ -25,7 +25,7 @@ GENDERS = ["any", "female", "male"]
 
 SCHEMA = {
     "type": "object", "additionalProperties": False,
-    "required": ["reply", "ready", "title", "domain", "robot_use", "sensors", "eligibility", "budget_krw", "hours", "missions", "questions",
+    "required": ["reply", "ready", "title", "title_en", "domain", "robot_use", "sensors", "eligibility", "budget_krw", "hours", "missions", "questions",
                  "rarity", "rare_reason"],
     "properties": {
         "reply": {"type": "string", "description": "Reply to the buyer in the requested language: what you understood and what you propose (2-3 sentences)"},
@@ -33,6 +33,7 @@ SCHEMA = {
         "rare_reason": {"type": "string"},
         "ready": {"type": "boolean", "description": "true when task, sensors and budget-or-hours are known well enough to open missions"},
         "title": {"type": "string", "description": "Short Korean title of the data request"},
+        "title_en": {"type": "string", "description": "The same title in English"},
         "domain": {"type": "string"}, "robot_use": {"type": "string"},
         "sensors": {"type": "array", "items": {"type": "string", "enum": list(pricing.SENSORS)}},
         "eligibility": {"type": "object", "additionalProperties": False, "required": ["age_bands", "gender"],
@@ -157,7 +158,7 @@ class Requests:
                              "eligibility": plan["eligibility"], "sensors": q["sensors"], "level": q["level"],
                              "target_hours": round(q["hours"] / max(1, len(plan["missions"])), 2)})
         r = {"id": rid, "org": org.strip()[:120], "email": email.strip()[:200], "title": plan.get("title", ""),
-             "domain": plan.get("domain", ""), "robot_use": plan.get("robot_use", ""), "plan": plan, "quote": q,
+             "title_en": plan.get("title_en", ""), "domain": plan.get("domain", ""), "robot_use": plan.get("robot_use", ""), "plan": plan, "quote": q,
              "missions": missions, "status": "collecting", "created": _now(), "conversation": (conversation or [])[-12:]}
         return self.save(r)
 
@@ -286,7 +287,7 @@ def instant(messages: List[dict], catalog: dict) -> dict:
     missions = [{"id": mid, "title": cat[mid]["title"], "title_en": cat[mid].get("title_en", ""), "guide": cat[mid].get("guide", ""),
                  "purpose": cat[mid].get("purpose", ""), "objects": cat[mid].get("objects", []), "primitives": cat[mid].get("primitives", []),
                  "situations": [], "existing": True} for mid in picks]
-    plan = {"title": missions[0]["title"] if missions else "", "domain": "", "robot_use": "", "sensors": pricing.sensors_for(None, sensors),
+    plan = {"title": missions[0]["title"] if missions else "", "title_en": missions[0]["title_en"] if missions else "", "domain": "", "robot_use": "", "sensors": pricing.sensors_for(None, sensors),
             "eligibility": {"age_bands": ages, "gender": gender}, "budget_krw": parse_budget(t), "hours": parse_hours(t),
             "missions": missions, "questions": [], "ready": bool(missions), "rarity": rarity, "rare_reason": why, "source": "instant"}
     return plan

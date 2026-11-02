@@ -30,7 +30,7 @@ import java.util.Locale;
 /**
  * 데이터캐시 워치: 켜 두면 서버(/api/live)를 보고 폰이 녹화를 시작하면 같은 세션 id 로 손목 기록을 시작하고,
  * 끝나면 파일을 서버에 올린다. 녹화 중 서버와 시각을 주고받는다 (watch_server_sync.csv) — 폰과 직접 연결할 필요가 없다.
- * 서버 주소·토큰은 adb 로 넣는다 (워치 키보드 대신): shared_prefs/datacash.xml 의 server · token · bio.
+ * 서버 주소·토큰은 빌드할 때 넣은 기본값 (local.properties). 바꿀 때만 adb 로: am start ... --es server URL --es token TOKEN (onCreate).
  */
 public class WatchActivity extends Activity {
     private final Handler ui = new Handler(Looper.getMainLooper());
@@ -42,13 +42,20 @@ public class WatchActivity extends Activity {
     private long startedNs;
 
     private SharedPreferences prefs() { return getSharedPreferences("datacash", MODE_PRIVATE); }
-    private String server() { return prefs().getString("server", "http://192.168.0.10:8800"); }
-    private String token() { return prefs().getString("token", ""); }
+    private String server() { return prefs().getString("server", BuildConfig.DEFAULT_SERVER); }
+    private String token() { return prefs().getString("token", BuildConfig.DEFAULT_TOKEN); }
 
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        // 직접 켠 서버에 붙이기 (README 'Run locally'): adb shell am start -n com.datacash.wear/.WatchActivity --es server http://IP:8800 --es token TOKEN
+        String srvExtra = getIntent().getStringExtra("server"), tokExtra = getIntent().getStringExtra("token");
+        if (srvExtra != null && srvExtra.startsWith("http")) {
+            SharedPreferences.Editor e = prefs().edit().putString("server", srvExtra.trim().replaceAll("/+$", ""));
+            if (tokExtra != null) e.putString("token", tokExtra.trim());
+            e.apply();
+        }
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setGravity(Gravity.CENTER);
@@ -142,7 +149,7 @@ public class WatchActivity extends Activity {
         HttpURLConnection h = (HttpURLConnection) new URL(server() + path).openConnection();
         h.setRequestMethod(method);
         h.setRequestProperty("X-DC-Token", token());
-        h.setConnectTimeout(2000);
+        h.setConnectTimeout(5000);           // 클라우드 서버(https)는 같은 와이파이보다 느리게 붙는다
         h.setReadTimeout(30000);
         return h;
     }

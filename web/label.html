@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>DataCash · 사람 정답</title>
+<title>DataCash · Human labels</title>
 <link rel="icon" href="/static/favicon.png">
 <style>
   :root {
@@ -59,47 +59,47 @@
 </head>
 <body>
 <div class="gate card" id="gate" hidden>
-  <b>운영자 토큰</b>
-  <div class="row" style="margin-top:8px"><input id="tok" type="password" style="flex:1"><button class="btn main" onclick="enter()">들어가기</button></div>
+  <b>Operator password</b>
+  <div class="row" style="margin-top:8px"><input id="tok" type="password" style="flex:1"><button class="btn main" onclick="enter()">Enter</button></div>
 </div>
 <div class="app" id="app" hidden>
   <aside>
-    <h2>사람 정답</h2>
+    <h2>Human labels</h2>
     <div class="prog" id="prog"></div>
     <div id="list"></div>
-    <div style="margin:16px 8px 0;font-size:12px"><a href="/admin">← 운영자 화면</a></div>
+    <div style="margin:16px 8px 0;font-size:12px"><a href="/admin">← Operator</a></div>
   </aside>
   <main>
-    <div id="empty"><h1>녹화를 고르세요</h1><p class="lead">왼쪽에서 녹화를 고르면 영상과 Spark 라벨이 나와요. Spark 라벨을 고쳐서 정답을 만들어요.</p></div>
+    <div id="empty"><h1>Pick a recording</h1><p class="lead">Pick a recording on the left to see the video and the Spark labels. Fix the Spark labels to make the ground truth.</p></div>
     <div id="work" hidden>
       <div class="row" style="justify-content:space-between">
         <div><h1 id="title"></h1><p class="lead" id="sub"></p></div>
-        <div class="row"><span class="msg" id="msg"></span><button class="btn main" onclick="save()">저장 (⌘S)</button></div>
+        <div class="row"><span class="msg" id="msg"></span><button class="btn main" onclick="save()">Save (⌘S)</button></div>
       </div>
       <div class="card">
         <video id="v" preload="auto" playsinline></video>
         <div class="row" style="margin-top:8px">
           <button class="btn" onclick="toggle()">▶︎ / ❚❚</button>
-          <span class="now" id="now">0.00초</span>
-          <span style="color:var(--sub)">속도</span>
+          <span class="now" id="now">0.00 s</span>
+          <span style="color:var(--sub)">Speed</span>
           <button class="btn sp" data-r="0.25">0.25</button><button class="btn sp" data-r="0.5">0.5</button>
           <button class="btn sp on" data-r="1">1</button><button class="btn sp" data-r="2">2</button>
         </div>
-        <div class="tlname">사람 정답 (고치는 줄)</div><div class="tl" id="tl-h"></div>
-        <div class="tlname">Spark 라벨 (참고)</div><div class="tl" id="tl-s"></div>
+        <div class="tlname">Human labels (editable)</div><div class="tl" id="tl-h"></div>
+        <div class="tlname">Spark labels (reference)</div><div class="tl" id="tl-s"></div>
         <p class="keys" style="margin:10px 0 0">
-          <kbd>Space</kbd> 재생·멈춤 · <kbd>←</kbd><kbd>→</kbd> 0.1초 (<kbd>Shift</kbd> 1초) ·
-          <kbd>N</kbd> 지금 시각에서 새 단계 (지금 단계는 여기서 끝) · <kbd>S</kbd> 고른 단계 시작 = 지금 · <kbd>E</kbd> 끝 = 지금 ·
-          <kbd>↑</kbd><kbd>↓</kbd> 단계 고르기 · <kbd>1</kbd>~<kbd>9</kbd> 동작 바꾸기 · <kbd>Del</kbd> 지우기
+          <kbd>Space</kbd> play/pause · <kbd>←</kbd><kbd>→</kbd> 0.1 s (<kbd>Shift</kbd> 1 s) ·
+          <kbd>N</kbd> new step here (current step ends here) · <kbd>S</kbd> selected step start = now · <kbd>E</kbd> end = now ·
+          <kbd>↑</kbd><kbd>↓</kbd> select step · <kbd>1</kbd>–<kbd>9</kbd> change action · <kbd>Del</kbd> delete
         </p>
       </div>
       <div class="card">
         <div class="row" style="justify-content:space-between;margin-bottom:6px">
-          <b>단계 <span id="cnt"></span></b>
-          <div class="row"><button class="btn" onclick="fromSpark()">Spark 라벨로 다시 시작</button><button class="btn" onclick="clearAll()">모두 지우기</button><button class="btn" onclick="exclude()">이 녹화 빼기</button></div>
+          <b>Steps <span id="cnt"></span></b>
+          <div class="row"><button class="btn" onclick="fromSpark()">Restart from Spark labels</button><button class="btn" onclick="clearAll()">Clear all</button><button class="btn" onclick="exclude()">Exclude this recording</button></div>
         </div>
-        <table><thead><tr><th></th><th>시작</th><th>끝</th><th>동작</th><th>물체</th><th></th></tr></thead><tbody id="rows"></tbody></table>
-        <div class="row" style="margin-top:10px"><input id="note" placeholder="메모 (예: 손이 자주 화면 밖)" style="flex:1"></div>
+        <table><thead><tr><th></th><th>Start</th><th>End</th><th>Action</th><th>Objects</th><th></th></tr></thead><tbody id="rows"></tbody></table>
+        <div class="row" style="margin-top:10px"><input id="note" placeholder="Note (e.g. hand often out of frame)" style="flex:1"></div>
       </div>
       <div class="card keys" id="guide"></div>
     </div>
@@ -118,10 +118,10 @@ const api = async (path, opt) => {
 const COLORS = ["#2E9BF0", "#FF5F5F", "#16A36B", "#FFAF5F", "#8E5CF7", "#00A3A3", "#D94F9B", "#7A8B00", "#B5651D", "#5C6BC0",
                 "#E84646", "#0F8A5F", "#C77700", "#6A3FC9", "#008080", "#A0306E", "#556B2F", "#8B4513", "#3949AB", "#777"];
 const GUIDE = {
-  reach: "손이 물체 쪽으로 움직이기 시작 ~ 물체에 닿기 직전", grasp: "닿은 순간 ~ 손가락이 물체를 감싸 쥐기까지", lift: "쥔 물체가 바닥·면에서 떨어져 올라가는 동안",
-  transport: "들고 다른 곳으로 옮기는 동안", place: "물체를 내려 면에 닿게 하기까지", release: "손가락을 펴서 물체에서 손이 떨어지기까지",
-  pull: "몸 쪽으로 당기기 (티슈 뽑기·서랍)", push: "몸 바깥쪽으로 밀기", wipe: "면을 문지르는 동안", open: "뚜껑·문·서랍 열기", close: "닫기",
-  other: "어디에도 안 맞을 때만 (되도록 쓰지 않기)"
+  reach: "hand starts moving toward the object ~ just before touching it", grasp: "moment of contact ~ fingers close around the object", lift: "held object leaves the surface and rises",
+  transport: "carrying it somewhere else", place: "lowering the object until it touches a surface", release: "fingers open until the hand leaves the object",
+  pull: "pulling toward the body (tissue, drawer)", push: "pushing away from the body", wipe: "while rubbing a surface", open: "opening a lid, door or drawer", close: "closing",
+  other: "only when nothing else fits (avoid)"
 };
 let SES = [], cur = null, A = [], steps = [], sel = -1, dirty = false, spent = 0, lastTick = Date.now();
 setInterval(() => { const now = Date.now(); if (cur && !document.hidden) spent += Math.min(5, (now - lastTick) / 1000); lastTick = now; }, 1000);
@@ -138,14 +138,14 @@ async function start() {
 async function loadList() {
   SES = (await api("/api/admin/label")).sessions;
   const done = SES.filter(s => s.human_steps != null && !s.excluded).length, out = SES.filter(s => s.excluded).length;
-  document.getElementById("prog").textContent = `정답 단 녹화 ${done} / ${SES.length - out}편` + (out ? ` · 뺀 녹화 ${out}편` : "");
+  document.getElementById("prog").textContent = `Labelled ${done} / ${SES.length - out}` + (out ? ` · excluded ${out}` : "");
   document.getElementById("list").innerHTML = SES.map(s => `<button data-sid="${esc(s.sid)}" class="${cur && cur.sid === s.sid ? "on" : ""}">
-    ${s.excluded ? '<span style="color:var(--sub)">빠짐</span> ' : s.human_steps != null ? '<span class="ok">✓</span> ' : ""}${esc(s.mission)}
-    <small>${esc(s.sid)} · ${s.excluded ? "정답에서 뺌" : s.human_steps != null ? "정답 " + s.human_steps + "단계" + (s.seconds ? " · " + Math.round(s.seconds / 60 * 10) / 10 + "분 봄" : "") : "Spark " + s.spark_steps + "단계"}</small></button>`).join("");
+    ${s.excluded ? '<span style="color:var(--sub)">excluded</span> ' : s.human_steps != null ? '<span class="ok">✓</span> ' : ""}${esc(s.mission)}
+    <small>${esc(s.sid)} · ${s.excluded ? "excluded" : s.human_steps != null ? "human " + s.human_steps + " steps" + (s.seconds ? " · " + Math.round(s.seconds / 60 * 10) / 10 + " min spent" : "") : "Spark " + s.spark_steps + " steps"}</small></button>`).join("");
   document.querySelectorAll("#list button").forEach(b => b.onclick = () => open_(b.dataset.sid));
 }
 async function open_(sid) {
-  if (dirty && !confirm("저장하지 않은 고침이 있어요. 버릴까요?")) return;
+  if (dirty && !confirm("You have unsaved edits. Discard them?")) return;
   cur = await api("/api/admin/label/" + encodeURIComponent(sid));
   A = cur.actions;
   steps = (cur.human ? cur.human.steps : cur.spark).map(s => ({start_s: +s.start_s, end_s: +s.end_s, action: s.action, objects: s.objects || []}));
@@ -153,10 +153,10 @@ async function open_(sid) {
   sel = steps.length ? 0 : -1; dirty = false; spent = 0;
   document.getElementById("empty").hidden = true; document.getElementById("work").hidden = false;
   document.getElementById("title").textContent = cur.mission + " · " + sid;
-  document.getElementById("sub").textContent = cur.human ? (cur.human.excluded ? "정답에서 뺀 녹화예요 — 단계를 달고 저장하면 다시 들어가요" : `사람 정답 저장됨 (${cur.human.labeled_at})`) : "아직 사람 정답 없음 — Spark 라벨에서 시작해요";
+  document.getElementById("sub").textContent = cur.human ? (cur.human.excluded ? "Excluded — add steps and save to include it again" : `Human labels saved (${cur.human.labeled_at})`) : "No human labels yet — starting from the Spark labels";
   v.src = `/api/admin/sessions/${encodeURIComponent(sid)}/video?kind=swap&token=${encodeURIComponent(token)}`;
-  document.getElementById("guide").innerHTML = "<b>동작 기준</b><br>" + Object.entries(GUIDE).map(([k, g]) =>
-    `<b>${esc(name(k))}</b> (${k}) — ${esc(g)}`).join("<br>") + "<br>단계 사이 틈은 비워 둬도 돼요 (채점에서 빠짐). 경계는 0.1초 단위로 맞추면 충분해요.";
+  document.getElementById("guide").innerHTML = "<b>Action guide</b><br>" + Object.entries(GUIDE).map(([k, g]) =>
+    `<b>${esc(name(k))}</b> (${k}) — ${esc(g)}`).join("<br>") + "<br>Gaps between steps can stay empty (not scored). Boundaries to 0.1 s are enough.";
   setMsg(""); render(); loadList();
 }
 const name = a => (A.find(x => x[0] === a) || [a, a])[1];
@@ -165,14 +165,14 @@ const dur = () => v.duration || Math.max(1, ...steps.map(s => s.end_s), ...(cur 
 
 function render() {
   steps.sort((a, b) => a.start_s - b.start_s);
-  document.getElementById("cnt").textContent = `(${steps.length}개)`;
+  document.getElementById("cnt").textContent = `(${steps.length})`;
   document.getElementById("rows").innerHTML = steps.map((s, i) => `<tr class="${i === sel ? "sel" : ""}" data-i="${i}">
-    <td><button class="btn" data-go="${i}" title="여기로">▶︎</button></td>
+    <td><button class="btn" data-go="${i}" title="Go here">▶︎</button></td>
     <td><input type="number" step="0.1" min="0" value="${s.start_s.toFixed(2)}" data-k="start_s"></td>
     <td><input type="number" step="0.1" min="0" value="${s.end_s.toFixed(2)}" data-k="end_s"></td>
     <td><select data-k="action">${A.map(([a, ko], j) => `<option value="${a}" ${a === s.action ? "selected" : ""}>${j < 9 ? (j + 1) + ". " : ""}${esc(ko)} (${a})</option>`).join("")}</select></td>
     <td><input class="obj" value="${esc(s.objects.join(", "))}" data-k="objects" placeholder="cup, table"></td>
-    <td><button class="btn" data-del="${i}">지우기</button></td></tr>`).join("");
+    <td><button class="btn" data-del="${i}">Delete</button></td></tr>`).join("");
   document.querySelectorAll("#rows tr").forEach(tr => {
     const i = +tr.dataset.i;
     tr.onclick = () => { sel = i; paint(); };
@@ -188,14 +188,14 @@ function render() {
 }
 function bar(el, list, editable) {
   const d = dur();
-  el.innerHTML = list.map((s, i) => `<div class="seg ${editable && i === sel ? "sel" : ""}" style="left:${s.start_s / d * 100}%;width:${(s.end_s - s.start_s) / d * 100}%;background:${color(s.action)}" title="${esc(name(s.action))} ${s.start_s.toFixed(1)}–${s.end_s.toFixed(1)}초">${esc(name(s.action))}</div>`).join("")
+  el.innerHTML = list.map((s, i) => `<div class="seg ${editable && i === sel ? "sel" : ""}" style="left:${s.start_s / d * 100}%;width:${(s.end_s - s.start_s) / d * 100}%;background:${color(s.action)}" title="${esc(name(s.action))} ${s.start_s.toFixed(1)}–${s.end_s.toFixed(1)} s">${esc(name(s.action))}</div>`).join("")
     + `<div class="head" style="left:${v.currentTime / d * 100}%"></div>`;
 }
 function paint() {
   bar(document.getElementById("tl-h"), steps, true);
   bar(document.getElementById("tl-s"), cur ? cur.spark.map(s => ({...s, start_s: +s.start_s, end_s: +s.end_s})) : [], false);
   document.querySelectorAll("#rows tr").forEach(tr => tr.classList.toggle("sel", +tr.dataset.i === sel));
-  document.getElementById("now").textContent = v.currentTime.toFixed(2) + "초";
+  document.getElementById("now").textContent = v.currentTime.toFixed(2) + " s";
 }
 ["tl-h", "tl-s"].forEach(id => document.getElementById(id).onclick = e => {
   const r = e.currentTarget.getBoundingClientRect(), t = (e.clientX - r.left) / r.width * dur();
@@ -209,7 +209,7 @@ document.querySelectorAll(".sp").forEach(b => b.onclick = () => {
   v.playbackRate = +b.dataset.r; document.querySelectorAll(".sp").forEach(x => x.classList.toggle("on", x === b));
 });
 function toggle() { v.paused ? v.play() : v.pause(); }
-function mark() { dirty = true; setMsg("저장 안 됨", "bad"); }
+function mark() { dirty = true; setMsg("Not saved", "bad"); }
 function setMsg(t, k) { const m = document.getElementById("msg"); m.textContent = t; m.className = "msg " + (k || ""); }
 function del(i) { steps.splice(i, 1); sel = Math.min(sel, steps.length - 1); mark(); render(); }
 function split() {
@@ -225,28 +225,28 @@ function split() {
   steps.sort((a, b) => a.start_s - b.start_s);
   sel = steps.findIndex(s => s.start_s === t); mark(); render();
 }
-function fromSpark() { if (!confirm("지금 단계를 지우고 Spark 라벨로 다시 시작할까요?")) return;
+function fromSpark() { if (!confirm("Clear these steps and restart from the Spark labels?")) return;
   steps = cur.spark.map(s => ({start_s: +s.start_s, end_s: +s.end_s, action: s.action, objects: s.objects || []})); sel = 0; mark(); render(); }
-function clearAll() { if (!confirm("단계를 모두 지울까요?")) return; steps = []; sel = -1; mark(); render(); }
+function clearAll() { if (!confirm("Delete all steps?")) return; steps = []; sel = -1; mark(); render(); }
 async function exclude() {
-  if (!cur || !confirm("이 녹화를 정답·채점·학습에서 뺄까요? (녹화 파일은 그대로 남아요)")) return;
+  if (!cur || !confirm("Exclude this recording from ground truth, scoring and training? (The video file stays.)")) return;
   try {
     cur.human = await api("/api/admin/label/" + encodeURIComponent(cur.sid), {method: "PUT", headers: {"Content-Type": "application/json"},
       body: JSON.stringify({steps: [], note: document.getElementById("note").value, excluded: true})});
-    dirty = false; setMsg("정답에서 뺐어요", "ok"); document.getElementById("sub").textContent = "정답에서 뺀 녹화예요"; loadList();
-  } catch (e) { setMsg("못 뺌: " + e.message, "bad"); }
+    dirty = false; setMsg("Excluded", "ok"); document.getElementById("sub").textContent = "Excluded from ground truth"; loadList();
+  } catch (e) { setMsg("Could not exclude: " + e.message, "bad"); }
 }
 async function save() {
   if (!cur) return;
   const bad = steps.find(s => !(s.end_s > s.start_s));
-  if (bad) { setMsg(`끝이 시작보다 늦어야 해요 (${bad.start_s.toFixed(2)}초 단계)`, "bad"); return; }
+  if (bad) { setMsg(`End must be after start (step at ${bad.start_s.toFixed(2)} s)`, "bad"); return; }
   try {
     const r = await api("/api/admin/label/" + encodeURIComponent(cur.sid), {method: "PUT", headers: {"Content-Type": "application/json"},
       body: JSON.stringify({steps, note: document.getElementById("note").value, seconds: spent + ((cur.human && cur.human.seconds) || 0)})});
-    cur.human = r; dirty = false; setMsg(`저장했어요 · ${r.steps.length}단계`, "ok");
-    document.getElementById("sub").textContent = `사람 정답 저장됨 (${r.labeled_at})`;
+    cur.human = r; dirty = false; setMsg(`Saved · ${r.steps.length} steps`, "ok");
+    document.getElementById("sub").textContent = `Human labels saved (${r.labeled_at})`;
     loadList();
-  } catch (e) { setMsg("저장 못 함: " + e.message, "bad"); }
+  } catch (e) { setMsg("Could not save: " + e.message, "bad"); }
 }
 document.addEventListener("keydown", e => {
   if ((e.metaKey || e.ctrlKey) && e.key === "s") { e.preventDefault(); save(); return; }

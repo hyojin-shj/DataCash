@@ -32,6 +32,34 @@ Meta Global AI Developer Hackathon (Indie Developer)
 
 ---
 
+## How to run
+
+심사 기간(11월 5~8일) 동안 바로 써 볼 수 있게 열어 두었어요. 설치할 서버는 없어요 — 클라우드에서 돌아가요.
+
+| | 링크 |
+|---|---|
+| **웹** (구매 기업 화면: 말로 의뢰 · 예시 · 카탈로그 · 견적) | https://simhyojin024-datacash.hf.space |
+| **운영자 화면** | https://simhyojin024-datacash.hf.space/admin — 비밀번호 **`admin`** |
+| **사람 정답 달기** | https://simhyojin024-datacash.hf.space/label — 같은 비밀번호 |
+| **폰 앱** (안드로이드 APK) | https://simhyojin024-datacash.hf.space/app.apk |
+| **갤럭시 워치 앱** (Wear OS APK) | https://simhyojin024-datacash.hf.space/watch.apk |
+
+**폰 (갤럭시):** 폰에서 APK 링크 열기 → 브라우저에 "출처를 알 수 없는 앱 설치" 허용 → DataCash 열기 → 얼굴 등록 → 미션 골라 녹화. 손과 물체가 화면에 나오게 찍어 주세요. 손이 거의 안 보이면 자동으로 반려돼요. 승인·보상·라벨은 몇 분 뒤 앱에 돌아와요.
+
+**갤럭시 워치:** Wear OS 는 브라우저로 APK 를 설치할 수 없어서, 와이파이 adb 로 한 번 설치해야 해요. 워치에서 설정 → 워치 정보 → 소프트웨어 정보 → *소프트웨어 버전* 5번 누르기 → 개발자 옵션 → **ADB 디버깅**, **무선 디버깅** 켜기 → *새 기기 페어링*. 같은 와이파이의 컴퓨터에서:
+
+```bash
+adb pair <watch-ip>:<pairing-port>     # 워치에 뜬 6자리 코드 입력
+adb connect <watch-ip>:<port>
+adb install DataCash-Watch.apk
+```
+
+워치에서 DataCash 를 열면 시연 서버에 이미 연결돼 있어요. 폰에서 녹화를 시작하면 워치가 손목 움직임과 촉각을 같이 기록해요.
+
+참고: 무료 CPU 서버라서 오래 안 쓰다가 처음 열면 깨어나는 데 1분쯤 걸릴 수 있어요. 올린 녹화는 서버가 다시 시작될 때까지 남아 있어요.
+
+---
+
 ## 핵심 기술
 
 ### 1. 가상 인물 치환
@@ -176,15 +204,24 @@ Spark 가 라벨 초안을 만들고, 사람이 확인·수정한 단계를 정�
 
 <p align="center"><img src="docs/tech_stack.ko.svg" width="95%" alt="기술 스택"></p>
 
-## 실행
+## Run locally (내 컴퓨터에서 — 얼굴 치환까지)
+
+얼굴 치환에는 GPU가 필요한데, 무료 클라우드 서버에는 GPU가 없어요. 가상 인물 얼굴 치환까지 전부 해 보려면 내 컴퓨터에서 서버를 켜세요. Apple Silicon 맥이나 NVIDIA GPU가 있는 PC면 돼요. 맥북에서 30초 녹화 하나에 약 6분 걸려요. 파이썬 3.12, git, **Meta Model API 키**가 필요해요. 키는 SAM 3.1 가리기와 Muse Spark 라벨에 쓰여요. 키가 없으면 녹화가 판매용 데이터로 만들어지지 않아요. `FIREWORKS_API_KEY`는 넣으면 Spark Open 2차 검증까지 해요 (선택).
 
 ```bash
-python3.12 -m venv .venv && .venv/bin/pip install -e ".[dev]" torch pyyaml rich
-echo "MODEL_API_KEY=..." > .env                       # 저장소에 올리지 않는다
-# data/models 에 MediaPipe hand/pose/face landmarker .task, efficientdet_lite0.tflite, OpenCV yunet.onnx·sface.onnx
-.venv/bin/python -m pytest                            # 정답을 아는 합성 5감 세션으로 검증
-DATACASH_TOKEN=... .venv/bin/python -m datacash.server.app --port 8800   # 서버 + 구매 기업 웹
-cd app && ./gradlew assembleDebug                     # 안드로이드 앱 + 워치 앱
+git clone https://github.com/hyojin-shj/DataCash.git && cd DataCash
+python3.12 -m venv .venv && .venv/bin/pip install -e . torch pyyaml rich huggingface_hub
+.venv/bin/python scripts/fetch_models.py      # 모델 파일 + LivePortrait (약 700MB)
+echo "MODEL_API_KEY=내-Meta-Model-API-키" > .env
+DATACASH_TOKEN=정한-토큰 .venv/bin/python -m datacash.server.app --port 8800
+```
+
+- **웹 / 운영자:** http://localhost:8800 , http://localhost:8800/admin (비밀번호 = 정한 토큰)
+- **폰:** 같은 와이파이에 연결 → DataCash → *스마트 기기 연결* → *데이터 서버*. `http://컴퓨터-IP:8800`와 토큰을 넣고 → *저장하고 연결 확인*. 맥에서는 `ipconfig getifaddr en0`로 IP를 볼 수 있어요.
+- **워치:** How to run 처럼 adb로 설치한 뒤, 내 서버로 바꿔 주세요.
+
+```bash
+adb shell am start -n com.datacash.wear/.WatchActivity --es server http://컴퓨터-IP:8800 --es token 정한-토큰
 ```
 
 ## 폴더

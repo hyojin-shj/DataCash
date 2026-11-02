@@ -30,7 +30,8 @@ import numpy as np
 
 from .. import config
 
-LP_ROOT = Path(os.environ.get("LP_ROOT", Path.home() / "home-data-mission" / "models" / "liveportrait"))
+LP_ROOT = Path(os.environ.get("LP_ROOT") or next((p for p in (config.DATA / "liveportrait", Path.home() / "home-data-mission" / "models" / "liveportrait")
+                                                  if p.exists()), config.DATA / "liveportrait"))   # scripts/fetch_models.py 가 data/liveportrait 에
 REID_MAX = 0.363           # SFace 의 '같은 사람' 기준 — 이보다 덜 닮으면 다른 사람 (닮은 가상 인물이 자연스럽다는 의견으로 0.30 → 기준 그대로)
 EXP_RAMP = 0.25            # 표정을 줄인 뒤 RAMP_EVERY 장면마다 이만큼씩 되돌린다
 RAMP_EVERY = 5

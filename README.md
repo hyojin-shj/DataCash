@@ -32,6 +32,34 @@ Meta Global AI Developer Hackathon (Indie Developer)
 
 ---
 
+## How to run
+
+The live demo is open for judging (Nov 5–8). No setup — the server runs in the cloud.
+
+| | Link |
+|---|---|
+| **Web** (buyer page: ask in words, sample, catalog, quote) | https://simhyojin024-datacash.hf.space |
+| **Operator dashboard** | https://simhyojin024-datacash.hf.space/admin — password **`admin`** |
+| **Human-label tool** | https://simhyojin024-datacash.hf.space/label — same password |
+| **Phone app** (Android APK) | https://simhyojin024-datacash.hf.space/app.apk |
+| **Galaxy Watch app** (Wear OS APK) | https://simhyojin024-datacash.hf.space/watch.apk |
+
+**Phone (Galaxy):** open the APK link on the phone → allow "Install unknown apps" for the browser → open DataCash → register your face → pick a mission and record. Keep your hands and the object in frame; clips where hands are barely visible are rejected automatically. Results (approval, reward, labels) come back in a few minutes.
+
+**Galaxy Watch:** Wear OS cannot install an APK from a browser, so install it over Wi-Fi with adb (once). On the watch: Settings → About watch → Software information → tap *Software version* 5 times → Developer options → turn on **ADB debugging** and **Wireless debugging** → *Pair new device*. Then on a computer on the same Wi-Fi:
+
+```bash
+adb pair <watch-ip>:<pairing-port>     # enter the 6-digit code shown on the watch
+adb connect <watch-ip>:<port>
+adb install DataCash-Watch.apk
+```
+
+Open DataCash on the watch — it is already pointed at the demo server. Start a recording on the phone and the watch records wrist motion and touch along with it.
+
+Notes: the server runs on a free CPU instance, so the first visit after a long idle can take about a minute to wake up. Clips you upload are kept until the server restarts.
+
+---
+
 ## Core technology
 
 ### 1. Synthetic-person replacement
@@ -176,15 +204,24 @@ Sensors are bought as packs (per hour, `datacash/pricing.py`).
 
 <p align="center"><img src="docs/tech_stack.en.svg" width="95%" alt="Tech stack"></p>
 
-## Run it
+## Run locally (full face replacement)
+
+Face replacement needs a GPU, which the free cloud server doesn't have. To try the full pipeline, including replacing your face with a synthetic person, run the server on your own computer: an Apple Silicon Mac or a PC with an NVIDIA GPU. On a MacBook, a 30-second clip takes about 6 minutes. You need Python 3.12, git, and a **Meta Model API key**, which SAM 3.1 masking and Muse Spark labels use. Without the key, recordings can't become sale data. `FIREWORKS_API_KEY` is optional: it adds the Spark Open second opinion.
 
 ```bash
-python3.12 -m venv .venv && .venv/bin/pip install -e ".[dev]" torch pyyaml rich
-echo "MODEL_API_KEY=..." > .env                       # never committed to the repo
-# data/models: MediaPipe hand/pose/face landmarker .task, efficientdet_lite0.tflite, OpenCV yunet.onnx + sface.onnx
-.venv/bin/python -m pytest                            # verified on synthetic five-sense sessions with known ground truth
-DATACASH_TOKEN=... .venv/bin/python -m datacash.server.app --port 8800   # server + buyer web
-cd app && ./gradlew assembleDebug                     # Android app + watch app
+git clone https://github.com/hyojin-shj/DataCash.git && cd DataCash
+python3.12 -m venv .venv && .venv/bin/pip install -e . torch pyyaml rich huggingface_hub
+.venv/bin/python scripts/fetch_models.py      # model files + LivePortrait (~700 MB)
+echo "MODEL_API_KEY=your-meta-model-api-key" > .env
+DATACASH_TOKEN=pick-a-token .venv/bin/python -m datacash.server.app --port 8800
+```
+
+- **Web / operator:** http://localhost:8800 and http://localhost:8800/admin (password = the token you picked)
+- **Phone:** put it on the same Wi-Fi → DataCash → *Connect smart devices* → *Data server*. Enter `http://<computer-ip>:8800` and your token → *Save & test*. On a Mac, `ipconfig getifaddr en0` shows the IP.
+- **Watch:** after installing it with adb (see How to run), point it at your server:
+
+```bash
+adb shell am start -n com.datacash.wear/.WatchActivity --es server http://<computer-ip>:8800 --es token pick-a-token
 ```
 
 ## Layout

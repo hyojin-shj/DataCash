@@ -29,3 +29,6 @@ app/.gradle/
 
 # 손-물체 접촉 감지 실험 (모델·venv, 1GB)
 train/handobj/
+
+# Baseten 올릴 때 복사하는 코드·가상 인물·모델 (scripts/push_baseten.sh)
+deploy/baseten_faceswap/packages/

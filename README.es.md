@@ -32,6 +32,34 @@ Meta Global AI Developer Hackathon (Indie Developer)
 
 ---
 
+## How to run
+
+La demo en vivo está abierta durante la evaluación (5–8 de noviembre). No hace falta instalar nada: el servidor corre en la nube.
+
+| | Enlace |
+|---|---|
+| **Web** (página del comprador: pedir con palabras, ejemplo, catálogo, cotización) | https://simhyojin024-datacash.hf.space |
+| **Panel del operador** | https://simhyojin024-datacash.hf.space/admin — contraseña **`admin`** |
+| **Herramienta de etiquetas humanas** | https://simhyojin024-datacash.hf.space/label — misma contraseña |
+| **App del teléfono** (APK Android) | https://simhyojin024-datacash.hf.space/app.apk |
+| **App del Galaxy Watch** (APK Wear OS) | https://simhyojin024-datacash.hf.space/watch.apk |
+
+**Teléfono (Galaxy):** abre el enlace del APK en el teléfono → permite "Instalar apps desconocidas" para el navegador → abre DataCash → registra tu cara → elige una misión y graba. Mantén las manos y el objeto en cuadro; los clips donde casi no se ven las manos se rechazan automáticamente. El resultado (aprobación, recompensa, etiquetas) vuelve en unos minutos.
+
+**Galaxy Watch:** Wear OS no permite instalar un APK desde el navegador, así que se instala una vez con adb por Wi-Fi. En el reloj: Ajustes → Acerca del reloj → Información de software → toca *Versión de software* 5 veces → Opciones de desarrollador → activa **Depuración ADB** y **Depuración inalámbrica** → *Vincular nuevo dispositivo*. Luego, en un ordenador en la misma Wi-Fi:
+
+```bash
+adb pair <watch-ip>:<pairing-port>     # código de 6 dígitos que muestra el reloj
+adb connect <watch-ip>:<port>
+adb install DataCash-Watch.apk
+```
+
+Abre DataCash en el reloj: ya apunta al servidor de la demo. Empieza a grabar en el teléfono y el reloj registra el movimiento de la muñeca y el tacto a la vez.
+
+Notas: el servidor usa una instancia CPU gratuita; la primera visita tras mucho tiempo inactivo puede tardar un minuto en despertar. Los clips que subas se guardan hasta que el servidor se reinicie.
+
+---
+
 ## Tecnologías clave
 
 ### 1. Sustitución por personas virtuales
@@ -176,15 +204,24 @@ Los sensores se compran por paquetes (por hora, `datacash/pricing.py`).
 
 <p align="center"><img src="docs/tech_stack.en.svg" width="95%" alt="Tecnologías"></p>
 
-## Ejecutar
+## Run locally (en tu ordenador, con reemplazo facial completo)
+
+El reemplazo facial necesita una GPU, y el servidor gratuito en la nube no la tiene. Para probar todo el proceso, incluido el reemplazo de tu cara por una persona sintética, ejecuta el servidor en tu propio ordenador: un Mac con Apple Silicon o un PC con GPU NVIDIA. En un MacBook, un clip de 30 s tarda unos 6 minutos. Necesitas Python 3.12, git y una **clave de Meta Model API**, que usan el enmascarado SAM 3.1 y las etiquetas de Muse Spark. Sin ella, las grabaciones no se convierten en datos de venta. `FIREWORKS_API_KEY` es opcional: añade la segunda opinión de Spark Open.
 
 ```bash
-python3.12 -m venv .venv && .venv/bin/pip install -e ".[dev]" torch pyyaml rich
-echo "MODEL_API_KEY=..." > .env                       # nunca se sube al repositorio
-# en data/models: MediaPipe hand/pose/face landmarker .task, efficientdet_lite0.tflite, OpenCV yunet.onnx·sface.onnx
-.venv/bin/python -m pytest                            # verificado con sesiones sintéticas de cinco sentidos de resultado conocido
-DATACASH_TOKEN=... .venv/bin/python -m datacash.server.app --port 8800   # servidor + web para empresas compradoras
-cd app && ./gradlew assembleDebug                     # app de Android + app de reloj
+git clone https://github.com/hyojin-shj/DataCash.git && cd DataCash
+python3.12 -m venv .venv && .venv/bin/pip install -e . torch pyyaml rich huggingface_hub
+.venv/bin/python scripts/fetch_models.py      # modelos + LivePortrait (~700 MB)
+echo "MODEL_API_KEY=tu-clave-meta-model-api" > .env
+DATACASH_TOKEN=elige-un-token .venv/bin/python -m datacash.server.app --port 8800
+```
+
+- **Web / operador:** http://localhost:8800 y http://localhost:8800/admin (contraseña = el token que elegiste)
+- **Teléfono:** conéctalo a la misma Wi-Fi → DataCash → *Conectar dispositivos* → *Servidor de datos*. Escribe `http://<ip-del-ordenador>:8800` y tu token → *Guardar y probar conexión*. En Mac, `ipconfig getifaddr en0` muestra la IP.
+- **Reloj:** después de instalarlo con adb (ver How to run), apúntalo a tu servidor:
+
+```bash
+adb shell am start -n com.datacash.wear/.WatchActivity --es server http://<ip-del-ordenador>:8800 --es token elige-un-token
 ```
 
 ## Carpetas
